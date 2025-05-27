@@ -26,10 +26,10 @@ func LoadConfig() (*Config, error) {
 		DBUrl = os.Getenv("DB_URL")
 	} else {
 		// 生产环境使用系统环境变量进行数据库配置注入
-		DBUser := os.Getenv("DB_USER")
-		DBPass := os.Getenv("DB_PASSWORD")
-		DBHost := os.Getenv("DB_HOST")
-		DBName := os.Getenv("DB_NAME")
+		DBUser := os.Getenv("NEWS_DB_USER")
+		DBPass := os.Getenv("NEWS_DB_PASSWORD")
+		DBHost := os.Getenv("NEWS_DB_HOST")
+		DBName := os.Getenv("NEWS_DB_NAME")
 
 		// 构建数据库连接字符串
 		DBUrl = fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True",
