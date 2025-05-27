@@ -9,6 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// 监听端口号
+const PORT = "8080"
+
 func main() {
 	// 加载配置
 	cfg, err := config.LoadConfig()
@@ -28,8 +31,8 @@ func main() {
 	routes.SetupRoutes(cfg, router)
 
 	// 启动服务器
-	log.Printf("服务器运行在端口 %s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, router); err != nil {
+	log.Printf("服务器运行在端口 %s", PORT)
+	if err := http.ListenAndServe(":"+PORT, router); err != nil {
 		log.Fatalf("服务器启动失败: %v", err)
 	}
 }
