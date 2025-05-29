@@ -38,7 +38,7 @@ func (r *ExampleRepositoryImpl) List(ctx context.Context, page, pageSize int, fi
 
 	// 添加条件查询
 	if field1 != "" {
-		query = query.Where("name LIKE ?", "%"+field1+"%")
+		query = query.Where("field1 LIKE ?", "%"+field1+"%")
 	}
 
 	// 计算总数
