@@ -37,11 +37,11 @@ func Logger() gin.HandlerFunc {
 		}
 
 		if statusCode >= http.StatusInternalServerError {
-			entry.Error()
+			entry.Error("HTTP请求错误")
 		} else if statusCode >= http.StatusBadRequest {
-			entry.Warn()
+			entry.Warn("HTTP请求警告")
 		} else {
-			entry.Info()
+			entry.Info("HTTP请求信息")
 		}
 	}
 }
