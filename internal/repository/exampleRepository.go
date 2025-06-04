@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"net/http"
 	"news-release/internal/model"
+	"news-release/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -44,11 +46,13 @@ func (r *ExampleRepositoryImpl) List(ctx context.Context, page, pageSize int, fi
 	// 计算总数
 	var total int64
 	if err := query.Model(&model.Example{}).Count(&total).Error; err != nil {
+		utils.HandleError(nil, err, http.StatusInternalServerError, 0, "数据库查询失败")
 		return nil, 0, err
 	}
 
 	// 查询数据
 	if err := query.Offset(offset).Limit(pageSize).Find(&users).Error; err != nil {
+		utils.HandleError(nil, err, http.StatusInternalServerError, 0, "数据库查询失败")
 		return nil, 0, err
 	}
 
