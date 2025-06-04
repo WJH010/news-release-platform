@@ -9,22 +9,35 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ExampleController 控制器
-type ExampleController struct {
-	exampleService service.ExampleService
+// 控制器
+type PolicyController struct {
+	policyService service.PolicyService
 }
 
-// NewExampleController 创建控制器实例
-func NewExampleController(exampleService service.ExampleService) *ExampleController {
-	return &ExampleController{exampleService: exampleService}
+// 创建控制器实例
+func NewPolicyController(policyService service.PolicyService) *PolicyController {
+	return &PolicyController{policyService: policyService}
 }
 
-// ListExample 分页查询
-func (c *ExampleController) ListExample(ctx *gin.Context) {
+// 分页查询
+func (p *PolicyController) ListPolicy(ctx *gin.Context) {
 	// 获取查询参数
 	pageStr := ctx.DefaultQuery("page", "1")
 	pageSizeStr := ctx.DefaultQuery("page_size", "10")
-	field1 := ctx.Query("field1")
+	policyTitle := ctx.Query("policyTitle")
+	fieldIDStr := ctx.Query("fieldID")
+	var fieldID int
+
+	// 转换 fieldID 参数
+	if fieldIDStr != "" {
+		var err error
+		fieldID, err = strconv.Atoi(fieldIDStr)
+
+		if err != nil {
+			utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "fieldID格式转换错误")
+			return
+		}
+	}
 
 	// 转换参数类型
 	page, err := strconv.Atoi(pageStr)
@@ -38,7 +51,7 @@ func (c *ExampleController) ListExample(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	example, total, err := c.exampleService.ListExample(ctx, page, pageSize, field1)
+	policy, total, err := p.policyService.ListPolicy(ctx, page, pageSize, policyTitle, fieldID)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "服务器内部错误，调用服务层失败")
 		return
@@ -49,6 +62,6 @@ func (c *ExampleController) ListExample(ctx *gin.Context) {
 		"total":     total,
 		"page":      page,
 		"page_size": pageSize,
-		"data":      example,
+		"data":      policy,
 	})
 }

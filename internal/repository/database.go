@@ -1,7 +1,9 @@
 package repository
 
 import (
+	"net/http"
 	"news-release/internal/model"
+	"news-release/internal/utils"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -11,6 +13,7 @@ import (
 func NewDatabase(dsn string) (*gorm.DB, error) {
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
+		utils.HandleError(nil, err, http.StatusInternalServerError, 0, "数据库连接失败")
 		return nil, err
 	}
 
