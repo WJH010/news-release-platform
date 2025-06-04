@@ -1,44 +1,33 @@
 package config
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/joho/godotenv"
+	"time"
 )
 
-// Config 应用配置结构
+// Config 主配置结构
 type Config struct {
-	Env string
-	// Port  string
-	DBURL string
+	App      AppConfig      `yaml:"app"`
+	Database DatabaseConfig `yaml:"database"`
 }
 
-// LoadConfig 从环境变量加载配置
-func LoadConfig() (*Config, error) {
-	var DBUrl string
-	// 开发环境使用 .env 加载数据库配置
-	env := os.Getenv("ENV")
-	if env == "development" {
-		if err := godotenv.Load("../.env"); err != nil {
-			return nil, fmt.Errorf("加载开发环境配置失败: %v", err)
-		}
-		DBUrl = os.Getenv("DB_URL")
-	} else {
-		// 生产环境使用系统环境变量进行数据库配置注入
-		DBUser := os.Getenv("NEWS_DB_USER")
-		DBPass := os.Getenv("NEWS_DB_PASSWORD")
-		DBHost := os.Getenv("NEWS_DB_HOST")
-		DBName := os.Getenv("NEWS_DB_NAME")
+// AppConfig 应用配置
+type AppConfig struct {
+	Name           string   `yaml:"name"`
+	Env            string   `yaml:"env"`
+	Port           int      `yaml:"port"`
+	Debug          bool     `yaml:"debug"`
+	AllowedOrigins []string `yaml:"cors.allowed_origins"`
+}
 
-		// 构建数据库连接字符串
-		DBUrl = fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True",
-			DBUser, DBPass, DBHost, DBName)
-	}
-
-	return &Config{
-		Env: os.Getenv("ENV"),
-		// Port:  os.Getenv("PORT"),
-		DBURL: DBUrl,
-	}, nil
+// DatabaseConfig 数据库配置
+type DatabaseConfig struct {
+	Driver                string        `yaml:"driver"`
+	Host                  string        `yaml:"host"`
+	Port                  int           `yaml:"port"`
+	Username              string        `yaml:"username"`
+	Password              string        `yaml:"password"`
+	DBName                string        `yaml:"dbname"`
+	MaxOpenConnections    int           `yaml:"max_open_connections"`
+	MaxIdleConnections    int           `yaml:"max_idle_connections"`
+	ConnectionMaxLifetime time.Duration `yaml:"connection_max_lifetime"`
 }

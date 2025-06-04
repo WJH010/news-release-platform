@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"fmt"
 	"news-release/internal/config"
 	"news-release/internal/controller"
 	"news-release/internal/middleware"
@@ -18,7 +19,15 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	router.Use(middleware.Recovery())
 
 	// 连接数据库
-	db, err := repository.NewDatabase(cfg.DBURL)
+	DSN := fmt.Sprintf(
+		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		cfg.Database.Username,
+		cfg.Database.Password,
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.DBName,
+	)
+	db, err := repository.NewDatabase(DSN)
 	if err != nil {
 		logrus.Panic("数据库连接失败: ", err)
 	}
