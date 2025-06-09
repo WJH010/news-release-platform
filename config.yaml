@@ -10,7 +10,7 @@ app:
       #- " "    # 允许访问后端API的前端域名
       #- "http://localhost:3000"  # 开发环境前端地址
 
-# 数据库配置
+# 数据库配置 
 database:
   driver: mysql
   host: ${NEWS_DB_HOST:-localhost}     # 从环境变量获取，默认 localhost
