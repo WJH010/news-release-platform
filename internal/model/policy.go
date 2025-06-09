@@ -17,7 +17,7 @@ type Policy struct {
 	Status        int       `json:"status" gorm:"column:status"`
 	IsSelection   int       `json:"is_selection" gorm:"default:0;column:is_selection"`
 	FieldID       int       `json:"field_id" gorm:"column:field_id"`
-	CreationTime  time.Time `json:"creation_time" gorm:"column:creation_time"`
+	CreateTime    time.Time `json:"create_time" gorm:"column:create_time"`
 	UpdateTime    time.Time `json:"update_time" gorm:"column:update_time"`
 }
 
