@@ -55,6 +55,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		policy := api.Group("/policy")
 		{
 			policy.GET("/ListPolicy", policyController.ListPolicy)
+			policy.GET("/GetPolicyContent/:id", policyController.GetPolicyContent)
 		}
 	}
 }

@@ -11,8 +11,10 @@ import (
 
 // 数据访问接口，定义数据访问的方法集
 type PolicyRepository interface {
-	// 分页查询
+	// 分页查询政策列表
 	List(ctx context.Context, page, pageSize int, policyTitle string, fieldID int) ([]*model.Policy, int64, error)
+	// 政策内容查询
+	GetPolicyContent(ctx context.Context, policyID int) (*model.Policy, error)
 }
 
 // 实现接口的具体结构体
@@ -58,7 +60,7 @@ func (r *PolicyRepositoryImpl) List(ctx context.Context, page, pageSize int, pol
 	var total int64
 	countQuery := *query // 复制查询对象，避免修改原始查询
 	if err := countQuery.Count(&total).Error; err != nil {
-		utils.HandleError(nil, err, http.StatusInternalServerError, 0, "数据库查询失败")
+		utils.HandleError(nil, err, http.StatusInternalServerError, 0, "计算总数时数据库查询失败")
 		return nil, 0, err
 	}
 
@@ -69,4 +71,19 @@ func (r *PolicyRepositoryImpl) List(ctx context.Context, page, pageSize int, pol
 	}
 
 	return policy, total, nil
+}
+
+// 政策内容查询
+func (r *PolicyRepositoryImpl) GetPolicyContent(ctx context.Context, policyID int) (*model.Policy, error) {
+	var policy model.Policy
+
+	result := r.db.WithContext(ctx).First(&policy, policyID)
+	err := result.Error
+
+	// 查询政策内容
+	if err != nil {
+		return nil, err
+	}
+
+	return &policy, nil
 }

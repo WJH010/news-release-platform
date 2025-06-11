@@ -1,13 +1,33 @@
 package controller
 
 import (
+	"errors"
 	"net/http"
 	"news-release/internal/service"
 	"news-release/internal/utils"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
+
+// PolicyListResponse 政策列表响应结构体
+type PolicyListResponse struct {
+	ID           int       `json:"id"`
+	PolicyTitle  string    `json:"policy_title"`
+	FieldName    string    `json:"field_name"`
+	ReleaseTime  time.Time `json:"release_time"`
+	BriefContent string    `json:"brief_content"`
+}
+
+// PolicyContentResponse 政策内容响应结构体
+type PolicyContentResponse struct {
+	ID            int       `json:"id"`
+	PolicyTitle   string    `json:"policy_title"`
+	ReleaseTime   time.Time `json:"release_time"`
+	PolicyContent string    `json:"policy_content"`
+}
 
 // 控制器
 type PolicyController struct {
@@ -57,11 +77,54 @@ func (p *PolicyController) ListPolicy(ctx *gin.Context) {
 		return
 	}
 
+	var result []PolicyListResponse
+	for _, p := range policy {
+		result = append(result, PolicyListResponse{
+			ID:           p.ID,
+			PolicyTitle:  p.PolicyTitle,
+			FieldName:    p.FieldName,
+			ReleaseTime:  p.ReleaseTime,
+			BriefContent: p.BriefContent,
+		})
+	}
+
 	// 返回分页结果
 	ctx.JSON(http.StatusOK, gin.H{
 		"total":     total,
 		"page":      page,
 		"page_size": pageSize,
-		"data":      policy,
+		"data":      result,
 	})
+}
+
+// 获取政策内容
+func (p *PolicyController) GetPolicyContent(ctx *gin.Context) {
+	// 获取主键
+	idStr := ctx.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusBadRequest, 0, "无效的政策ID")
+		return
+	}
+
+	// 调用服务层
+	policy, err := p.policyService.GetPolicyContent(ctx, int(id))
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			utils.HandleError(ctx, err, http.StatusNotFound, 0, "政策不存在(id="+idStr+")")
+			return
+		}
+		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "获取政策内容失败")
+		return
+	}
+
+	result := PolicyContentResponse{
+		ID:            policy.ID,
+		PolicyTitle:   policy.PolicyTitle,
+		ReleaseTime:   policy.ReleaseTime,
+		PolicyContent: policy.PolicyContent,
+	}
+
+	// 返回成功响应
+	ctx.JSON(http.StatusOK, gin.H{"data": result})
 }
