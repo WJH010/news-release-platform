@@ -29,8 +29,11 @@ func HandleError(ctx *gin.Context, err error, statusCode int, code int, message 
 		WithField("errorCode", code).
 		Error(message)
 
-	ctx.JSON(statusCode, ErrorResponse{
-		Code:    code,
-		Message: message,
-	})
+	if ctx != nil {
+		ctx.JSON(statusCode, ErrorResponse{
+			Code:    code,
+			Message: message,
+		})
+		ctx.Abort() // 终止后续处理
+	}
 }
