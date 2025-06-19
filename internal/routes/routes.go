@@ -45,6 +45,18 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	exampleController := controller.NewExampleController(exampleService)
 	policyController := controller.NewPolicyController(policyService)
 	newsController := controller.NewNewsController(newsService)
+	fieldTypeRepo := repository.NewFieldTypeRepository(db)
+	noticeRepo := repository.NewNoticeRepository(db)
+	// 初始化服务
+	exampleService := service.NewExampleService(exampleRepo)
+	policyService := service.NewPolicyService(policyRepo)
+	fieldService := service.NewFieldTypeService(fieldTypeRepo)
+	noticeService := service.NewNoticeService(noticeRepo)
+	// 初始化控制器
+	exampleController := controller.NewExampleController(exampleService)
+	policyController := controller.NewPolicyController(policyService)
+	fieldTypeController := controller.NewFieldTypeController(fieldService)
+	noticeController := controller.NewNoticeController(noticeService)
 
 	// API分组
 	api := router.Group("/api")
@@ -65,6 +77,16 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		{
 			news.GET("/ListNews", newsController.GetNewsList)
 			news.GET("/GetNewsContent/:id", newsController.GetNewsContent)
+			// 领域类型相关路由
+			policyFieldType := api.Group("/fieldType")
+			{
+				policyFieldType.GET("", fieldTypeController.GetFieldType)
+			}
+			// 公告相关路由
+			notice := api.Group("/notice")
+			{
+				notice.GET("", noticeController.ListNotice)
+			}
 		}
 	}
 }
