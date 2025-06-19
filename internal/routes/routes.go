@@ -37,14 +37,6 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	exampleRepo := repository.NewExampleRepository(db)
 	policyRepo := repository.NewPolicyRepository(db)
 	newsRope := repository.NewNewsRepository(db)
-	// 初始化服务
-	exampleService := service.NewExampleService(exampleRepo)
-	policyService := service.NewPolicyService(policyRepo)
-	newsService := service.NewNewsService(newsRope)
-	// 初始化控制器
-	exampleController := controller.NewExampleController(exampleService)
-	policyController := controller.NewPolicyController(policyService)
-	newsController := controller.NewNewsController(newsService)
 	fieldTypeRepo := repository.NewFieldTypeRepository(db)
 	noticeRepo := repository.NewNoticeRepository(db)
 	// 初始化服务
@@ -52,9 +44,11 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	policyService := service.NewPolicyService(policyRepo)
 	fieldService := service.NewFieldTypeService(fieldTypeRepo)
 	noticeService := service.NewNoticeService(noticeRepo)
+	newsService := service.NewNewsService(newsRope)
 	// 初始化控制器
 	exampleController := controller.NewExampleController(exampleService)
 	policyController := controller.NewPolicyController(policyService)
+	newsController := controller.NewNewsController(newsService)
 	fieldTypeController := controller.NewFieldTypeController(fieldService)
 	noticeController := controller.NewNoticeController(noticeService)
 
@@ -77,16 +71,17 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		{
 			news.GET("/ListNews", newsController.GetNewsList)
 			news.GET("/GetNewsContent/:id", newsController.GetNewsContent)
-			// 领域类型相关路由
-			policyFieldType := api.Group("/fieldType")
-			{
-				policyFieldType.GET("", fieldTypeController.GetFieldType)
-			}
-			// 公告相关路由
-			notice := api.Group("/notice")
-			{
-				notice.GET("", noticeController.ListNotice)
-			}
 		}
+		// 领域类型相关路由
+		policyFieldType := api.Group("/fieldType")
+		{
+			policyFieldType.GET("", fieldTypeController.GetFieldType)
+		}
+		// 公告相关路由
+		notice := api.Group("/notice")
+		{
+			notice.GET("", noticeController.ListNotice)
+		}
+
 	}
 }
