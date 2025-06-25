@@ -19,6 +19,7 @@ type NewsListResponse struct {
 	FieldName    string    `json:"field_name"`
 	ReleaseTime  time.Time `json:"release_time"`
 	BriefContent string    `json:"brief_content"`
+	ListImageURL string    `json:"list_image_url"`
 }
 
 // NewsContentResponse 新闻内容响应结构体
@@ -86,6 +87,7 @@ func (p *NewsController) GetNewsList(ctx *gin.Context) {
 			FieldName:    p.FieldName,
 			ReleaseTime:  p.ReleaseTime,
 			BriefContent: p.BriefContent,
+			ListImageURL: p.ListImageURL,
 		})
 	}
 
