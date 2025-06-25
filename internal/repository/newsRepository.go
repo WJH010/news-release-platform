@@ -43,7 +43,7 @@ func (r *NewsRepositoryImpl) GetNewsList(ctx context.Context, page, pageSize int
 
 	// 构建基础查询
 	query = query.Table("new_items p").
-		Select("p.id, p.new_title, p.release_time, p.brief_content, f.field_name").
+		Select("p.id, p.new_title, p.release_time, p.brief_content, f.field_name, p.list_image_url").
 		Joins("LEFT JOIN field_type f ON p.field_id = f.field_id")
 
 	// 添加条件查询

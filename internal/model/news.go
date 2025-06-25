@@ -19,6 +19,7 @@ type News struct {
 	FieldID      int       `json:"field_id" gorm:"column:field_id;type:int"`
 	CreationTime time.Time `json:"creation_time" gorm:"column:creation_time;type:date"`
 	UpdateTime   time.Time `json:"update_time" gorm:"column:update_time;type:date"`
+	ListImageURL string    `json:"list_image_url" gorm:"column:list_image_url;type:varchar(255)"`
 }
 
 // TableName 指定表名
