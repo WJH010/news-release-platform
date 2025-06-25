@@ -74,14 +74,14 @@ func (r *NewsRepositoryImpl) GetNewsList(ctx context.Context, page, pageSize int
 	return new, total, nil
 }
 
-// 政策内容查询
+// 新闻内容查询
 func (r *NewsRepositoryImpl) GetNewsContent(ctx context.Context, newsID int) (*model.News, error) {
 	var new model.News
 
 	result := r.db.WithContext(ctx).First(&new, newsID)
 	err := result.Error
 
-	// 查询政策内容
+	// 查询新闻内容
 	if err != nil {
 		return nil, err
 	}

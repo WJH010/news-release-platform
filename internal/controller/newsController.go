@@ -46,7 +46,7 @@ func (p *NewsController) GetNewsList(ctx *gin.Context) {
 	// 获取查询参数
 	pageStr := ctx.DefaultQuery("page", "1")
 	pageSizeStr := ctx.DefaultQuery("page_size", "10")
-	policyTitle := ctx.Query("policyTitle")
+	newTitle := ctx.Query("newTitle")
 	fieldIDStr := ctx.Query("fieldID")
 	var fieldID int
 
@@ -73,7 +73,7 @@ func (p *NewsController) GetNewsList(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	news, total, err := p.newsService.GetNewsList(ctx, page, pageSize, policyTitle, fieldID)
+	news, total, err := p.newsService.GetNewsList(ctx, page, pageSize, newTitle, fieldID)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "服务器内部错误，调用服务层失败")
 		return
@@ -106,26 +106,26 @@ func (p *NewsController) GetNewsContent(ctx *gin.Context) {
 	idStr := ctx.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 64)
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusBadRequest, 0, "无效的政策ID")
+		utils.HandleError(ctx, err, http.StatusBadRequest, 0, "无效的新闻ID")
 		return
 	}
 
 	// 调用服务层
-	policy, err := p.newsService.GetNewsContent(ctx, int(id))
+	news, err := p.newsService.GetNewsContent(ctx, int(id))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			utils.HandleError(ctx, err, http.StatusNotFound, 0, "政策不存在(id="+idStr+")")
+			utils.HandleError(ctx, err, http.StatusNotFound, 0, "新闻不存在(id="+idStr+")")
 			return
 		}
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "获取政策内容失败")
+		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "获取新闻内容失败")
 		return
 	}
 
-	result := PolicyContentResponse{
-		ID:            policy.ID,
-		PolicyTitle:   policy.NewTitle,
-		ReleaseTime:   policy.ReleaseTime,
-		PolicyContent: policy.NewContent,
+	result := NewsContentResponse{
+		ID:            news.ID,
+		NewTitle:   news.NewTitle,
+		ReleaseTime:   news.ReleaseTime,
+		NewContent: news.NewContent,
 	}
 
 	// 返回成功响应
