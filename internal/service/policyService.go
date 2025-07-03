@@ -8,7 +8,7 @@ import (
 
 // 服务接口，定义方法，接收 context.Context 和数据模型。
 type PolicyService interface {
-	ListPolicy(ctx context.Context, page, pageSize int, policyTitle string, fieldID int) ([]*model.Policy, int64, error)
+	ListPolicy(ctx context.Context, page, pageSize int, policyTitle string, fieldID int, is_selection int) ([]*model.Policy, int64, error)
 	GetPolicyContent(ctx context.Context, policyID int) (*model.Policy, error)
 }
 
@@ -23,8 +23,8 @@ func NewPolicyService(policyRepo repository.PolicyRepository) PolicyService {
 }
 
 // 分页查询数据
-func (s *PolicyServiceImpl) ListPolicy(ctx context.Context, page, pageSize int, policyTitle string, fieldID int) ([]*model.Policy, int64, error) {
-	return s.policyRepo.List(ctx, page, pageSize, policyTitle, fieldID)
+func (s *PolicyServiceImpl) ListPolicy(ctx context.Context, page, pageSize int, policyTitle string, fieldID int, is_selection int) ([]*model.Policy, int64, error) {
+	return s.policyRepo.List(ctx, page, pageSize, policyTitle, fieldID, is_selection)
 }
 
 // 获取政策内容

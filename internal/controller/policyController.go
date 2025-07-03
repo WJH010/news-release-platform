@@ -19,6 +19,7 @@ type PolicyListResponse struct {
 	FieldName    string    `json:"field_name"`
 	ReleaseTime  time.Time `json:"release_time"`
 	BriefContent string    `json:"brief_content"`
+	IsSelection  int       `json:"is_selection"`
 }
 
 // PolicyContentResponse 政策内容响应结构体
@@ -46,7 +47,9 @@ func (p *PolicyController) ListPolicy(ctx *gin.Context) {
 	pageSizeStr := ctx.DefaultQuery("page_size", "10")
 	policyTitle := ctx.Query("policyTitle")
 	fieldIDStr := ctx.Query("fieldID")
+	isSelectionStr := ctx.Query("is_selection")
 	var fieldID int
+	var isSelection int
 
 	// 转换 fieldID 参数
 	if fieldIDStr != "" {
@@ -55,6 +58,17 @@ func (p *PolicyController) ListPolicy(ctx *gin.Context) {
 
 		if err != nil {
 			utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "fieldID格式转换错误")
+			return
+		}
+	}
+
+	// 转换 isSelection 参数
+	if isSelectionStr != "" {
+		var err error
+		isSelection, err = strconv.Atoi(isSelectionStr)
+
+		if err != nil {
+			utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "isSelection格式转换错误")
 			return
 		}
 	}
@@ -71,7 +85,7 @@ func (p *PolicyController) ListPolicy(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	policy, total, err := p.policyService.ListPolicy(ctx, page, pageSize, policyTitle, fieldID)
+	policy, total, err := p.policyService.ListPolicy(ctx, page, pageSize, policyTitle, fieldID, isSelection)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "服务器内部错误，调用服务层失败")
 		return
@@ -85,6 +99,7 @@ func (p *PolicyController) ListPolicy(ctx *gin.Context) {
 			FieldName:    p.FieldName,
 			ReleaseTime:  p.ReleaseTime,
 			BriefContent: p.BriefContent,
+			IsSelection:  p.IsSelection,
 		})
 	}
 

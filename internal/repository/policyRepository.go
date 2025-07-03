@@ -12,7 +12,7 @@ import (
 // 数据访问接口，定义数据访问的方法集
 type PolicyRepository interface {
 	// 分页查询政策列表
-	List(ctx context.Context, page, pageSize int, policyTitle string, fieldID int) ([]*model.Policy, int64, error)
+	List(ctx context.Context, page, pageSize int, policyTitle string, fieldID int, is_selection int) ([]*model.Policy, int64, error)
 	// 政策内容查询
 	GetPolicyContent(ctx context.Context, policyID int) (*model.Policy, error)
 }
@@ -28,7 +28,7 @@ func NewPolicyRepository(db *gorm.DB) PolicyRepository {
 }
 
 // 分页查询数据
-func (r *PolicyRepositoryImpl) List(ctx context.Context, page, pageSize int, policyTitle string, fieldID int) ([]*model.Policy, int64, error) {
+func (r *PolicyRepositoryImpl) List(ctx context.Context, page, pageSize int, policyTitle string, fieldID int, is_selection int) ([]*model.Policy, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -42,10 +42,13 @@ func (r *PolicyRepositoryImpl) List(ctx context.Context, page, pageSize int, pol
 
 	// 构建基础查询
 	query = query.Table("policy_items p").
-		Select("p.id, p.policy_title, p.release_time, p.brief_content, f.field_name").
+		Select("p.id, p.policy_title, p.release_time, p.brief_content, f.field_name, p.is_selection").
 		Joins("LEFT JOIN field_type f ON p.field_id = f.field_id")
 
 	// 添加条件查询
+	if is_selection != 0 {
+		query = query.Where("p.is_selection = ?", is_selection)
+	}
 	if policyTitle != "" {
 		query = query.Where("p.policy_title LIKE ?", "%"+policyTitle+"%")
 	}
