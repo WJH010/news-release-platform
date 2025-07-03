@@ -14,8 +14,8 @@ type Policy struct {
 	ReleaseTime   time.Time `json:"release_time" gorm:"column:release_time"`
 	BriefContent  string    `json:"brief_content" gorm:"type:text;column:brief_content"`
 	PolicyContent string    `json:"policy_content" gorm:"type:mediumtext;column:policy_content"`
-	Status        int       `json:"status" gorm:"column:status"`
-	IsSelection   int       `json:"is_selection" gorm:"default:0;column:is_selection"`
+	Status        int       `json:"status" gorm:"column:status;default:1"` // 默认=1，1：有效
+	IsSelection   int       `json:"is_selection" gorm:"default:2;column:is_selection"` // 默认=2，1：精选，2：非精选
 	FieldID       int       `json:"field_id" gorm:"column:field_id"`
 	CreateTime    time.Time `json:"create_time" gorm:"column:create_time"`
 	UpdateTime    time.Time `json:"update_time" gorm:"column:update_time"`

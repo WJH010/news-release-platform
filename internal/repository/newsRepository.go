@@ -12,7 +12,7 @@ import (
 // NewsRepository 新闻仓库接口
 type NewsRepository interface {
 	//分页查询新闻列表
-	GetNewsList(ctx context.Context, page, pageSize int, newsTitle string, fieldID int) ([]*model.News, int64, error)
+	GetNewsList(ctx context.Context, page, pageSize int, newsTitle string, fieldID int, is_selection int) ([]*model.News, int64, error)
 	//获取新闻内容
 	GetNewsContent(ctx context.Context, newsID int) (*model.News, error)
 }
@@ -29,7 +29,7 @@ func NewNewsRepository(db *gorm.DB) NewsRepository {
 }
 
 // 分页查询数据
-func (r *NewsRepositoryImpl) GetNewsList(ctx context.Context, page, pageSize int, NewsTitle string, fieldID int) ([]*model.News, int64, error) {
+func (r *NewsRepositoryImpl) GetNewsList(ctx context.Context, page, pageSize int, NewsTitle string, fieldID int, is_selection int) ([]*model.News, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -43,10 +43,13 @@ func (r *NewsRepositoryImpl) GetNewsList(ctx context.Context, page, pageSize int
 
 	// 构建基础查询
 	query = query.Table("new_items p").
-		Select("p.id, p.new_title, p.release_time, p.brief_content, f.field_name, p.list_image_url").
+		Select("p.id, p.new_title, p.release_time, p.brief_content, f.field_name, p.list_image_url, p.is_selection").
 		Joins("LEFT JOIN field_type f ON p.field_id = f.field_id")
 
 	// 添加条件查询
+	if is_selection != 0 {
+		query = query.Where("p.is_selection = ?", is_selection)
+	}
 	if NewsTitle != "" {
 		query = query.Where("p.new_title LIKE ?", "%"+NewsTitle+"%")
 	}
