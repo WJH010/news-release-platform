@@ -8,7 +8,7 @@ import (
 
 // NewsService 新闻服务接口
 type NewsService interface {
-	GetNewsList(ctx context.Context, page, pageSize int, newsTitle string, fieldID int) ([]*model.News, int64, error)
+	GetNewsList(ctx context.Context, page, pageSize int, newsTitle string, fieldID int, is_selection int) ([]*model.News, int64, error)
 	GetNewsContent(ctx context.Context, newsID int) (*model.News, error)
 }
 
@@ -25,8 +25,8 @@ func NewNewsService(newsRepo repository.NewsRepository) NewsService {
 	}
 }
 
-func (s *NewsServiceImpl) GetNewsList(ctx context.Context, page, pageSize int, newsTitle string, fieldID int) ([]*model.News, int64, error) {
-	return s.newsRepo.GetNewsList(ctx, page, pageSize, newsTitle, fieldID)
+func (s *NewsServiceImpl) GetNewsList(ctx context.Context, page, pageSize int, newsTitle string, fieldID int, is_selection int) ([]*model.News, int64, error) {
+	return s.newsRepo.GetNewsList(ctx, page, pageSize, newsTitle, fieldID, is_selection)
 }
 
 // 获取新闻内容

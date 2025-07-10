@@ -14,8 +14,8 @@ type News struct {
 	ReleaseTime  time.Time `json:"release_time" gorm:"column:release_time;type:datetime"`
 	BriefContent string    `json:"brief_content" gorm:"column:brief_content;type:text"`
 	NewContent   string    `json:"new_content" gorm:"column:new_content;type:mediumtext"`
-	Status       string    `json:"status" gorm:"column:status;type:varchar(255)"`
-	IsSelection  int       `json:"is_selection" gorm:"column:is_selection;type:int"`
+	Status       string    `json:"status" gorm:"column:status;type:varchar(255);default:1"`    // 默认=1，1：有效
+	IsSelection  int       `json:"is_selection" gorm:"column:is_selection;type:int;default:2"` // 默认=2，1：精选，2：非精选
 	FieldID      int       `json:"field_id" gorm:"column:field_id;type:int"`
 	CreationTime time.Time `json:"creation_time" gorm:"column:creation_time;type:date"`
 	UpdateTime   time.Time `json:"update_time" gorm:"column:update_time;type:date"`

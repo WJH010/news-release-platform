@@ -11,7 +11,7 @@ type Notice struct {
 	Title       string     `json:"title" gorm:"type:varchar(255)"`
 	Content     string     `json:"content" gorm:"type:text;not null"`
 	ReleaseTime *time.Time `json:"release_time" gorm:"column:release_time"`
-	Status      int        `json:"status" gorm:"type:int;not null;default:1"` // 默认=1，1：有效，0：无效
+	Status      int        `json:"status" gorm:"type:int;not null;default:1"` // 默认=1，1：有效
 	CreateTime  *time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime  *time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 }

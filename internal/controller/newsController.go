@@ -20,6 +20,7 @@ type NewsListResponse struct {
 	ReleaseTime  time.Time `json:"release_time"`
 	BriefContent string    `json:"brief_content"`
 	ListImageURL string    `json:"list_image_url"`
+	IsSelection  int       `json:"is_selection"`
 }
 
 // NewsContentResponse 新闻内容响应结构体
@@ -48,7 +49,9 @@ func (p *NewsController) GetNewsList(ctx *gin.Context) {
 	pageSizeStr := ctx.DefaultQuery("page_size", "10")
 	newTitle := ctx.Query("newTitle")
 	fieldIDStr := ctx.Query("fieldID")
+	isSelectionStr := ctx.Query("is_selection")
 	var fieldID int
+	var isSelection int
 
 	// 转换 fieldID 参数
 	if fieldIDStr != "" {
@@ -57,6 +60,16 @@ func (p *NewsController) GetNewsList(ctx *gin.Context) {
 
 		if err != nil {
 			utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "fieldID格式转换错误")
+			return
+		}
+	}
+	// 转换 isSelection 参数
+	if isSelectionStr != "" {
+		var err error
+		isSelection, err = strconv.Atoi(isSelectionStr)
+
+		if err != nil {
+			utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "isSelection格式转换错误")
 			return
 		}
 	}
@@ -73,7 +86,7 @@ func (p *NewsController) GetNewsList(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	news, total, err := p.newsService.GetNewsList(ctx, page, pageSize, newTitle, fieldID)
+	news, total, err := p.newsService.GetNewsList(ctx, page, pageSize, newTitle, fieldID, isSelection)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "服务器内部错误，调用服务层失败")
 		return
@@ -122,10 +135,10 @@ func (p *NewsController) GetNewsContent(ctx *gin.Context) {
 	}
 
 	result := NewsContentResponse{
-		ID:            news.ID,
-		NewTitle:   news.NewTitle,
-		ReleaseTime:   news.ReleaseTime,
-		NewContent: news.NewContent,
+		ID:          news.ID,
+		NewTitle:    news.NewTitle,
+		ReleaseTime: news.ReleaseTime,
+		NewContent:  news.NewContent,
 	}
 
 	// 返回成功响应
