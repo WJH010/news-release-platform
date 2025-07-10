@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"news-release/internal/config"
 	"news-release/internal/model"
@@ -66,7 +66,8 @@ func (s *UserServiceImpl) getOpenIDFromWechat(code string) (string, error) {
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	// 使用 io.ReadAll 替换 ioutil.ReadAll
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}

@@ -8,6 +8,8 @@ import (
 type Config struct {
 	App      AppConfig      `yaml:"app"`
 	Database DatabaseConfig `yaml:"database"`
+	Wechat   WechatConfig   `yaml:"wechat"` // 添加 Wechat 字段
+	JWT      JWTConfig      `yaml:"jwt"`
 }
 
 // AppConfig 应用配置
