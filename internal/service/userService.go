@@ -58,6 +58,7 @@ func (s *UserServiceImpl) Login(ctx context.Context, code string) (*model.User, 
 
 // getOpenIDFromWechat 调用微信接口换取 openid
 func (s *UserServiceImpl) getOpenIDFromWechat(code string) (string, error) {
+	//url需要去自己申请
 	url := fmt.Sprintf("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", s.cfg.Wechat.AppID, s.cfg.Wechat.Secret, code)
 	resp, err := http.Get(url)
 	if err != nil {
