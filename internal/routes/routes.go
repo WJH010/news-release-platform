@@ -39,18 +39,25 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	newsRope := repository.NewNewsRepository(db)
 	fieldTypeRepo := repository.NewFieldTypeRepository(db)
 	noticeRepo := repository.NewNoticeRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	adminRepo := repository.NewAdminUserRepository(db)
+
 	// 初始化服务
 	exampleService := service.NewExampleService(exampleRepo)
 	policyService := service.NewPolicyService(policyRepo)
 	fieldService := service.NewFieldTypeService(fieldTypeRepo)
 	noticeService := service.NewNoticeService(noticeRepo)
 	newsService := service.NewNewsService(newsRope)
+	userService := service.NewUserService(userRepo)
+	adminService := service.NewAdminUserService(adminRepo)
 	// 初始化控制器
 	exampleController := controller.NewExampleController(exampleService)
 	policyController := controller.NewPolicyController(policyService)
 	newsController := controller.NewNewsController(newsService)
 	fieldTypeController := controller.NewFieldTypeController(fieldService)
 	noticeController := controller.NewNoticeController(noticeService)
+	userController := controller.NewUserController(userService)
+	adminController := controller.NewAdminController(adminService)
 
 	// API分组
 	api := router.Group("/api")
@@ -82,6 +89,14 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		{
 			notice.GET("", noticeController.ListNotice)
 		}
-
+		// 用户相关路由
+		user := api.Group("/user")
+		{
+			user.GET("/login", userController.Login)
+		}
+		admin := api.Group("/admin")
+		{
+			admin.POST("/login", adminController.AdminLogin) // 管理系统登录接口
+		}
 	}
 }

@@ -31,3 +31,15 @@ type DatabaseConfig struct {
 	MaxIdleConnections    int           `yaml:"max_idle_connections"`
 	ConnectionMaxLifetime time.Duration `yaml:"connection_max_lifetime"`
 }
+
+// WechatConfig 微信配置
+type WechatConfig struct {
+	AppID  string `yaml:"appid"`
+	Secret string `yaml:"secret"`
+}
+
+// JWTConfig JWT 配置
+type JWTConfig struct {
+	SecretKey       string `yaml:"secret_key"`
+	ExpirationHours int    `yaml:"expiration_hours"`
+}
