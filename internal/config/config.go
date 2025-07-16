@@ -9,6 +9,8 @@ type Config struct {
 	App      AppConfig      `yaml:"app"`
 	Database DatabaseConfig `yaml:"database"`
 	MinIO    MinIOConfig    `yaml:"minio"`
+	Wechat   WechatConfig   `yaml:"wechat"` // 添加 Wechat 字段
+	JWT      JWTConfig      `yaml:"jwt"`
 }
 
 // AppConfig 应用配置
@@ -40,4 +42,16 @@ type MinIOConfig struct {
 	SecretAccessKey string `yaml:"secret_access_key"`
 	UseSSL          bool   `yaml:"use_ssl"`
 	BucketName      string `yaml:"bucket_name"`
+}
+
+// WechatConfig 微信配置
+type WechatConfig struct {
+	AppID  string `yaml:"appid"`
+	Secret string `yaml:"secret"`
+}
+
+// JWTConfig JWT 配置
+type JWTConfig struct {
+	SecretKey       string `yaml:"secret_key"`
+	ExpirationHours int    `yaml:"expiration_hours"`
 }

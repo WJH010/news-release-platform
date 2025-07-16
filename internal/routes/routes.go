@@ -52,6 +52,9 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fieldTypeRepo := repository.NewFieldTypeRepository(db)
 	noticeRepo := repository.NewNoticeRepository(db)
 	fileRepo := repository.NewFileRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	adminRepo := repository.NewAdminUserRepository(db)
+
 	// 初始化服务
 	exampleService := service.NewExampleService(exampleRepo)
 	policyService := service.NewPolicyService(policyRepo)
@@ -59,6 +62,9 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	noticeService := service.NewNoticeService(noticeRepo)
 	newsService := service.NewNewsService(newsRope)
 	fileService := service.NewFileService(minioRepo, fileRepo)
+	userService := service.NewUserService(userRepo, cfg)
+	adminService := service.NewAdminUserService(adminRepo)
+
 	// 初始化控制器
 	exampleController := controller.NewExampleController(exampleService)
 	policyController := controller.NewPolicyController(policyService)
@@ -66,6 +72,8 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fieldTypeController := controller.NewFieldTypeController(fieldService)
 	noticeController := controller.NewNoticeController(noticeService)
 	fileController := controller.NewFileController(fileService)
+	userController := controller.NewUserController(userService)
+	adminController := controller.NewAdminController(adminService, cfg)
 
 	// API分组
 	api := router.Group("/api")
@@ -101,6 +109,15 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		file := api.Group("/file")
 		{
 			file.POST("/upload", fileController.UploadFile)
+		}
+		// 用户相关路由
+		user := api.Group("/user")
+		{
+			user.GET("/login", userController.Login)
+		}
+		admin := api.Group("/admin")
+		{
+			admin.POST("/login", adminController.AdminLogin) // 管理系统登录接口
 		}
 	}
 }
