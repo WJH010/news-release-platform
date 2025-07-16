@@ -32,6 +32,18 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		logrus.Panic("数据库连接失败: ", err)
 	}
 
+	// 创建MinIO存储实例
+	minioRepo, err := repository.NewMinIORepository(
+		cfg.MinIO.Endpoint,
+		cfg.MinIO.AccessKeyID,
+		cfg.MinIO.SecretAccessKey,
+		cfg.MinIO.UseSSL,
+		cfg.MinIO.BucketName,
+	)
+	if err != nil {
+		logrus.Panic("创建MinIO存储实例失败: ", err)
+	}
+
 	// 初始化依赖
 	// 初始化仓库
 	exampleRepo := repository.NewExampleRepository(db)
@@ -39,18 +51,21 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	newsRope := repository.NewNewsRepository(db)
 	fieldTypeRepo := repository.NewFieldTypeRepository(db)
 	noticeRepo := repository.NewNoticeRepository(db)
+	fileRepo := repository.NewFileRepository(db)
 	// 初始化服务
 	exampleService := service.NewExampleService(exampleRepo)
 	policyService := service.NewPolicyService(policyRepo)
 	fieldService := service.NewFieldTypeService(fieldTypeRepo)
 	noticeService := service.NewNoticeService(noticeRepo)
 	newsService := service.NewNewsService(newsRope)
+	fileService := service.NewFileService(minioRepo, fileRepo)
 	// 初始化控制器
 	exampleController := controller.NewExampleController(exampleService)
 	policyController := controller.NewPolicyController(policyService)
 	newsController := controller.NewNewsController(newsService)
 	fieldTypeController := controller.NewFieldTypeController(fieldService)
 	noticeController := controller.NewNoticeController(noticeService)
+	fileController := controller.NewFileController(fileService)
 
 	// API分组
 	api := router.Group("/api")
@@ -82,6 +97,10 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		{
 			notice.GET("", noticeController.ListNotice)
 		}
-
+		// 文件上传路由
+		file := api.Group("/file")
+		{
+			file.POST("/upload", fileController.UploadFile)
+		}
 	}
 }
