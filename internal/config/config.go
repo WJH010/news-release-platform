@@ -8,6 +8,7 @@ import (
 type Config struct {
 	App      AppConfig      `yaml:"app"`
 	Database DatabaseConfig `yaml:"database"`
+	MinIO    MinIOConfig    `yaml:"minio"`
 	Wechat   WechatConfig   `yaml:"wechat"` // 添加 Wechat 字段
 	JWT      JWTConfig      `yaml:"jwt"`
 }
@@ -32,6 +33,15 @@ type DatabaseConfig struct {
 	MaxOpenConnections    int           `yaml:"max_open_connections"`
 	MaxIdleConnections    int           `yaml:"max_idle_connections"`
 	ConnectionMaxLifetime time.Duration `yaml:"connection_max_lifetime"`
+}
+
+// MinIOConfig MinIO配置
+type MinIOConfig struct {
+	Endpoint        string `yaml:"endpoint"`
+	AccessKeyID     string `yaml:"access_key_id"`
+	SecretAccessKey string `yaml:"secret_access_key"`
+	UseSSL          bool   `yaml:"use_ssl"`
+	BucketName      string `yaml:"bucket_name"`
 }
 
 // WechatConfig 微信配置
