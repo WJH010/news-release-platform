@@ -65,5 +65,35 @@ func validateConfig(config *Config) error {
 		return fmt.Errorf("数据库名不能为空")
 	}
 
+	// 检查 MinIO 配置
+	if config.MinIO.Endpoint == "" {
+		return fmt.Errorf("MinIO 端点不能为空")
+	}
+	if config.MinIO.AccessKeyID == "" {
+		return fmt.Errorf("MinIO 访问密钥 ID 不能为空")
+	}
+	if config.MinIO.SecretAccessKey == "" {
+		return fmt.Errorf("MinIO 秘密访问密钥不能为空")
+	}
+	if config.MinIO.BucketName == "" {
+		return fmt.Errorf("MinIO 存储桶名称不能为空")
+	}
+
+	// 检查 Wechat 配置
+	if config.Wechat.AppID == "" {
+		return fmt.Errorf("微信 AppID 不能为空")
+	}
+	if config.Wechat.AppSecret == "" {
+		return fmt.Errorf("微信 AppSecret 不能为空")
+	}
+
+	// 检查 JWT 配置
+	if config.JWT.JwtSecret == "" {
+		return fmt.Errorf("JWT 密钥不能为空")
+	}
+	if config.JWT.ExpirationHours <= 0 {
+		return fmt.Errorf("JWT 过期时间必须大于 0")
+	}
+
 	return nil
 }
