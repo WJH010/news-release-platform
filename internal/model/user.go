@@ -10,12 +10,12 @@ import (
 type User struct {
 	UserID        int64     `json:"user_id" gorm:"primaryKey;column:user_id"`
 	OpenID        string    `json:"openid" gorm:"column:openid"`
-	UnionID       string    `json:"unionid" gorm:"column:unionid"`
+	UnionID       string    `json:"unionid" gorm:"column:unionid;default:NULL"`
 	SessionKey    string    `json:"session_key" gorm:"column:session_key"`
 	Nickname      string    `json:"nickname" gorm:"column:nickname"`
 	AvatarURL     string    `json:"avatar_url" gorm:"column:avatar_url"`
 	Gender        int       `json:"gender" gorm:"column:gender"`
-	PhoneNumber   string    `json:"phone_number" gorm:"column:phone_number"`
+	PhoneNumber   string    `json:"phone_number" gorm:"column:phone_number;default:NULL"`
 	Email         string    `json:"email" gorm:"column:email"`
 	Region        string    `json:"region" gorm:"column:region"`
 	Status        int       `json:"status" gorm:"column:status;default:1"` // 默认=1，1：正常，2：禁用
