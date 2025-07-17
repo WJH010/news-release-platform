@@ -8,6 +8,7 @@ import (
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 // AuthMiddleware JWT认证中间件
@@ -16,6 +17,7 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		// 获取Authorization头
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
+			logrus.Warn("未提供认证信息")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "未提供认证信息"})
 			return
 		}
@@ -23,6 +25,7 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		// 验证Authorization头格式
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
+			logrus.Warn("认证格式错误")
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "认证格式错误"})
 			return
 		}
@@ -30,13 +33,15 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 		// 解析JWT令牌
 		token, err := parseToken(cfg, parts[1])
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+			logrus.Warnf("解析JWT令牌失败: %v", err)
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"解析JWT令牌失败": err.Error()})
 			return
 		}
 
 		// 从令牌中获取openID
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok || !token.Valid {
+			logrus.Warnf("无效的令牌: %v", claims)
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "无效的令牌"})
 			return
 		}

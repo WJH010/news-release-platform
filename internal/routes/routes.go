@@ -17,7 +17,6 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	// 注册中间件
 	router.Use(middleware.Logger())
 	router.Use(middleware.Recovery())
-	println("微信配置:", cfg.Wechat.AppID, cfg.Wechat.AppSecret)
 
 	// 连接数据库
 	DSN := fmt.Sprintf(
@@ -59,9 +58,9 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	// 初始化服务
 	exampleService := service.NewExampleService(exampleRepo)
 	policyService := service.NewPolicyService(policyRepo)
+	newsService := service.NewNewsService(newsRope)
 	fieldService := service.NewFieldTypeService(fieldTypeRepo)
 	noticeService := service.NewNoticeService(noticeRepo)
-	newsService := service.NewNewsService(newsRope)
 	fileService := service.NewFileService(minioRepo, fileRepo)
 	userService := service.NewUserService(userRepo, cfg)
 	adminService := service.NewAdminUserService(adminRepo)
