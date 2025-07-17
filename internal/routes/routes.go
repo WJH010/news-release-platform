@@ -108,8 +108,10 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		}
 		// 文件上传路由
 		file := api.Group("/file")
+		// file.Use(middleware.AuthMiddleware(cfg))
 		{
-			file.POST("/upload", fileController.UploadFile)
+			// 上传文件需进行身份验证
+			file.POST("/upload", middleware.AuthMiddleware(cfg), fileController.UploadFile)
 		}
 		// 用户相关路由
 		user := api.Group("/user")
