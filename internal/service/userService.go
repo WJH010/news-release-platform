@@ -9,11 +9,22 @@ import (
 	"news-release/internal/config"
 	"news-release/internal/model"
 	"news-release/internal/repository"
+	"time"
+
+	"github.com/dgrijalva/jwt-go"
 )
+
+type WxLoginResponse struct {
+	OpenID     string `json:"openid"`
+	SessionKey string `json:"session_key"`
+	UnionID    string `json:"unionid,omitempty"`
+	ErrCode    int    `json:"errcode,omitempty"`
+	ErrMsg     string `json:"errmsg,omitempty"`
+}
 
 // UserService 用户服务接口
 type UserService interface {
-	Login(ctx context.Context, code string) (*model.User, error)
+	Login(ctx context.Context, code string) (string, error)
 }
 
 // UserServiceImpl 用户服务实现
@@ -28,64 +39,106 @@ func NewUserService(userRepo repository.UserRepository, cfg *config.Config) User
 }
 
 // Login 微信登录逻辑
-func (s *UserServiceImpl) Login(ctx context.Context, code string) (*model.User, error) {
-	// 调用微信接口换取 openid 和 session_key
-	openid, err := s.getOpenIDFromWechat(code)
-	if err != nil {
-		return nil, err
-	}
-
-	// 检查数据库中是否存在该 openid 对应的用户
-	user, err := s.userRepo.GetUserByOpenID(ctx, openid)
-	if err != nil {
-		return nil, err
-	}
-
-	if user == nil {
-		// 新用户，创建用户记录
-		newUser := &model.User{
-			OpenID: openid,
-		}
-		err := s.userRepo.CreateUser(ctx, newUser)
-		if err != nil {
-			return nil, err
-		}
-		user = newUser
-	}
-
-	return user, nil
-}
-
-// getOpenIDFromWechat 调用微信接口换取 openid
-func (s *UserServiceImpl) getOpenIDFromWechat(code string) (string, error) {
-	//url需要去自己申请
-	url := fmt.Sprintf("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", s.cfg.Wechat.AppID, s.cfg.Wechat.Secret, code)
-	resp, err := http.Get(url)
+func (s *UserServiceImpl) Login(ctx context.Context, code string) (string, error) {
+	// 调用微信接口
+	wxResp, err := s.getFromWechat(code)
 	if err != nil {
 		return "", err
+	}
+
+	// 查找或创建用户
+	err = s.findOrCreateUser(ctx, wxResp.OpenID, wxResp.SessionKey, wxResp.UnionID)
+	if err != nil {
+		return "", fmt.Errorf("处理用户信息失败: %v", err)
+	}
+
+	// 生成登录状态 Token
+	token, err := s.generateToken(wxResp.OpenID)
+	if err != nil {
+		return "", fmt.Errorf("生成Token失败: %v", err)
+	}
+
+	return token, nil
+}
+
+// getFromWechat 调用微信接口
+func (s *UserServiceImpl) getFromWechat(code string) (WxLoginResponse, error) {
+	var wxResp WxLoginResponse
+
+	url := fmt.Sprintf("https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code", s.cfg.Wechat.AppID, s.cfg.Wechat.AppSecret, code)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return wxResp, err
 	}
 	defer resp.Body.Close()
 
-	// 使用 io.ReadAll 替换 ioutil.ReadAll
+	// 读取微信响应
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return wxResp, fmt.Errorf("读取微信响应失败: %v", err)
 	}
 
-	var result struct {
-		OpenID     string `json:"openid"`
-		SessionKey string `json:"session_key"`
-		ErrCode    int    `json:"errcode"`
-		ErrMsg     string `json:"errmsg"`
-	}
-	err = json.Unmarshal(body, &result)
+	// 解析微信响应
+	err = json.Unmarshal(body, &wxResp)
 	if err != nil {
-		return "", err
+		return wxResp, fmt.Errorf("解析微信响应失败: %v", err)
 	}
 
-	if result.ErrCode != 0 {
-		return "", fmt.Errorf("微信接口返回错误: %d - %s", result.ErrCode, result.ErrMsg)
+	if wxResp.ErrCode != 0 {
+		return wxResp, fmt.Errorf("微信登录错误: %d - %s", wxResp.ErrCode, wxResp.ErrMsg)
 	}
 
-	return result.OpenID, nil
+	return wxResp, nil
+}
+
+// 查找或创建用户
+func (s *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessionKey, unionID string) error {
+	// 查找用户
+	user, err := s.userRepo.GetUserByOpenID(ctx, openID)
+	if err != nil {
+		return err
+	}
+
+	now := time.Now()
+
+	// 如果用户不存在，创建新用户
+	if user == nil {
+		user = &model.User{
+			OpenID:        openID,
+			SessionKey:    sessionKey,
+			UnionID:       unionID,
+			LastLoginTime: now,
+		}
+
+		if err := s.userRepo.Create(ctx, user); err != nil {
+			return err
+		}
+	} else {
+		// 如果用户存在，更新session_key和登录时间
+		user.SessionKey = sessionKey
+		user.LastLoginTime = now
+
+		if err := s.userRepo.Update(ctx, user); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// 生成JWT Token
+func (s *UserServiceImpl) generateToken(openID string) (string, error) {
+	// 创建令牌声明
+	claims := jwt.MapClaims{
+		"openid": openID,
+		"exp":    time.Now().Add(time.Hour * 24).Unix(), // 令牌有效期24小时
+		"iat":    time.Now().Unix(),
+	}
+
+	// 创建令牌
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+
+	// 签名令牌
+	return token.SignedString([]byte(s.cfg.JWT.JwtSecret))
 }

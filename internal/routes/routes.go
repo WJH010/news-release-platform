@@ -17,6 +17,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	// 注册中间件
 	router.Use(middleware.Logger())
 	router.Use(middleware.Recovery())
+	println("微信配置:", cfg.Wechat.AppID, cfg.Wechat.AppSecret)
 
 	// 连接数据库
 	DSN := fmt.Sprintf(
@@ -113,7 +114,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		// 用户相关路由
 		user := api.Group("/user")
 		{
-			user.GET("/login", userController.Login)
+			user.POST("/login", userController.Login)
 		}
 		admin := api.Group("/admin")
 		{

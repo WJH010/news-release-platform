@@ -10,7 +10,8 @@ import (
 // UserRepository 用户仓库接口
 type UserRepository interface {
 	GetUserByOpenID(ctx context.Context, openid string) (*model.User, error)
-	CreateUser(ctx context.Context, user *model.User) error
+	Create(ctx context.Context, user *model.User) error
+	Update(ctx context.Context, user *model.User) error
 }
 
 // UserRepositoryImpl 用户仓库实现
@@ -36,7 +37,12 @@ func (r *UserRepositoryImpl) GetUserByOpenID(ctx context.Context, openid string)
 	return &user, nil
 }
 
-// CreateUser 创建新用户
-func (r *UserRepositoryImpl) CreateUser(ctx context.Context, user *model.User) error {
+// Create 创建新用户
+func (r *UserRepositoryImpl) Create(ctx context.Context, user *model.User) error {
 	return r.db.WithContext(ctx).Create(user).Error
+}
+
+// Update 更新用户
+func (r *UserRepositoryImpl) Update(ctx context.Context, user *model.User) error {
+	return r.db.WithContext(ctx).Save(user).Error
 }

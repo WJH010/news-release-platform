@@ -46,12 +46,12 @@ type MinIOConfig struct {
 
 // WechatConfig 微信配置
 type WechatConfig struct {
-	AppID  string `yaml:"appid"`
-	Secret string `yaml:"secret"`
+	AppID     string `yaml:"app_id"`
+	AppSecret string `yaml:"app_secret"`
 }
 
 // JWTConfig JWT 配置
 type JWTConfig struct {
-	SecretKey       string `yaml:"secret_key"`
+	JwtSecret       string `yaml:"jwt_secret"`
 	ExpirationHours int    `yaml:"expiration_hours"`
 }

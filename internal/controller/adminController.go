@@ -39,7 +39,7 @@ func (c *AdminController) AdminLogin(ctx *gin.Context) {
 	}
 
 	// 生成登录凭证（JWT）
-	token, err := generateJWT(admin.ID, c.cfg.JWT.SecretKey, c.cfg.JWT.ExpirationHours)
+	token, err := generateJWT(admin.ID, c.cfg.JWT.JwtSecret, c.cfg.JWT.ExpirationHours)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "生成令牌失败"})
 		return
