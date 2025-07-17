@@ -17,7 +17,7 @@ const (
 
 // File 文件模型
 type File struct {
-	ID          uint      `json:"id" gorm:"primaryKey;autoIncrement"`
+	ID          uint      `json:"id" gorm:"primaryKey;column:id"`
 	ArticleType string    `json:"article_type" gorm:"column:article_type;type:varchar(255)"`
 	ArticleID   int       `json:"article_id" gorm:"column:article_id;type:int"`
 	ObjectName  string    `json:"object_name" gorm:"column:object_name;type:varchar(255)"`

@@ -33,7 +33,6 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	// 获取文章类型和ID
 	articleType := ctx.PostForm("article_type")
 	articleIDStr := ctx.PostForm("article_id")
-	println("articleType:", articleType, "articleIDStr:", articleIDStr)
 	var articleID int
 	// 转换 articleIDStr 参数
 	if articleIDStr != "" {
