@@ -18,11 +18,11 @@ type User struct {
 	PhoneNumber   string    `json:"phone_number" gorm:"column:phone_number"`
 	Email         string    `json:"email" gorm:"column:email"`
 	Region        string    `json:"region" gorm:"column:region"`
-	Status        int       `json:"status" gorm:"column:status"`
+	Status        int       `json:"status" gorm:"column:status;default:1"` // 默认=1，1：正常，2：禁用
 	LastLoginTime time.Time `json:"last_login_time" gorm:"column:last_login_time;autoUpdateTime"`
 	UserLevel     int       `json:"user_level" gorm:"column:user_level"`
 	Password      string    `json:"password" gorm:"column:password"`
-	Role          int       `json:"role" gorm:"column:role"`
+	Role          int       `json:"role" gorm:"column:role;default:1"` // 默认=1，1：普通用户，2：管理员
 	CreateTime    time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime    time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 }
