@@ -102,6 +102,7 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 
 	// 返回成功响应
 	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
 		"message": "文件上传成功",
 		"data":    fileInfo,
 	})
