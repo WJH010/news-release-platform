@@ -31,8 +31,22 @@ func NewFileController(fileService service.FileService) *FileController {
 // UploadFile 上传文件
 func (c *FileController) UploadFile(ctx *gin.Context) {
 	// 获取文章类型和ID
-	articleType := ctx.PostForm("article_type")
 	articleIDStr := ctx.PostForm("article_id")
+	userID, exists := ctx.Get("userid")
+	println("userID:", userID)
+	fmt.Printf("userID的实际类型：%T，值：%v\n", userID, userID)
+	if !exists {
+		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "获取用户ID失败")
+		return
+	}
+	// 类型转换
+	uid, ok := userID.(int)
+	println("userID1:", uid)
+	if !ok {
+		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "用户ID类型错误")
+		return
+	}
+
 	var articleID int
 	// 转换 articleIDStr 参数
 	if articleIDStr != "" {
@@ -80,7 +94,7 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	objectPrefix := getObjectPrefixByType(fileType)
 
 	// 上传文件
-	fileInfo, err := c.fileService.UploadFile(ctx, fileHeader, articleType, articleID, objectPrefix)
+	fileInfo, err := c.fileService.UploadFile(ctx, fileHeader, articleID, objectPrefix, uid)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "上传文件失败")
 		return

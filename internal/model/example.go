@@ -10,7 +10,7 @@ type Example struct {
 	// json:控制结构体字段在 JSON 序列化 / 反序列化时的名称
 	// gorm:控制数据库表字段的约束
 	// validate:控制字段的验证规则
-	ID     uint   `json:"id" gorm:"primaryKey"`
+	ID     int    `json:"id" gorm:"primaryKey"`
 	FIELD1 string `json:"field1"`
 }
 

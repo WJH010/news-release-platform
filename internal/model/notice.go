@@ -7,7 +7,7 @@ import (
 )
 
 type Notice struct {
-	ID          int64      `json:"id" gorm:"primaryKey;autoIncrement;column:id"`
+	ID          int        `json:"id" gorm:"primaryKey;autoIncrement;column:id"`
 	Title       string     `json:"title" gorm:"type:varchar(255)"`
 	Content     string     `json:"content" gorm:"type:text;not null"`
 	ReleaseTime *time.Time `json:"release_time" gorm:"column:release_time"`

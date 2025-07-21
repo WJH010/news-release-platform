@@ -13,7 +13,7 @@ import (
 
 // FileService 文件服务接口
 type FileService interface {
-	UploadFile(ctx context.Context, fileHeader *FileHeader, articleType string, articleID int, objectPrefix string) (*model.File, error)
+	UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, objectPrefix string, userID int) (*model.File, error)
 }
 
 // FileHeader 文件头信息
@@ -39,7 +39,7 @@ func NewFileService(minioRepo repository.MinIORepository, fileRepo repository.Fi
 }
 
 // UploadFile 上传文件
-func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader, articleType string, articleID int, objectPrefix string) (*model.File, error) {
+func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, objectPrefix string, userID int) (*model.File, error) {
 	// 生成唯一的对象名
 	ext := filepath.Ext(fileHeader.OriginalFileName)
 	objectName := fmt.Sprintf("%s/%d%s", objectPrefix, time.Now().UnixNano(), ext)
@@ -51,18 +51,18 @@ func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader
 	}
 
 	// 确定文件类型
-	fileType := s.detectFileType(fileHeader.OriginalFileName, fileHeader.ContentType)
+	fileType := s.detectFileType(fileHeader.OriginalFileName)
 
 	// 创建文件记录
 	file := &model.File{
-		ArticleType: articleType,
-		ArticleID:   articleID,
-		ObjectName:  objectName,
-		URL:         url,
-		FileName:    fileHeader.OriginalFileName,
-		FileSize:    int(fileHeader.Size),
-		ContentType: fileHeader.ContentType,
-		FileType:    string(fileType),
+		ArticleID:    articleID,
+		ObjectName:   objectName,
+		URL:          url,
+		FileName:     fileHeader.OriginalFileName,
+		FileSize:     int(fileHeader.Size),
+		ContentType:  fileHeader.ContentType,
+		FileType:     string(fileType),
+		UploadUserID: userID,
 	}
 
 	if err := s.fileRepo.CreateFile(ctx, file); err != nil {
@@ -75,7 +75,7 @@ func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader
 }
 
 // detectFileType 检测文件类型
-func (s *FileServiceImpl) detectFileType(filename, contentType string) model.FileType {
+func (s *FileServiceImpl) detectFileType(filename string) model.FileType {
 	ext := strings.ToLower(filepath.Ext(filename))
 
 	// 图片类型
