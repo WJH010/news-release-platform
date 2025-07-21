@@ -12,7 +12,7 @@ import (
 
 // NoticeResponse 公告列表响应结构体
 type NoticeResponse struct {
-	ID          int64     `json:"id"`
+	ID          int       `json:"id"`
 	Title       string    `json:"title"`
 	Content     string    `json:"content"`
 	ReleaseTime time.Time `json:"release_time"`

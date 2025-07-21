@@ -47,13 +47,13 @@ func (s *UserServiceImpl) Login(ctx context.Context, code string) (string, error
 	}
 
 	// 查找或创建用户
-	err = s.findOrCreateUser(ctx, wxResp.OpenID, wxResp.SessionKey, wxResp.UnionID)
+	userID, err := s.findOrCreateUser(ctx, wxResp.OpenID, wxResp.SessionKey, wxResp.UnionID)
 	if err != nil {
 		return "", fmt.Errorf("处理用户信息失败: %v", err)
 	}
 
 	// 生成登录状态 Token
-	token, err := s.generateToken(wxResp.OpenID)
+	token, err := s.generateToken(wxResp.OpenID, userID)
 	if err != nil {
 		return "", fmt.Errorf("生成Token失败: %v", err)
 	}
@@ -93,11 +93,11 @@ func (s *UserServiceImpl) getFromWechat(code string) (WxLoginResponse, error) {
 }
 
 // 查找或创建用户
-func (s *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessionKey, unionID string) error {
+func (s *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessionKey, unionID string) (int, error) {
 	// 查找用户
 	user, err := s.userRepo.GetUserByOpenID(ctx, openID)
 	if err != nil {
-		return err
+		return user.UserID, err
 	}
 
 	now := time.Now()
@@ -112,7 +112,7 @@ func (s *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessionK
 		}
 
 		if err := s.userRepo.Create(ctx, user); err != nil {
-			return err
+			return user.UserID, err
 		}
 	} else {
 		// 如果用户存在，更新session_key和登录时间
@@ -120,18 +120,19 @@ func (s *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessionK
 		user.LastLoginTime = now
 
 		if err := s.userRepo.Update(ctx, user); err != nil {
-			return err
+			return user.UserID, err
 		}
 	}
 
-	return nil
+	return user.UserID, nil
 }
 
 // 生成JWT Token
-func (s *UserServiceImpl) generateToken(openID string) (string, error) {
+func (s *UserServiceImpl) generateToken(openID string, userID int) (string, error) {
 	// 创建令牌声明
 	claims := jwt.MapClaims{
 		"openid": openID,
+		"userid": userID,
 		"exp":    time.Now().Add(time.Hour * 24).Unix(), // 令牌有效期24小时
 		"iat":    time.Now().Unix(),
 	}
