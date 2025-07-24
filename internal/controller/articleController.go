@@ -14,21 +14,24 @@ import (
 
 // ArticleListResponse 文章列表响应结构体
 type ArticleListResponse struct {
-	ArticleID    int       `json:"article_id"`
-	ArticleTitle string    `json:"article_title"`
-	ArticleType  string    `json:"article_type"`
-	FieldName    string    `json:"field_name"`
-	ReleaseTime  time.Time `json:"release_time"`
-	BriefContent string    `json:"brief_content"`
-	IsSelection  int       `json:"is_selection"`
+	ArticleID     int       `json:"article_id"`
+	ArticleTitle  string    `json:"article_title"`
+	ArticleType   string    `json:"article_type"`
+	FieldName     string    `json:"field_name"`
+	ReleaseTime   time.Time `json:"release_time"`
+	BriefContent  string    `json:"brief_content"`
+	IsSelection   int       `json:"is_selection"`
+	CoverImageURL string    `json:"cover_image_url"`
 }
 
 // ArticleContentResponse 文章内容响应结构体
 type ArticleContentResponse struct {
-	ArticleID      int       `json:"article_id"`
-	ArticleTitle   string    `json:"article_title"`
-	ReleaseTime    time.Time `json:"release_time"`
-	ArticleContent string    `json:"article_content"`
+	ArticleID       int       `json:"article_id"`
+	ArticleTitle    string    `json:"article_title"`
+	ReleaseTime     time.Time `json:"release_time"`
+	ArticleContent  string    `json:"article_content"`
+	ArticleTypeCode string    `json:"article_type_code"`
+	ArticleType     string    `json:"article_type"`
 }
 
 // 控制器
@@ -110,13 +113,14 @@ func (a *ArticleController) ListArticle(ctx *gin.Context) {
 	var result []ArticleListResponse
 	for _, p := range article {
 		result = append(result, ArticleListResponse{
-			ArticleID:    p.ArticleID,
-			ArticleTitle: p.ArticleTitle,
-			ArticleType:  p.ArticleType,
-			FieldName:    p.FieldName,
-			ReleaseTime:  p.ReleaseTime,
-			BriefContent: p.BriefContent,
-			IsSelection:  p.IsSelection,
+			ArticleID:     p.ArticleID,
+			ArticleTitle:  p.ArticleTitle,
+			ArticleType:   p.ArticleType,
+			FieldName:     p.FieldName,
+			ReleaseTime:   p.ReleaseTime,
+			BriefContent:  p.BriefContent,
+			IsSelection:   p.IsSelection,
+			CoverImageURL: p.CoverImageURL,
 		})
 	}
 
@@ -151,10 +155,12 @@ func (p *ArticleController) GetArticleContent(ctx *gin.Context) {
 	}
 
 	result := ArticleContentResponse{
-		ArticleID:      article.ArticleID,
-		ArticleTitle:   article.ArticleTitle,
-		ReleaseTime:    article.ReleaseTime,
-		ArticleContent: article.ArticleContent,
+		ArticleID:       article.ArticleID,
+		ArticleTitle:    article.ArticleTitle,
+		ReleaseTime:     article.ReleaseTime,
+		ArticleContent:  article.ArticleContent,
+		ArticleTypeCode: article.ArticleType,
+		ArticleType:     map[string]string{"NEWS": "新闻", "POLICY": "政策"}[article.ArticleType],
 	}
 
 	// 返回成功响应
