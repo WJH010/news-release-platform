@@ -18,6 +18,7 @@ type Article struct {
 	ArticleContent string    `json:"article_content" gorm:"type:mediumtext;column:article_content"`
 	IsSelection    int       `json:"is_selection" gorm:"default:2;column:is_selection"` // 默认=2，1：精选，2：非精选
 	FieldID        int       `json:"field_id" gorm:"column:field_id"`
+	CoverImageURL  string    `json:"cover_image_url" gorm:"column:cover_image_url"` // 封面图片URL
 	CreateTime     time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime     time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 }
