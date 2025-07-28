@@ -1,4 +1,4 @@
-package service
+package user
 
 import (
 	"context"
@@ -7,8 +7,8 @@ import (
 	"io"
 	"net/http"
 	"news-release/internal/config"
-	"news-release/internal/model"
-	"news-release/internal/repository"
+	usermodel "news-release/internal/model/user"
+	userrepo "news-release/internal/repository/user"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -29,12 +29,12 @@ type UserService interface {
 
 // UserServiceImpl 用户服务实现
 type UserServiceImpl struct {
-	userRepo repository.UserRepository
+	userRepo userrepo.UserRepository
 	cfg      *config.Config
 }
 
 // NewUserService 创建用户服务实例
-func NewUserService(userRepo repository.UserRepository, cfg *config.Config) UserService {
+func NewUserService(userRepo userrepo.UserRepository, cfg *config.Config) UserService {
 	return &UserServiceImpl{userRepo: userRepo, cfg: cfg}
 }
 
@@ -104,7 +104,7 @@ func (s *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessionK
 
 	// 如果用户不存在，创建新用户
 	if user == nil {
-		user = &model.User{
+		user = &usermodel.User{
 			OpenID:        openID,
 			SessionKey:    sessionKey,
 			UnionID:       unionID,

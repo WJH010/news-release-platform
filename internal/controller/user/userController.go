@@ -1,9 +1,9 @@
-package controller
+package user
 
 import (
 	"net/http"
 
-	"news-release/internal/service"
+	usersvc "news-release/internal/service/user"
 	"news-release/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -11,11 +11,11 @@ import (
 
 // UserController 用户控制器
 type UserController struct {
-	userService service.UserService
+	userService usersvc.UserService
 }
 
 // NewUserController 创建用户控制器实例
-func NewUserController(userService service.UserService) *UserController {
+func NewUserController(userService usersvc.UserService) *UserController {
 	return &UserController{userService: userService}
 }
 

@@ -8,6 +8,14 @@ import (
 	"news-release/internal/repository"
 	"news-release/internal/service"
 
+	userctr "news-release/internal/controller/user"
+	userrepo "news-release/internal/repository/user"
+	usersvc "news-release/internal/service/user"
+
+	msgctr "news-release/internal/controller/message"
+	msgrepo "news-release/internal/repository/message"
+	msgsvc "news-release/internal/service/message"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -51,8 +59,9 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fieldTypeRepo := repository.NewFieldTypeRepository(db)
 	noticeRepo := repository.NewNoticeRepository(db)
 	fileRepo := repository.NewFileRepository(db)
-	userRepo := repository.NewUserRepository(db)
+	userRepo := userrepo.NewUserRepository(db)
 	adminRepo := repository.NewAdminUserRepository(db)
+	msgRepo := msgrepo.NewMessageRepository(db)
 
 	// 初始化服务
 	exampleService := service.NewExampleService(exampleRepo)
@@ -60,8 +69,9 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fieldService := service.NewFieldTypeService(fieldTypeRepo)
 	noticeService := service.NewNoticeService(noticeRepo)
 	fileService := service.NewFileService(minioRepo, fileRepo)
-	userService := service.NewUserService(userRepo, cfg)
+	userService := usersvc.NewUserService(userRepo, cfg)
 	adminService := service.NewAdminUserService(adminRepo)
+	msgService := msgsvc.NewMessageService(msgRepo)
 
 	// 初始化控制器
 	exampleController := controller.NewExampleController(exampleService)
@@ -69,8 +79,9 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fieldTypeController := controller.NewFieldTypeController(fieldService)
 	noticeController := controller.NewNoticeController(noticeService)
 	fileController := controller.NewFileController(fileService)
-	userController := controller.NewUserController(userService)
+	userController := userctr.NewUserController(userService)
 	adminController := controller.NewAdminController(adminService, cfg)
+	msgController := msgctr.NewMessageController(msgService)
 
 	// API分组
 	api := router.Group("/api")
@@ -96,13 +107,6 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		{
 			notice.GET("", noticeController.ListNotice)
 		}
-		// 文件上传路由
-		file := api.Group("/file")
-		// file.Use(middleware.AuthMiddleware(cfg))
-		{
-			// 上传文件需进行身份验证
-			file.POST("/upload", middleware.AuthMiddleware(cfg), fileController.UploadFile)
-		}
 		// 用户相关路由
 		user := api.Group("/user")
 		{
@@ -111,6 +115,19 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		admin := api.Group("/admin")
 		{
 			admin.POST("/login", adminController.AdminLogin) // 管理系统登录接口
+		}
+		// 文件上传路由
+		file := api.Group("/file")
+		// file.Use(middleware.AuthMiddleware(cfg))
+		{
+			// 上传文件需进行身份验证
+			file.POST("/upload", middleware.AuthMiddleware(cfg), fileController.UploadFile)
+		}
+		// 消息相关路由
+		message := api.Group("/message")
+		message.Use(middleware.AuthMiddleware(cfg))
+		{
+			message.GET("", msgController.ListMessage)
 		}
 	}
 }

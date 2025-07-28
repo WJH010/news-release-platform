@@ -33,15 +33,14 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	// 获取文章类型和ID
 	articleIDStr := ctx.PostForm("article_id")
 	userID, exists := ctx.Get("userid")
-	println("userID:", userID)
-	fmt.Printf("userID的实际类型：%T，值：%v\n", userID, userID)
+
 	if !exists {
 		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "获取用户ID失败")
 		return
 	}
+
 	// 类型转换
 	uid, ok := userID.(int)
-	println("userID1:", uid)
 	if !ok {
 		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "用户ID类型错误")
 		return

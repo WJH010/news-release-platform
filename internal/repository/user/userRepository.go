@@ -1,17 +1,17 @@
-package repository
+package user
 
 import (
 	"context"
-	"news-release/internal/model"
+	usermodel "news-release/internal/model/user"
 
 	"gorm.io/gorm"
 )
 
 // UserRepository 用户仓库接口
 type UserRepository interface {
-	GetUserByOpenID(ctx context.Context, openid string) (*model.User, error)
-	Create(ctx context.Context, user *model.User) error
-	Update(ctx context.Context, user *model.User) error
+	GetUserByOpenID(ctx context.Context, openid string) (*usermodel.User, error)
+	Create(ctx context.Context, user *usermodel.User) error
+	Update(ctx context.Context, user *usermodel.User) error
 }
 
 // UserRepositoryImpl 用户仓库实现
@@ -25,8 +25,8 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 }
 
 // GetUserByOpenID 根据 openid 获取用户信息
-func (r *UserRepositoryImpl) GetUserByOpenID(ctx context.Context, openid string) (*model.User, error) {
-	var user model.User
+func (r *UserRepositoryImpl) GetUserByOpenID(ctx context.Context, openid string) (*usermodel.User, error) {
+	var user usermodel.User
 	result := r.db.WithContext(ctx).Where("openid = ?", openid).First(&user)
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {
@@ -38,11 +38,11 @@ func (r *UserRepositoryImpl) GetUserByOpenID(ctx context.Context, openid string)
 }
 
 // Create 创建新用户
-func (r *UserRepositoryImpl) Create(ctx context.Context, user *model.User) error {
+func (r *UserRepositoryImpl) Create(ctx context.Context, user *usermodel.User) error {
 	return r.db.WithContext(ctx).Create(user).Error
 }
 
 // Update 更新用户
-func (r *UserRepositoryImpl) Update(ctx context.Context, user *model.User) error {
+func (r *UserRepositoryImpl) Update(ctx context.Context, user *usermodel.User) error {
 	return r.db.WithContext(ctx).Save(user).Error
 }
