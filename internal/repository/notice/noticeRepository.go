@@ -1,10 +1,9 @@
-package repository
+package notice
 
 import (
 	"context"
-	"net/http"
-	"news-release/internal/model"
-	"news-release/internal/utils"
+	"fmt"
+	noticemodel "news-release/internal/model/notice"
 
 	"gorm.io/gorm"
 )
@@ -12,7 +11,7 @@ import (
 // 数据访问接口，定义数据访问的方法集
 type NoticeRepository interface {
 	// 分页查询政策列表
-	List(ctx context.Context, page, pageSize int) ([]*model.Notice, int64, error)
+	List(ctx context.Context, page, pageSize int) ([]*noticemodel.Notice, int64, error)
 }
 
 // 实现接口的具体结构体
@@ -26,7 +25,7 @@ func NewNoticeRepository(db *gorm.DB) NoticeRepository {
 }
 
 // 分页查询数据
-func (r *NoticeRepositoryImpl) List(ctx context.Context, page, pageSize int) ([]*model.Notice, int64, error) {
+func (r *NoticeRepositoryImpl) List(ctx context.Context, page, pageSize int) ([]*noticemodel.Notice, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -35,7 +34,7 @@ func (r *NoticeRepositoryImpl) List(ctx context.Context, page, pageSize int) ([]
 	}
 
 	offset := (page - 1) * pageSize
-	var notices []*model.Notice
+	var notices []*noticemodel.Notice
 	query := r.db.WithContext(ctx)
 
 	// 添加条件查询
@@ -47,16 +46,14 @@ func (r *NoticeRepositoryImpl) List(ctx context.Context, page, pageSize int) ([]
 
 	// 计算总数
 	var total int64
-	countQuery := *query // 复制查询对象，避免修改原始查询
-	if err := countQuery.Model(&model.Notice{}).Count(&total).Error; err != nil {
-		utils.HandleError(nil, err, http.StatusInternalServerError, 0, "计算总数时数据库查询失败")
-		return nil, 0, err
+	countQuery := query.Session(&gorm.Session{})
+	if err := countQuery.Model(&noticemodel.Notice{}).Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("计算总数时数据库查询失败: %v", err)
 	}
 
 	// 查询数据
 	if err := query.Offset(offset).Limit(pageSize).Find(&notices).Error; err != nil {
-		utils.HandleError(nil, err, http.StatusInternalServerError, 0, "数据库查询失败")
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("数据库查询失败: %v", err)
 	}
 
 	return notices, total, nil

@@ -1,9 +1,9 @@
-package controller
+package article
 
 import (
 	"errors"
 	"net/http"
-	"news-release/internal/service"
+	articlersvc "news-release/internal/service/article"
 	"news-release/internal/utils"
 	"strconv"
 	"time"
@@ -36,11 +36,11 @@ type ArticleContentResponse struct {
 
 // 控制器
 type ArticleController struct {
-	articleService service.ArticleService
+	articleService articlersvc.ArticleService
 }
 
 // 创建控制器实例
-func NewArticleController(articleService service.ArticleService) *ArticleController {
+func NewArticleController(articleService articlersvc.ArticleService) *ArticleController {
 	return &ArticleController{articleService: articleService}
 }
 

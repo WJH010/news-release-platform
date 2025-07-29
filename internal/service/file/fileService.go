@@ -1,4 +1,4 @@
-package service
+package file
 
 import (
 	"context"
@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"news-release/internal/model"
-	"news-release/internal/repository"
+	filemodel "news-release/internal/model/file"
+	filerepo "news-release/internal/repository/file"
 )
 
 // FileService 文件服务接口
 type FileService interface {
-	UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, objectPrefix string, userID int) (*model.File, error)
+	UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, objectPrefix string, userID int) (*filemodel.File, error)
 }
 
 // FileHeader 文件头信息
@@ -26,12 +26,12 @@ type FileHeader struct {
 
 // FileServiceImpl 文件服务实现
 type FileServiceImpl struct {
-	minioRepo repository.MinIORepository
-	fileRepo  repository.FileRepository
+	minioRepo filerepo.MinIORepository
+	fileRepo  filerepo.FileRepository
 }
 
 // NewFileService 创建文件服务实例
-func NewFileService(minioRepo repository.MinIORepository, fileRepo repository.FileRepository) FileService {
+func NewFileService(minioRepo filerepo.MinIORepository, fileRepo filerepo.FileRepository) FileService {
 	return &FileServiceImpl{
 		minioRepo: minioRepo,
 		fileRepo:  fileRepo,
@@ -39,7 +39,7 @@ func NewFileService(minioRepo repository.MinIORepository, fileRepo repository.Fi
 }
 
 // UploadFile 上传文件
-func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, objectPrefix string, userID int) (*model.File, error) {
+func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, objectPrefix string, userID int) (*filemodel.File, error) {
 	// 生成唯一的对象名
 	ext := filepath.Ext(fileHeader.OriginalFileName)
 	objectName := fmt.Sprintf("%s/%d%s", objectPrefix, time.Now().UnixNano(), ext)
@@ -54,7 +54,7 @@ func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader
 	fileType := s.detectFileType(fileHeader.OriginalFileName)
 
 	// 创建文件记录
-	file := &model.File{
+	file := &filemodel.File{
 		ArticleID:    articleID,
 		ObjectName:   objectName,
 		URL:          url,
@@ -75,16 +75,16 @@ func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader
 }
 
 // detectFileType 检测文件类型
-func (s *FileServiceImpl) detectFileType(filename string) model.FileType {
+func (s *FileServiceImpl) detectFileType(filename string) filemodel.FileType {
 	ext := strings.ToLower(filepath.Ext(filename))
 
 	// 图片类型
 	imageExts := []string{".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
 	for _, e := range imageExts {
 		if ext == e {
-			return model.FileTypeImage
+			return filemodel.FileTypeImage
 		}
 	}
 
-	return model.FileTypeOther
+	return filemodel.FileTypeOther
 }

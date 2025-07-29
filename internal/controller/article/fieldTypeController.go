@@ -1,8 +1,8 @@
-package controller
+package article
 
 import (
 	"net/http"
-	"news-release/internal/service"
+	articlersvc "news-release/internal/service/article"
 	"news-release/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -10,11 +10,11 @@ import (
 
 // 控制器
 type FieldTypeController struct {
-	fieldTyprService service.FieldTypeService
+	fieldTyprService articlersvc.FieldTypeService
 }
 
 // 创建控制器实例
-func NewFieldTypeController(fieldTyprService service.FieldTypeService) *FieldTypeController {
+func NewFieldTypeController(fieldTyprService articlersvc.FieldTypeService) *FieldTypeController {
 	return &FieldTypeController{fieldTyprService: fieldTyprService}
 }
 

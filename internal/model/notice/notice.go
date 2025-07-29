@@ -1,4 +1,4 @@
-package model
+package notice
 
 import (
 	"time"

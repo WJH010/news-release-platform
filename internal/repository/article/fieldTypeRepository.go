@@ -1,8 +1,8 @@
-package repository
+package article
 
 import (
 	"context"
-	"news-release/internal/model"
+	articlemodel "news-release/internal/model/article"
 
 	"gorm.io/gorm"
 )
@@ -10,7 +10,7 @@ import (
 // 数据访问接口，定义数据访问的方法集
 type FieldTypeRepository interface {
 	// 获取领域类型列表
-	GetFieldType(ctx context.Context) ([]*model.FieldType, error)
+	GetFieldType(ctx context.Context) ([]*articlemodel.FieldType, error)
 }
 
 // 实现接口的具体结构体
@@ -24,8 +24,8 @@ func NewFieldTypeRepository(db *gorm.DB) FieldTypeRepository {
 }
 
 // 查询
-func (r *FieldTypeRepositoryImpl) GetFieldType(ctx context.Context) ([]*model.FieldType, error) {
-	var fieldType []*model.FieldType
+func (r *FieldTypeRepositoryImpl) GetFieldType(ctx context.Context) ([]*articlemodel.FieldType, error) {
+	var fieldType []*articlemodel.FieldType
 
 	result := r.db.WithContext(ctx).Find(&fieldType)
 	err := result.Error

@@ -1,10 +1,9 @@
-package repository
+package article
 
 import (
 	"context"
-	"net/http"
-	"news-release/internal/model"
-	"news-release/internal/utils"
+	"fmt"
+	articlemodel "news-release/internal/model/article"
 
 	"gorm.io/gorm"
 )
@@ -12,9 +11,9 @@ import (
 // 数据访问接口，定义数据访问的方法集
 type ArticleRepository interface {
 	// 分页查询
-	List(ctx context.Context, page, pageSize int, articleTitle, articleType, releaseTime string, fieldID, isSelection, status int) ([]*model.Article, int64, error)
+	List(ctx context.Context, page, pageSize int, articleTitle, articleType, releaseTime string, fieldID, isSelection, status int) ([]*articlemodel.Article, int64, error)
 	// 内容查询
-	GetArticleContent(ctx context.Context, articleID int) (*model.Article, error)
+	GetArticleContent(ctx context.Context, articleID int) (*articlemodel.Article, error)
 }
 
 // 实现接口的具体结构体
@@ -28,7 +27,7 @@ func NewArticleRepository(db *gorm.DB) ArticleRepository {
 }
 
 // 分页查询数据
-func (r *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, articleTitle, articleType, releaseTime string, fieldID, isSelection, status int) ([]*model.Article, int64, error) {
+func (r *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, articleTitle, articleType, releaseTime string, fieldID, isSelection, status int) ([]*articlemodel.Article, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -37,7 +36,7 @@ func (r *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, ar
 	}
 
 	offset := (page - 1) * pageSize
-	var articles []*model.Article
+	var articles []*articlemodel.Article
 	query := r.db.WithContext(ctx)
 
 	// 构建基础查询
@@ -70,24 +69,22 @@ func (r *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, ar
 
 	// 计算总数
 	var total int64
-	countQuery := *query // 复制查询对象，避免修改原始查询
+	countQuery := query.Session(&gorm.Session{})
 	if err := countQuery.Count(&total).Error; err != nil {
-		utils.HandleError(nil, err, http.StatusInternalServerError, 0, "计算总数时数据库查询失败")
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("计算总数时数据库查询失败: %v", err)
 	}
 
 	// 查询数据
 	if err := query.Offset(offset).Limit(pageSize).Find(&articles).Error; err != nil {
-		utils.HandleError(nil, err, http.StatusInternalServerError, 0, "数据库查询失败")
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("数据库查询失败: %v", err)
 	}
 
 	return articles, total, nil
 }
 
 // 内容查询
-func (r *ArticleRepositoryImpl) GetArticleContent(ctx context.Context, articleID int) (*model.Article, error) {
-	var article model.Article
+func (r *ArticleRepositoryImpl) GetArticleContent(ctx context.Context, articleID int) (*articlemodel.Article, error) {
+	var article articlemodel.Article
 
 	result := r.db.WithContext(ctx).First(&article, articleID)
 	err := result.Error

@@ -1,8 +1,8 @@
-package controller
+package notice
 
 import (
 	"net/http"
-	"news-release/internal/service"
+	noticesvc "news-release/internal/service/notice"
 	"news-release/internal/utils"
 	"strconv"
 	"time"
@@ -21,11 +21,11 @@ type NoticeResponse struct {
 
 // 控制器
 type NoticeController struct {
-	noticeService service.NoticeService
+	noticeService noticesvc.NoticeService
 }
 
 // 创建控制器实例
-func NewNoticeController(noticeService service.NoticeService) *NoticeController {
+func NewNoticeController(noticeService noticesvc.NoticeService) *NoticeController {
 	return &NoticeController{noticeService: noticeService}
 }
 

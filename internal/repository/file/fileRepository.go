@@ -1,15 +1,15 @@
-package repository
+package file
 
 import (
 	"context"
-	"news-release/internal/model"
+	filemodel "news-release/internal/model/file"
 
 	"gorm.io/gorm"
 )
 
 // FileRepository 文件存储库接口
 type FileRepository interface {
-	CreateFile(ctx context.Context, file *model.File) error
+	CreateFile(ctx context.Context, file *filemodel.File) error
 }
 
 // FileRepositoryImpl 文件存储库实现
@@ -23,6 +23,6 @@ func NewFileRepository(db *gorm.DB) FileRepository {
 }
 
 // CreateFile 创建文件记录
-func (r *FileRepositoryImpl) CreateFile(ctx context.Context, file *model.File) error {
+func (r *FileRepositoryImpl) CreateFile(ctx context.Context, file *filemodel.File) error {
 	return r.db.WithContext(ctx).Create(file).Error
 }

@@ -1,4 +1,4 @@
-package controller
+package file
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"news-release/internal/service"
+	filesvc "news-release/internal/service/file"
 	"news-release/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -18,11 +18,11 @@ import (
 
 // FileController 文件控制器
 type FileController struct {
-	fileService service.FileService
+	fileService filesvc.FileService
 }
 
 // NewFileController 创建文件控制器实例
-func NewFileController(fileService service.FileService) *FileController {
+func NewFileController(fileService filesvc.FileService) *FileController {
 	return &FileController{
 		fileService: fileService,
 	}
@@ -81,7 +81,7 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	defer os.Remove(tempFilePath)
 
 	// 准备文件头信息
-	fileHeader := &service.FileHeader{
+	fileHeader := &filesvc.FileHeader{
 		OriginalFileName: file.Filename,
 		ContentType:      file.Header.Get("Content-Type"),
 		Size:             file.Size,

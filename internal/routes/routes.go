@@ -3,14 +3,24 @@ package routes
 import (
 	"fmt"
 	"news-release/internal/config"
-	"news-release/internal/controller"
 	"news-release/internal/middleware"
 	"news-release/internal/repository"
-	"news-release/internal/service"
+
+	articlectr "news-release/internal/controller/article"
+	articlerepo "news-release/internal/repository/article"
+	articlesvc "news-release/internal/service/article"
+
+	noticectr "news-release/internal/controller/notice"
+	noticerepo "news-release/internal/repository/notice"
+	noticesvc "news-release/internal/service/notice"
 
 	userctr "news-release/internal/controller/user"
 	userrepo "news-release/internal/repository/user"
 	usersvc "news-release/internal/service/user"
+
+	filectr "news-release/internal/controller/file"
+	filerepo "news-release/internal/repository/file"
+	filesvc "news-release/internal/service/file"
 
 	msgctr "news-release/internal/controller/message"
 	msgrepo "news-release/internal/repository/message"
@@ -37,11 +47,11 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	)
 	db, err := repository.NewDatabase(DSN)
 	if err != nil {
-		logrus.Panic("数据库连接失败: ", err)
+		logrus.Panic(err)
 	}
 
 	// 创建MinIO存储实例
-	minioRepo, err := repository.NewMinIORepository(
+	minioRepo, err := filerepo.NewMinIORepository(
 		cfg.MinIO.Endpoint,
 		cfg.MinIO.AccessKeyID,
 		cfg.MinIO.SecretAccessKey,
@@ -54,43 +64,32 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 
 	// 初始化依赖
 	// 初始化仓库
-	exampleRepo := repository.NewExampleRepository(db)
-	articleRepo := repository.NewArticleRepository(db)
-	fieldTypeRepo := repository.NewFieldTypeRepository(db)
-	noticeRepo := repository.NewNoticeRepository(db)
-	fileRepo := repository.NewFileRepository(db)
+	articleRepo := articlerepo.NewArticleRepository(db)
+	fieldTypeRepo := articlerepo.NewFieldTypeRepository(db)
+	noticeRepo := noticerepo.NewNoticeRepository(db)
+	fileRepo := filerepo.NewFileRepository(db)
 	userRepo := userrepo.NewUserRepository(db)
-	adminRepo := repository.NewAdminUserRepository(db)
 	msgRepo := msgrepo.NewMessageRepository(db)
 
 	// 初始化服务
-	exampleService := service.NewExampleService(exampleRepo)
-	articleService := service.NewArticleService(articleRepo)
-	fieldService := service.NewFieldTypeService(fieldTypeRepo)
-	noticeService := service.NewNoticeService(noticeRepo)
-	fileService := service.NewFileService(minioRepo, fileRepo)
+	articleService := articlesvc.NewArticleService(articleRepo)
+	fieldService := articlesvc.NewFieldTypeService(fieldTypeRepo)
+	noticeService := noticesvc.NewNoticeService(noticeRepo)
+	fileService := filesvc.NewFileService(minioRepo, fileRepo)
 	userService := usersvc.NewUserService(userRepo, cfg)
-	adminService := service.NewAdminUserService(adminRepo)
 	msgService := msgsvc.NewMessageService(msgRepo)
 
 	// 初始化控制器
-	exampleController := controller.NewExampleController(exampleService)
-	articleController := controller.NewArticleController(articleService)
-	fieldTypeController := controller.NewFieldTypeController(fieldService)
-	noticeController := controller.NewNoticeController(noticeService)
-	fileController := controller.NewFileController(fileService)
+	articleController := articlectr.NewArticleController(articleService)
+	fieldTypeController := articlectr.NewFieldTypeController(fieldService)
+	noticeController := noticectr.NewNoticeController(noticeService)
+	fileController := filectr.NewFileController(fileService)
 	userController := userctr.NewUserController(userService)
-	adminController := controller.NewAdminController(adminService, cfg)
 	msgController := msgctr.NewMessageController(msgService)
 
 	// API分组
 	api := router.Group("/api")
 	{
-		// example仅用于示例及测试
-		example := api.Group("/example")
-		{
-			example.GET("", exampleController.ListExample)
-		}
 		// articles
 		articles := api.Group("/articles")
 		{
@@ -111,10 +110,6 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		user := api.Group("/user")
 		{
 			user.POST("/login", userController.Login)
-		}
-		admin := api.Group("/admin")
-		{
-			admin.POST("/login", adminController.AdminLogin) // 管理系统登录接口
 		}
 		// 文件上传路由
 		file := api.Group("/file")
