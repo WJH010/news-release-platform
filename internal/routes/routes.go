@@ -123,6 +123,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		message.Use(middleware.AuthMiddleware(cfg))
 		{
 			message.GET("", msgController.ListMessage)
+			message.GET("/:messageID", msgController.GetMessageContent)
 		}
 	}
 }

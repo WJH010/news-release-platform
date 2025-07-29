@@ -42,8 +42,8 @@ func (r *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, ar
 	// 构建基础查询
 	query = query.Table("articles a").
 		Select("a.article_id, a.article_title, a.article_type, a.release_time, a.brief_content, a.is_selection, f.field_name, a.cover_image_url,a.article_source,at.type_name").
-		Joins("LEFT JOIN field_type f ON a.field_id = f.field_id").
-		Joins("LEFT JOIN article_type at ON a.article_type = at.type_code")
+		Joins("LEFT JOIN field_types f ON a.field_id = f.field_id").
+		Joins("LEFT JOIN article_types at ON a.article_type = at.type_code")
 
 	// 添加条件查询
 	if releaseTime != "" {

@@ -11,7 +11,7 @@ type UserMessageMapping struct {
 	ID         int       `json:"id" gorm:"primaryKey;column:id"`
 	UserID     int       `json:"user_id" gorm:"column:user_id"`
 	MessageID  int       `json:"message_id" gorm:"column:message_id"`
-	IsRead     string    `json:"is_read" gorm:"type:varchar(2);column:is_read"`
+	IsRead     string    `json:"is_read" gorm:"type:varchar(2);column:is_read;default:N"`
 	ReadTime   time.Time `json:"read_time" gorm:"column:read_time"`
 	CreateTime time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
