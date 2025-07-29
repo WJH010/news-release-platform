@@ -17,7 +17,7 @@ type ArticleType struct {
 
 // TableName 设置表名
 func (ArticleType) TableName() string {
-	return "article_type"
+	return "article_types"
 }
 
 // Validate 验证数据

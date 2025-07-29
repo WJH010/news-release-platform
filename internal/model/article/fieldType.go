@@ -16,7 +16,7 @@ type FieldType struct {
 
 // TableName 设置表名
 func (FieldType) TableName() string {
-	return "field_type"
+	return "field_types"
 }
 
 // Validate 验证数据
