@@ -3,28 +3,28 @@ package routes
 import (
 	"fmt"
 	"news-release/internal/config"
+	"news-release/internal/database"
 	"news-release/internal/middleware"
-	"news-release/internal/repository"
 
-	articlectr "news-release/internal/controller/article"
-	articlerepo "news-release/internal/repository/article"
-	articlesvc "news-release/internal/service/article"
+	articlectr "news-release/internal/article/controller"
+	articlerepo "news-release/internal/article/repository"
+	articlesvc "news-release/internal/article/service"
 
-	noticectr "news-release/internal/controller/notice"
-	noticerepo "news-release/internal/repository/notice"
-	noticesvc "news-release/internal/service/notice"
+	noticectr "news-release/internal/notice/controller"
+	noticerepo "news-release/internal/notice/repository"
+	noticesvc "news-release/internal/notice/service"
 
-	userctr "news-release/internal/controller/user"
-	userrepo "news-release/internal/repository/user"
-	usersvc "news-release/internal/service/user"
+	userctr "news-release/internal/user/controller"
+	userrepo "news-release/internal/user/repository"
+	usersvc "news-release/internal/user/service"
 
-	filectr "news-release/internal/controller/file"
-	filerepo "news-release/internal/repository/file"
-	filesvc "news-release/internal/service/file"
+	filectr "news-release/internal/file/controller"
+	filerepo "news-release/internal/file/repository"
+	filesvc "news-release/internal/file/service"
 
-	msgctr "news-release/internal/controller/message"
-	msgrepo "news-release/internal/repository/message"
-	msgsvc "news-release/internal/service/message"
+	msgctr "news-release/internal/message/controller"
+	msgrepo "news-release/internal/message/repository"
+	msgsvc "news-release/internal/message/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
@@ -45,7 +45,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		cfg.Database.Port,
 		cfg.Database.DBName,
 	)
-	db, err := repository.NewDatabase(DSN)
+	db, err := database.NewDatabase(DSN)
 	if err != nil {
 		logrus.Panic(err)
 	}
