@@ -1,0 +1,79 @@
+package file
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
+)
+
+// MinIORepository MinIO存储接口
+type MinIORepository interface {
+	UploadFile(ctx context.Context, objectName, filePath string) (string, error)
+	DeleteFile(ctx context.Context, objectName string) error
+	GetFileURL(ctx context.Context, objectName string) (string, error)
+}
+
+// MinIORepositoryImpl MinIO存储实现
+type MinIORepositoryImpl struct {
+	client     *minio.Client
+	bucketName string
+}
+
+// NewMinIORepository 创建MinIO存储实例
+func NewMinIORepository(endpoint, accessKeyID, secretAccessKey string, useSSL bool, bucketName string) (MinIORepository, error) {
+	client, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
+		Secure: useSSL,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("创建MinIO客户端失败: %w", err)
+	}
+
+	// 检查存储桶是否存在，不存在则创建
+	ctx := context.Background()
+	exists, err := client.BucketExists(ctx, bucketName)
+	if err != nil {
+		return nil, fmt.Errorf("检查MinIO存储桶是否存在失败: %w", err)
+	}
+	if !exists {
+		err = client.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
+		if err != nil {
+			return nil, fmt.Errorf("创建MinIO存储桶失败: %w", err)
+		}
+	}
+
+	return &MinIORepositoryImpl{
+		client:     client,
+		bucketName: bucketName,
+	}, nil
+}
+
+// UploadFile 上传文件到MinIO
+func (r *MinIORepositoryImpl) UploadFile(ctx context.Context, objectName, filePath string) (string, error) {
+	info, err := r.client.FPutObject(ctx, r.bucketName, objectName, filePath, minio.PutObjectOptions{})
+	if err != nil {
+		return "", fmt.Errorf("上传文件到MinIO失败: %w", err)
+	}
+
+	// 生成文件的访问URL
+	url := fmt.Sprintf("%s/%s/%s", r.client.EndpointURL().String(), r.bucketName, info.Key)
+	return url, nil
+}
+
+// DeleteFile 从MinIO删除文件
+func (r *MinIORepositoryImpl) DeleteFile(ctx context.Context, objectName string) error {
+	return r.client.RemoveObject(ctx, r.bucketName, objectName, minio.RemoveObjectOptions{})
+}
+
+// GetFileURL 获取文件URL
+func (r *MinIORepositoryImpl) GetFileURL(ctx context.Context, objectName string) (string, error) {
+	// 生成预签名URL，有效期1小时
+	url, err := r.client.PresignedGetObject(ctx, r.bucketName, objectName, time.Hour, nil)
+	if err != nil {
+		return "", fmt.Errorf("生成文件URL失败: %w", err)
+	}
+	return url.String(), nil
+}

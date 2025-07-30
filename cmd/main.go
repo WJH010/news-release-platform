@@ -8,6 +8,8 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,6 +30,12 @@ func main() {
 
 	// 创建默认的Gin引擎，但不使用默认中间件
 	router := gin.New()
+
+	// 替换Gin的默认验证器为自定义验证器
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		// 在现有验证器上注册自定义规则
+		utils.RegisterCustomValidators(v)
+	}
 
 	// 初始化依赖及注册路由
 	routes.SetupRoutes(cfg, router)
