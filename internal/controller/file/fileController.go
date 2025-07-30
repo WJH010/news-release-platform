@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
+	filedto "news-release/internal/dto/file"
 	filesvc "news-release/internal/service/file"
 	"news-release/internal/utils"
 
@@ -30,38 +30,22 @@ func NewFileController(fileService filesvc.FileService) *FileController {
 
 // UploadFile 上传文件
 func (c *FileController) UploadFile(ctx *gin.Context) {
-	// 获取文章类型和ID
-	articleIDStr := ctx.PostForm("article_id")
-	userID, exists := ctx.Get("userid")
+	// 初始化参数结构体并绑定查询参数
+	var req filedto.FileUploadRequest
+	if !utils.BindForm(ctx, &req) {
+		return
+	}
 
+	// 获取用户ID
+	userID, exists := ctx.Get("userid")
 	if !exists {
 		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "获取用户ID失败")
 		return
 	}
-
 	// 类型转换
 	uid, ok := userID.(int)
 	if !ok {
 		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "用户ID类型错误")
-		return
-	}
-
-	var articleID int
-	// 转换 articleIDStr 参数
-	if articleIDStr != "" {
-		var err error
-		articleID, err = strconv.Atoi(articleIDStr)
-
-		if err != nil {
-			utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "articleID格式转换错误")
-			return
-		}
-	}
-
-	// 获取上传的文件
-	file, err := ctx.FormFile("file")
-	if err != nil {
-		utils.HandleError(ctx, err, http.StatusBadRequest, 0, "未找到上传的文件")
 		return
 	}
 
@@ -74,7 +58,7 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 
 	// 保存临时文件
 	tempFilePath := filepath.Join(os.TempDir(), uuid.New().String())
-	if err := ctx.SaveUploadedFile(file, tempFilePath); err != nil {
+	if err := ctx.SaveUploadedFile(req.File, tempFilePath); err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "保存临时文件失败")
 		return
 	}
@@ -82,18 +66,18 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 
 	// 准备文件头信息
 	fileHeader := &filesvc.FileHeader{
-		OriginalFileName: file.Filename,
-		ContentType:      file.Header.Get("Content-Type"),
-		Size:             file.Size,
+		OriginalFileName: req.File.Filename,
+		ContentType:      req.File.Header.Get("Content-Type"),
+		Size:             req.File.Size,
 		TemporaryFile:    tempFilePath,
 	}
 
 	// 根据文件类型设置存储路径前缀
-	fileType := detectFileType(file.Filename, file.Header.Get("Content-Type"))
+	fileType := detectFileType(req.File.Filename, req.File.Header.Get("Content-Type"))
 	objectPrefix := getObjectPrefixByType(fileType)
 
 	// 上传文件
-	fileInfo, err := c.fileService.UploadFile(ctx, fileHeader, articleID, objectPrefix, uid)
+	fileInfo, err := c.fileService.UploadFile(ctx, fileHeader, req.ArticleID, objectPrefix, uid)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "上传文件失败")
 		return

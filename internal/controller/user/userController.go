@@ -3,6 +3,7 @@ package user
 import (
 	"net/http"
 
+	userdto "news-release/internal/dto/user"
 	usersvc "news-release/internal/service/user"
 	"news-release/internal/utils"
 
@@ -21,17 +22,13 @@ func NewUserController(userService usersvc.UserService) *UserController {
 
 // Login 微信登录接口
 func (c *UserController) Login(ctx *gin.Context) {
-	// 获取请求参数
-	var request struct {
-		Code string `json:"code" binding:"required"`
-	}
-
-	if err := ctx.ShouldBindJSON(&request); err != nil {
-		utils.HandleError(ctx, nil, http.StatusBadRequest, 0, "缺少 code 参数"+err.Error())
+	// 初始化参数结构体并绑定查询参数
+	var req userdto.WxLoginRequest
+	if !utils.BindJSON(ctx, &req) {
 		return
 	}
 
-	token, err := c.userService.Login(ctx, request.Code)
+	token, err := c.userService.Login(ctx, req.Code)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "登录失败"+err.Error())
 		return

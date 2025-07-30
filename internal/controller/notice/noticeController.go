@@ -2,22 +2,12 @@ package notice
 
 import (
 	"net/http"
+	noticedto "news-release/internal/dto/notice"
 	noticesvc "news-release/internal/service/notice"
 	"news-release/internal/utils"
-	"strconv"
-	"time"
 
 	"github.com/gin-gonic/gin"
 )
-
-// NoticeResponse 公告列表响应结构体
-type NoticeResponse struct {
-	ID          int       `json:"id"`
-	Title       string    `json:"title"`
-	Content     string    `json:"content"`
-	ReleaseTime time.Time `json:"release_time"`
-	Status      string    `json:"status"`
-}
 
 // 控制器
 type NoticeController struct {
@@ -31,18 +21,21 @@ func NewNoticeController(noticeService noticesvc.NoticeService) *NoticeControlle
 
 // 分页查询公告列表
 func (n *NoticeController) ListNotice(ctx *gin.Context) {
-	// 获取查询参数
-	pageStr := ctx.DefaultQuery("page", "1")
-	pageSizeStr := ctx.DefaultQuery("page_size", "10")
+	// 初始化参数结构体并绑定查询参数
+	var req noticedto.NoticeListRequest
+	if !utils.BindQuery(ctx, &req) {
+		return
+	}
 
-	// 转换参数类型
-	page, err := strconv.Atoi(pageStr)
-	if err != nil || page < 1 {
+	// page 默认1
+	page := req.Page
+	if page == 0 {
 		page = 1
 	}
 
-	pageSize, err := strconv.Atoi(pageSizeStr)
-	if err != nil || pageSize < 1 || pageSize > 100 {
+	// pageSize 默认10
+	pageSize := req.PageSize
+	if pageSize == 0 {
 		pageSize = 10
 	}
 
@@ -53,9 +46,9 @@ func (n *NoticeController) ListNotice(ctx *gin.Context) {
 		return
 	}
 
-	var result []NoticeResponse
+	var result []noticedto.NoticeResponse
 	for _, n := range notice {
-		result = append(result, NoticeResponse{
+		result = append(result, noticedto.NoticeResponse{
 			ID:          n.ID,
 			Title:       n.Title,
 			Content:     n.Content,
