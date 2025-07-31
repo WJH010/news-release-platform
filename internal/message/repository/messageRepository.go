@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"news-release/internal/message/model"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -16,6 +17,8 @@ type MessageRepository interface {
 	GetMessageContent(ctx context.Context, messageID int) (*model.Message, error)
 	// 获取未读消息数
 	GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error)
+	// 更新消息为已读
+	MarkAsRead(ctx context.Context, userID, messageID int) error
 }
 
 // 实现接口的具体结构体
@@ -46,7 +49,7 @@ func (r *MessageRepositoryImpl) List(ctx context.Context, page, pageSize int, us
 		Select("u.user_id, m.title, m.content, um.is_read, m.send_time, mt.type_name").
 		Joins("INNER JOIN user_message_mappings um ON u.user_id = um.user_id").
 		Joins("INNER JOIN messages m ON um.message_id = m.id").
-		Joins("INNER JOIN message_types mt ON m.type = mt.type_code").
+		Joins("LEFT JOIN message_types mt ON m.type = mt.type_code").
 		Where("u.user_id = ?", userID)
 
 	if messageType != "" {
@@ -95,7 +98,6 @@ func (r *MessageRepositoryImpl) GetUnreadMessageCount(ctx context.Context, userI
 		Table("users u").
 		Joins("INNER JOIN user_message_mappings um ON u.user_id = um.user_id").
 		Joins("INNER JOIN messages m ON um.message_id = m.id").
-		Joins("INNER JOIN message_types mt ON m.type = mt.type_code").
 		Where("u.user_id = ?", userID).
 		Where("um.is_read = ?", "N") // 只统计未读消息
 
@@ -105,9 +107,30 @@ func (r *MessageRepositoryImpl) GetUnreadMessageCount(ctx context.Context, userI
 	}
 
 	// 执行计数查询，使用distinct确保消息不被重复计数
-	if err := query.Select("count(distinct m.id)").Count(&count).Error; err != nil {
+	if err := query.Select("count(distinct um.id)").Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("查询未读消息数失败: %v", err)
 	}
 
 	return int(count), nil
+}
+
+// 更新消息为已读
+func (r *MessageRepositoryImpl) MarkAsRead(ctx context.Context, userID, messageID int) error {
+	result := r.db.WithContext(ctx).
+		Model(&model.UserMessageMapping{}).
+		Where("user_id = ? AND message_id = ?", userID, messageID).
+		Updates(map[string]interface{}{
+			"is_read":     "Y",
+			"read_time":   time.Now(),
+			"update_time": time.Now(),
+		})
+
+	if result.Error != nil {
+		return fmt.Errorf("更新消息状态失败: %v", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
