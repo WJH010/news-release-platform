@@ -54,12 +54,12 @@ func BindQuery(ctx *gin.Context, req interface{}) bool {
 			for _, e := range validationErr {
 				msg.WriteString(GetValidationErrorMsg(e) + "; ")
 			}
-			HandleError(ctx, err, http.StatusBadRequest, utils.ErrCodeParamInvalid, msg.String())
+			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamInvalid, msg.String())
 		} else if _, ok := err.(*strconv.NumError); ok {
 			// 捕获数字转换错误（如非数字字符串传入int字段）
-			HandleError(ctx, err, http.StatusBadRequest, utils.ErrCodeParamInvalid, "查询参数格式错误")
+			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamInvalid, "查询参数格式错误")
 		} else {
-			HandleError(ctx, err, http.StatusBadRequest, utils.ErrCodeParamBind, "参数绑定失败")
+			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamBind, "参数绑定失败")
 		}
 
 		return false
@@ -77,9 +77,9 @@ func BindJSON(ctx *gin.Context, req interface{}) bool {
 			for _, e := range validationErr {
 				msg.WriteString(GetValidationErrorMsg(e) + "; ")
 			}
-			HandleError(ctx, err, http.StatusBadRequest, utils.ErrCodeParamInvalid, msg.String())
+			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamInvalid, msg.String())
 		} else {
-			HandleError(ctx, err, http.StatusBadRequest, utils.ErrCodeParamBind, "参数绑定失败")
+			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamBind, "参数绑定失败")
 		}
 		return false
 	}
@@ -95,9 +95,9 @@ func BindUrl(ctx *gin.Context, req interface{}) bool {
 			for _, e := range validationErr {
 				msg.WriteString(GetValidationErrorMsg(e) + "; ")
 			}
-			HandleError(ctx, err, http.StatusBadRequest, utils.ErrCodeParamInvalid, msg.String())
+			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamInvalid, msg.String())
 		} else {
-			HandleError(ctx, err, http.StatusBadRequest, utils.ErrCodeParamBind, "参数绑定失败")
+			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamBind, "参数绑定失败")
 		}
 		return false
 	}
@@ -113,9 +113,9 @@ func BindForm(ctx *gin.Context, req interface{}) bool {
 			for _, e := range validationErr {
 				msg.WriteString(GetValidationErrorMsg(e) + "; ")
 			}
-			HandleError(ctx, err, http.StatusBadRequest, utils.ErrCodeParamInvalid, msg.String())
+			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamInvalid, msg.String())
 		} else {
-			HandleError(ctx, err, http.StatusBadRequest, utils.ErrCodeParamBind, "参数绑定失败")
+			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamBind, "参数绑定失败")
 		}
 		return false
 	}
