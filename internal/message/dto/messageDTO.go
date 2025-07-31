@@ -14,6 +14,11 @@ type MessageContentRequest struct {
 	MessageID int `form:"id" binding:"required,numeric"` // 消息ID，必须为数字
 }
 
+// 获取未读消息数请求参数
+type UnreadMessageCountRequest struct {
+	MessageType string `form:"message_type"` // 消息类型
+}
+
 // MessageListResponse 消息列表响应结构体
 type MessageListResponse struct {
 	ID       int       `json:"id"`
