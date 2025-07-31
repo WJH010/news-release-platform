@@ -94,7 +94,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		articles := api.Group("/articles")
 		{
 			articles.GET("", articleController.ListArticle)
-			articles.GET("/:articleID", articleController.GetArticleContent)
+			articles.GET("/:ArticleID", articleController.GetArticleContent)
 		}
 		// 领域类型相关路由
 		policyFieldType := api.Group("/fieldType")
@@ -121,10 +121,10 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		}
 		// 消息相关路由
 		message := api.Group("/message")
-		// message.Use(middleware.AuthMiddleware(cfg))
+		message.Use(middleware.AuthMiddleware(cfg))
 		{
 			message.GET("", msgController.ListMessage)
-			message.GET("/:messageID", msgController.GetMessageContent)
+			message.GET("/:MessageID", msgController.GetMessageContent)
 			message.GET("/UnreadMessageCount", msgController.GetUnreadMessageCount)
 		}
 	}
