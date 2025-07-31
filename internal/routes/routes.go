@@ -105,6 +105,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		notice := api.Group("/notice")
 		{
 			notice.GET("", noticeController.ListNotice)
+			notice.GET("/:ID", noticeController.GetNoticeContent)
 		}
 		// 用户相关路由
 		user := api.Group("/user")
