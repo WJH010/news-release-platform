@@ -46,7 +46,7 @@ func (r *MessageRepositoryImpl) List(ctx context.Context, page, pageSize int, us
 
 	// 构建基础查询
 	query = query.Table("users u").
-		Select("u.user_id, m.title, m.content, um.is_read, m.send_time, mt.type_name").
+		Select("m.id, u.user_id, m.title, m.content, um.is_read, m.send_time, mt.type_name").
 		Joins("INNER JOIN user_message_mappings um ON u.user_id = um.user_id").
 		Joins("INNER JOIN messages m ON um.message_id = m.id").
 		Joins("LEFT JOIN message_types mt ON m.type = mt.type_code").
