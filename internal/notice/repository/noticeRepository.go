@@ -41,7 +41,7 @@ func (r *NoticeRepositoryImpl) List(ctx context.Context, page, pageSize int) ([]
 
 	// 添加条件查询
 	// 只展示有效公告
-	query = query.Where("status = 1")
+	query = query.Where("status = ?", 1)
 
 	// 按发布时间降序排列
 	query = query.Order("release_time DESC")

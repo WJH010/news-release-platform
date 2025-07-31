@@ -27,7 +27,6 @@ type MessageListResponse struct {
 	SendTime time.Time `json:"send_time"`
 	Type     string    `json:"type"`
 	TypeName string    `json:"type_name"`
-	Status   int       `json:"status"`
 }
 
 // MessageContentResponse 消息内容响应结构体
