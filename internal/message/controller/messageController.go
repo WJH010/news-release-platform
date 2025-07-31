@@ -142,19 +142,18 @@ func (m *MessageController) GetUnreadMessageCount(ctx *gin.Context) {
 		return
 	}
 
-	// 获取userID
-	// userID, exists := ctx.Get("userid")
-	// if !exists {
-	// 	utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "获取用户ID失败")
-	// 	return
-	// }
-	// // 类型转换
-	// uid, ok := userID.(int)
-	// if !ok {
-	// 	utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "用户ID类型错误")
-	// 	return
-	// }
-	uid := 2
+	//获取userID
+	userID, exists := ctx.Get("userid")
+	if !exists {
+		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "获取用户ID失败")
+		return
+	}
+	// 类型转换
+	uid, ok := userID.(int)
+	if !ok {
+		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "用户ID类型错误")
+		return
+	}
 
 	// 调用服务层
 	count, err := m.messageService.GetUnreadMessageCount(ctx, uid, req.MessageType)
