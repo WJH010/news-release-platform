@@ -10,6 +10,8 @@ import (
 type MessageService interface {
 	ListMessage(ctx context.Context, page, pageSize int, userID int, messageType string) ([]*model.Message, int64, error)
 	GetMessageContent(ctx context.Context, messageID int) (*model.Message, error)
+	GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error)
+	MarkAsRead(ctx context.Context, userID, messageID int) error
 }
 
 // 实现接口的具体结构体，持有数据访问层接口 Repository 的实例
@@ -30,4 +32,14 @@ func (s *MessageServiceImpl) ListMessage(ctx context.Context, page, pageSize int
 // 获取消息内容
 func (s *MessageServiceImpl) GetMessageContent(ctx context.Context, messageID int) (*model.Message, error) {
 	return s.messageRepo.GetMessageContent(ctx, messageID)
+}
+
+// 获取未读消息数
+func (s *MessageServiceImpl) GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error) {
+	return s.messageRepo.GetUnreadMessageCount(ctx, userID, messageType)
+}
+
+// 标记消息为已读
+func (s *MessageServiceImpl) MarkAsRead(ctx context.Context, userID, messageID int) error {
+	return s.messageRepo.MarkAsRead(ctx, userID, messageID)
 }

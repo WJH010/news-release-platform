@@ -10,8 +10,10 @@ import (
 
 // 数据访问接口，定义数据访问的方法集
 type NoticeRepository interface {
-	// 分页查询政策列表
+	// 分页查询公告列表
 	List(ctx context.Context, page, pageSize int) ([]*model.Notice, int64, error)
+	// 根据id获取公告内容
+	GetNoticeContent(ctx context.Context, noticeID int) (*model.Notice, error)
 }
 
 // 实现接口的具体结构体
@@ -57,4 +59,19 @@ func (r *NoticeRepositoryImpl) List(ctx context.Context, page, pageSize int) ([]
 	}
 
 	return notices, total, nil
+}
+
+// 内容查询
+func (r *NoticeRepositoryImpl) GetNoticeContent(ctx context.Context, noticeID int) (*model.Notice, error) {
+	var notice model.Notice
+
+	result := r.db.WithContext(ctx).First(&notice, noticeID)
+	err := result.Error
+
+	// 查询公告内容
+	if err != nil {
+		return nil, err
+	}
+
+	return &notice, nil
 }

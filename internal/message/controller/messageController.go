@@ -92,6 +92,25 @@ func (m *MessageController) GetMessageContent(ctx *gin.Context) {
 		return
 	}
 
+	// 获取userID
+	userID, exists := ctx.Get("userid")
+	if !exists {
+		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "获取用户ID失败")
+		return
+	}
+	uid, ok := userID.(int)
+	if !ok {
+		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "用户ID类型错误")
+		return
+	}
+
+	// 标记消息为已读
+	err := m.messageService.MarkAsRead(ctx, uid, req.MessageID)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "更新消息状态失败")
+		return
+	}
+
 	// 调用服务层
 	message, err := m.messageService.GetMessageContent(ctx, req.MessageID)
 	if err != nil {
@@ -113,4 +132,41 @@ func (m *MessageController) GetMessageContent(ctx *gin.Context) {
 
 	// 返回成功响应
 	ctx.JSON(http.StatusOK, gin.H{"data": result})
+}
+
+// 获取未读消息数
+func (m *MessageController) GetUnreadMessageCount(ctx *gin.Context) {
+	// 初始化参数结构体并绑定查询参数
+	var req dto.UnreadMessageCountRequest
+	if !utils.BindQuery(ctx, &req) {
+		return
+	}
+
+	// 获取userID
+	// userID, exists := ctx.Get("userid")
+	// if !exists {
+	// 	utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "获取用户ID失败")
+	// 	return
+	// }
+	// // 类型转换
+	// uid, ok := userID.(int)
+	// if !ok {
+	// 	utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "用户ID类型错误")
+	// 	return
+	// }
+	uid := 2
+
+	// 调用服务层
+	count, err := m.messageService.GetUnreadMessageCount(ctx, uid, req.MessageType)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "服务器内部错误，调用服务层失败")
+		return
+	}
+
+	// 返回结果
+	ctx.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"count": count,
+		},
+	})
 }

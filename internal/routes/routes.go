@@ -105,6 +105,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		notice := api.Group("/notice")
 		{
 			notice.GET("", noticeController.ListNotice)
+			notice.GET("/:ID", noticeController.GetNoticeContent)
 		}
 		// 用户相关路由
 		user := api.Group("/user")
@@ -120,10 +121,11 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		}
 		// 消息相关路由
 		message := api.Group("/message")
-		message.Use(middleware.AuthMiddleware(cfg))
+		// message.Use(middleware.AuthMiddleware(cfg))
 		{
 			message.GET("", msgController.ListMessage)
 			message.GET("/:messageID", msgController.GetMessageContent)
+			message.GET("/UnreadMessageCount", msgController.GetUnreadMessageCount)
 		}
 	}
 }

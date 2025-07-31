@@ -1,12 +1,15 @@
 package controller
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 	"news-release/internal/notice/dto"
 	"news-release/internal/notice/service"
 	"news-release/internal/utils"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // 控制器
@@ -53,7 +56,7 @@ func (n *NoticeController) ListNotice(ctx *gin.Context) {
 			Title:       n.Title,
 			Content:     n.Content,
 			ReleaseTime: *n.ReleaseTime,
-			Status:      map[int]string{1: "有效", 0: "无效"}[n.Status],
+			// Status:      map[int]string{1: "有效", 0: "无效"}[n.Status],
 		})
 	}
 
@@ -64,4 +67,35 @@ func (n *NoticeController) ListNotice(ctx *gin.Context) {
 		"page_size": pageSize,
 		"data":      result,
 	})
+}
+
+// 获取公告内容
+func (p *NoticeController) GetNoticeContent(ctx *gin.Context) {
+	// 初始化参数结构体并绑定查询参数
+	var req dto.NoticeContentRequest
+	if !utils.BindUrl(ctx, &req) {
+		return
+	}
+
+	// 调用服务层
+	notice, err := p.noticeService.GetNoticeContent(ctx, req.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			msg := fmt.Sprintf("公告不存在(id=%d)", req.ID)
+			utils.HandleError(ctx, err, http.StatusNotFound, 0, msg)
+			return
+		}
+		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "获取公告内容失败")
+		return
+	}
+
+	result := dto.NoticeContentResponse{
+		ID:          notice.ID,
+		Title:       notice.Title,
+		Content:     notice.Content,
+		ReleaseTime: *notice.ReleaseTime,
+	}
+
+	// 返回成功响应
+	ctx.JSON(http.StatusOK, gin.H{"data": result})
 }
