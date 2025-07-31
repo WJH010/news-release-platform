@@ -46,11 +46,12 @@ func (r *MessageRepositoryImpl) List(ctx context.Context, page, pageSize int, us
 
 	// 构建基础查询
 	query = query.Table("users u").
-		Select("m.id, u.user_id, m.title, m.content, um.is_read, m.send_time, mt.type_name").
+		Select("m.id, u.user_id, m.title, m.content, um.is_read, m.send_time, m.type, mt.type_name").
 		Joins("INNER JOIN user_message_mappings um ON u.user_id = um.user_id").
 		Joins("INNER JOIN messages m ON um.message_id = m.id").
 		Joins("LEFT JOIN message_types mt ON m.type = mt.type_code").
-		Where("u.user_id = ?", userID)
+		Where("u.user_id = ?", userID).
+		Where("m.status = ?", 1)
 
 	if messageType != "" {
 		query = query.Where("m.type = ?", messageType)
@@ -99,7 +100,8 @@ func (r *MessageRepositoryImpl) GetUnreadMessageCount(ctx context.Context, userI
 		Joins("INNER JOIN user_message_mappings um ON u.user_id = um.user_id").
 		Joins("INNER JOIN messages m ON um.message_id = m.id").
 		Where("u.user_id = ?", userID).
-		Where("um.is_read = ?", "N") // 只统计未读消息
+		Where("um.is_read = ?", "N"). // 只统计未读消息
+		Where("m.status = ?", 1)
 
 	// 如果指定了消息类型，添加类型筛选
 	if messageType != "" {

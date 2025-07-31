@@ -71,7 +71,6 @@ func (m *MessageController) ListMessage(ctx *gin.Context) {
 			SendTime: m.SendTime,
 			Type:     m.Type,
 			TypeName: m.TypeName,
-			Status:   m.Status,
 		})
 	}
 
