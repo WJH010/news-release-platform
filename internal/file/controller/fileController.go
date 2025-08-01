@@ -1,16 +1,12 @@
 package controller
 
 import (
-	"fmt"
 	"net/http"
-	"os"
-	"path/filepath"
-	"strings"
-	"time"
-
 	"news-release/internal/file/dto"
 	"news-release/internal/file/service"
 	"news-release/internal/utils"
+	"os"
+	"path/filepath"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -36,16 +32,10 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 		return
 	}
 
-	// 获取用户ID
-	userID, exists := ctx.Get("userid")
-	if !exists {
-		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "获取用户ID失败")
-		return
-	}
-	// 类型转换
-	uid, ok := userID.(int)
-	if !ok {
-		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "用户ID类型错误")
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
 		return
 	}
 
@@ -59,7 +49,7 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	// 保存临时文件
 	tempFilePath := filepath.Join(os.TempDir(), uuid.New().String())
 	if err := ctx.SaveUploadedFile(req.File, tempFilePath); err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "保存临时文件失败")
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，保存临时文件失败")
 		return
 	}
 	defer os.Remove(tempFilePath)
@@ -73,13 +63,13 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	}
 
 	// 根据文件类型设置存储路径前缀
-	fileType := detectFileType(req.File.Filename, req.File.Header.Get("Content-Type"))
-	objectPrefix := getObjectPrefixByType(fileType)
+	// fileType := detectFileType(req.File.Filename, req.File.Header.Get("Content-Type"))
+	// objectPrefix := getObjectPrefixByType(fileType)
 
 	// 上传文件
-	fileInfo, err := c.fileService.UploadFile(ctx, fileHeader, req.ArticleID, objectPrefix, uid)
+	fileInfo, err := c.fileService.UploadFile(ctx, fileHeader, req.ArticleID, userID)
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "上传文件失败")
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，上传文件失败")
 		return
 	}
 
@@ -89,33 +79,4 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 		"message": "文件上传成功",
 		"data":    fileInfo,
 	})
-}
-
-// detectFileType 根据文件名和Content-Type检测文件类型
-func detectFileType(filename, contentType string) string {
-	ext := strings.ToLower(filepath.Ext(filename))
-
-	// 图片类型
-	imageExts := []string{".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
-	for _, e := range imageExts {
-		if ext == e {
-			return "image"
-		}
-	}
-
-	return "other"
-}
-
-// getObjectPrefixByType 根据日期及文件类型获取存储路径前缀
-func getObjectPrefixByType(fileType string) string {
-	// 按月划分存储空间
-	now := time.Now()
-	yearMonth := now.Format("200601")
-
-	switch fileType {
-	case "image":
-		return fmt.Sprintf("images/%s", yearMonth)
-	default:
-		return fmt.Sprintf("others/%s", yearMonth)
-	}
 }

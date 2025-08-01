@@ -2,8 +2,6 @@ package model
 
 import (
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
 
 // FileType 定义文件类型
@@ -31,12 +29,6 @@ type File struct {
 }
 
 // TableName 指定表名
-func (File) TableName() string {
+func (*File) TableName() string {
 	return "files"
-}
-
-// Validate 验证数据
-func (f *File) Validate() error {
-	validate := validator.New()
-	return validate.Struct(f)
 }

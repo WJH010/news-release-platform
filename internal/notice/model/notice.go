@@ -2,8 +2,6 @@ package model
 
 import (
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
 
 type Notice struct {
@@ -17,12 +15,6 @@ type Notice struct {
 }
 
 // TableName 设置表名
-func (Notice) TableName() string {
+func (*Notice) TableName() string {
 	return "notices"
-}
-
-// Validate 验证数据
-func (n *Notice) Validate() error {
-	validate := validator.New()
-	return validate.Struct(n)
 }

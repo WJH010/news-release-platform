@@ -13,7 +13,7 @@ import (
 
 // FileService 文件服务接口
 type FileService interface {
-	UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, objectPrefix string, userID int) (*model.File, error)
+	UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, userID int) (*model.File, error)
 }
 
 // FileHeader 文件头信息
@@ -39,7 +39,13 @@ func NewFileService(minioRepo repository.MinIORepository, fileRepo repository.Fi
 }
 
 // UploadFile 上传文件
-func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, objectPrefix string, userID int) (*model.File, error) {
+func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, userID int) (*model.File, error) {
+	// 确定文件类型
+	fileType := string(s.detectFileType(fileHeader.OriginalFileName))
+
+	// 根据文件类型设置存储路径前缀
+	objectPrefix := getObjectPrefixByType(fileType)
+
 	// 生成唯一的对象名
 	ext := filepath.Ext(fileHeader.OriginalFileName)
 	objectName := fmt.Sprintf("%s/%d%s", objectPrefix, time.Now().UnixNano(), ext)
@@ -50,9 +56,6 @@ func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader
 		return nil, err
 	}
 
-	// 确定文件类型
-	fileType := s.detectFileType(fileHeader.OriginalFileName)
-
 	// 创建文件记录
 	file := &model.File{
 		ArticleID:    articleID,
@@ -61,7 +64,7 @@ func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader
 		FileName:     fileHeader.OriginalFileName,
 		FileSize:     int(fileHeader.Size),
 		ContentType:  fileHeader.ContentType,
-		FileType:     string(fileType),
+		FileType:     fileType,
 		UploadUserID: userID,
 	}
 
@@ -87,4 +90,18 @@ func (s *FileServiceImpl) detectFileType(filename string) model.FileType {
 	}
 
 	return model.FileTypeOther
+}
+
+// getObjectPrefixByType 根据日期及文件类型获取存储路径前缀
+func getObjectPrefixByType(fileType string) string {
+	// 按月划分存储空间
+	now := time.Now()
+	yearMonth := now.Format("200601")
+
+	switch fileType {
+	case "image":
+		return fmt.Sprintf("images/%s", yearMonth)
+	default:
+		return fmt.Sprintf("others/%s", yearMonth)
+	}
 }

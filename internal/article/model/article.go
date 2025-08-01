@@ -2,8 +2,6 @@ package model
 
 import (
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
 
 // article数据模型
@@ -22,18 +20,12 @@ type Article struct {
 	CreateTime     time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime     time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 	// 关联字段
-	FieldName string `json:"field_name" gorm:"column:field_name"` // 关联field_types
-	TypeName  string `json:"type_name" gorm:"column:type_name"`   // 关联article_types
+	FieldName string `gorm:"-"` // 关联field_types
+	TypeName  string `gorm:"-"` // 关联article_types
 
 }
 
 // TableName 设置表名
-func (Article) TableName() string {
+func (*Article) TableName() string {
 	return "articles"
-}
-
-// Validate 验证数据
-func (a *Article) Validate() error {
-	validate := validator.New()
-	return validate.Struct(a)
 }

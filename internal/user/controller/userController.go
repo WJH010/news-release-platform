@@ -30,12 +30,12 @@ func (c *UserController) Login(ctx *gin.Context) {
 
 	token, err := c.userService.Login(ctx, req.Code)
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "登录失败"+err.Error())
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "登录失败")
 		return
 	}
 
 	if token == "" {
-		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "token生成异常")
+		utils.HandleError(ctx, nil, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "token生成异常")
 		return
 	}
 

@@ -71,7 +71,11 @@ func (s *UserServiceImpl) getFromWechat(code string) (WxLoginResponse, error) {
 	if err != nil {
 		return wxResp, err
 	}
-	defer resp.Body.Close()
+	// defer resp.Body.Close()
+
+	if err := resp.Body.Close(); err != nil {
+		return wxResp, fmt.Errorf("关闭响应体失败: %v", err)
+	}
 
 	// 读取微信响应
 	body, err := io.ReadAll(resp.Body)
@@ -97,7 +101,7 @@ func (s *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessionK
 	// 查找用户
 	user, err := s.userRepo.GetUserByOpenID(ctx, openID)
 	if err != nil {
-		return user.UserID, err
+		return 0, err
 	}
 
 	now := time.Now()
@@ -116,11 +120,8 @@ func (s *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessionK
 		}
 	} else {
 		// 如果用户存在，更新session_key和登录时间
-		user.SessionKey = sessionKey
-		user.LastLoginTime = now
-
-		if err := s.userRepo.Update(ctx, user); err != nil {
-			return user.UserID, err
+		if err := s.userRepo.UpdateSessionAndLoginTime(ctx, user.UserID, sessionKey); err != nil {
+			return 0, err
 		}
 	}
 
