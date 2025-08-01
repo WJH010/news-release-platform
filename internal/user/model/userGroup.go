@@ -2,8 +2,6 @@ package model
 
 import (
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
 
 // UserGroup 对应user_groups表的数据模型
@@ -18,12 +16,6 @@ type UserGroup struct {
 }
 
 // TableName 设置表名
-func (UserGroup) TableName() string {
+func (*UserGroup) TableName() string {
 	return "user_groups" // 表名指定为user_groups
-}
-
-// Validate 验证数据
-func (u *UserGroup) Validate() error {
-	validate := validator.New()
-	return validate.Struct(u)
 }

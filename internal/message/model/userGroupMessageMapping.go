@@ -2,8 +2,6 @@ package model
 
 import (
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
 
 // UserGroupMessageMapping 对应user_group_message_mappings表的数据模型
@@ -16,12 +14,6 @@ type UserGroupMessageMapping struct {
 }
 
 // TableName 设置表名
-func (UserGroupMessageMapping) TableName() string {
+func (*UserGroupMessageMapping) TableName() string {
 	return "user_group_message_mappings" // 表名指定为user_group_message_mappings
-}
-
-// Validate 验证数据
-func (u *UserGroupMessageMapping) Validate() error {
-	validate := validator.New()
-	return validate.Struct(u)
 }

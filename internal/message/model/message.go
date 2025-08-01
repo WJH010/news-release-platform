@@ -2,8 +2,6 @@ package model
 
 import (
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
 
 // Message 对应messages表的数据模型
@@ -17,16 +15,10 @@ type Message struct {
 	CreateTime time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 	// 关联字段
-	TypeName string `json:"type_name" gorm:"column:type_name"` // 关联message_types表
+	TypeName string `gorm:"-"` // 关联message_types表
 }
 
 // TableName 设置表名
-func (Message) TableName() string {
+func (*Message) TableName() string {
 	return "messages" // 表名指定为messages
-}
-
-// Validate 验证数据
-func (m *Message) Validate() error {
-	validate := validator.New()
-	return validate.Struct(m)
 }

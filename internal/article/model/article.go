@@ -2,8 +2,6 @@ package model
 
 import (
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
 
 // article数据模型
@@ -28,12 +26,6 @@ type Article struct {
 }
 
 // TableName 设置表名
-func (Article) TableName() string {
+func (*Article) TableName() string {
 	return "articles"
-}
-
-// Validate 验证数据
-func (a *Article) Validate() error {
-	validate := validator.New()
-	return validate.Struct(a)
 }

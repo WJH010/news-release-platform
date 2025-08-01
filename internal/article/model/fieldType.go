@@ -2,8 +2,6 @@ package model
 
 import (
 	"time"
-
-	"github.com/go-playground/validator/v10"
 )
 
 // FieldType 对应领域表，用于关联查询
@@ -15,12 +13,6 @@ type FieldType struct {
 }
 
 // TableName 设置表名
-func (FieldType) TableName() string {
+func (*FieldType) TableName() string {
 	return "field_types"
-}
-
-// Validate 验证数据
-func (f *FieldType) Validate() error {
-	validate := validator.New()
-	return validate.Struct(f)
 }
