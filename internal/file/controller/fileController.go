@@ -36,16 +36,10 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 		return
 	}
 
-	// 获取用户ID
-	userID, exists := ctx.Get("userid")
-	if !exists {
-		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "获取用户ID失败")
-		return
-	}
-	// 类型转换
-	uid, ok := userID.(int)
-	if !ok {
-		utils.HandleError(ctx, nil, http.StatusInternalServerError, 0, "用户ID类型错误")
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, err.Error())
 		return
 	}
 
@@ -77,7 +71,7 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	objectPrefix := getObjectPrefixByType(fileType)
 
 	// 上传文件
-	fileInfo, err := c.fileService.UploadFile(ctx, fileHeader, req.ArticleID, objectPrefix, uid)
+	fileInfo, err := c.fileService.UploadFile(ctx, fileHeader, req.ArticleID, objectPrefix, userID)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "上传文件失败")
 		return
