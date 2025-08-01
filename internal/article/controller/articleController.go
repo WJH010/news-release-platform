@@ -45,7 +45,7 @@ func (a *ArticleController) ListArticle(ctx *gin.Context) {
 	// 调用服务层
 	article, total, err := a.articleService.ListArticle(ctx, page, pageSize, req.ArticleTitle, req.ArticleType, req.ReleaseTime, req.FieldID, req.IsSelection, req.Status)
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "服务器内部错误，调用服务层失败")
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取文章列表失败")
 		return
 	}
 
@@ -87,10 +87,10 @@ func (p *ArticleController) GetArticleContent(ctx *gin.Context) {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			msg := fmt.Sprintf("文章不存在(id=%d)", req.ArticleID)
-			utils.HandleError(ctx, err, http.StatusNotFound, 0, msg)
+			utils.HandleError(ctx, err, http.StatusNotFound, utils.ErrCodeResourceNotFound, msg)
 			return
 		}
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "获取文章内容失败")
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取文章内容失败")
 		return
 	}
 

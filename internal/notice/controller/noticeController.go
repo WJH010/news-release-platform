@@ -45,7 +45,7 @@ func (n *NoticeController) ListNotice(ctx *gin.Context) {
 	// 调用服务层
 	notice, total, err := n.noticeService.ListNotice(ctx, page, pageSize)
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "服务器内部错误，调用服务层失败")
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取公告列表失败")
 		return
 	}
 
@@ -85,7 +85,7 @@ func (p *NoticeController) GetNoticeContent(ctx *gin.Context) {
 			utils.HandleError(ctx, err, http.StatusNotFound, 0, msg)
 			return
 		}
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "获取公告内容失败")
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取公告内容失败")
 		return
 	}
 

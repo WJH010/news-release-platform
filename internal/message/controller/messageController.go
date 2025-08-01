@@ -45,14 +45,14 @@ func (m *MessageController) ListMessage(ctx *gin.Context) {
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, err.Error())
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
 		return
 	}
 
 	// 调用服务层
 	message, total, err := m.messageService.ListMessage(ctx, page, pageSize, userID, req.MessageType)
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "服务器内部错误，调用服务层失败")
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取消息列表失败")
 		return
 	}
 
@@ -88,14 +88,14 @@ func (m *MessageController) GetMessageContent(ctx *gin.Context) {
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, err.Error())
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
 		return
 	}
 
 	// 标记消息为已读
 	err = m.messageService.MarkAsRead(ctx, userID, req.MessageID)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "更新消息状态失败")
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，更新消息状态失败")
 		return
 	}
 
@@ -104,10 +104,10 @@ func (m *MessageController) GetMessageContent(ctx *gin.Context) {
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			msg := fmt.Sprintf("文章不存在(id=%d)", req.MessageID)
-			utils.HandleError(ctx, err, http.StatusNotFound, 0, msg)
+			utils.HandleError(ctx, err, http.StatusNotFound, utils.ErrCodeResourceNotFound, msg)
 			return
 		}
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "获取消息内容失败")
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取消息内容失败")
 		return
 	}
 
@@ -133,14 +133,14 @@ func (m *MessageController) GetUnreadMessageCount(ctx *gin.Context) {
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, err.Error())
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
 		return
 	}
 
 	// 调用服务层
 	count, err := m.messageService.GetUnreadMessageCount(ctx, userID, req.MessageType)
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "服务器内部错误，调用服务层失败")
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取未读消息数失败")
 		return
 	}
 

@@ -39,7 +39,7 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, err.Error())
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
 		return
 	}
 
@@ -53,7 +53,7 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	// 保存临时文件
 	tempFilePath := filepath.Join(os.TempDir(), uuid.New().String())
 	if err := ctx.SaveUploadedFile(req.File, tempFilePath); err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "保存临时文件失败")
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，保存临时文件失败")
 		return
 	}
 	defer os.Remove(tempFilePath)
@@ -73,7 +73,7 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	// 上传文件
 	fileInfo, err := c.fileService.UploadFile(ctx, fileHeader, req.ArticleID, objectPrefix, userID)
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, 0, "上传文件失败")
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，上传文件失败")
 		return
 	}
 
