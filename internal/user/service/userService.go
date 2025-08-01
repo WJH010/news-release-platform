@@ -71,11 +71,7 @@ func (s *UserServiceImpl) getFromWechat(code string) (WxLoginResponse, error) {
 	if err != nil {
 		return wxResp, err
 	}
-	// defer resp.Body.Close()
-
-	if err := resp.Body.Close(); err != nil {
-		return wxResp, fmt.Errorf("关闭响应体失败: %v", err)
-	}
+	defer resp.Body.Close()
 
 	// 读取微信响应
 	body, err := io.ReadAll(resp.Body)
