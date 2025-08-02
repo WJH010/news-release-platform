@@ -111,6 +111,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		user := api.Group("/user")
 		{
 			user.POST("/login", userController.Login)
+			user.POST("/update", middleware.AuthMiddleware(cfg), userController.UpdateUserInfo)
 		}
 		// 文件上传路由
 		file := api.Group("/file")

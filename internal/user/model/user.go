@@ -12,7 +12,8 @@ type User struct {
 	SessionKey    string    `json:"session_key" gorm:"column:session_key"`
 	Nickname      string    `json:"nickname" gorm:"column:nickname"`
 	AvatarURL     string    `json:"avatar_url" gorm:"column:avatar_url"`
-	Gender        int       `json:"gender" gorm:"column:gender"`
+	Name          string    `json:"name" gorm:"column:name"`
+	Gender        int       `json:"gender" gorm:"column:gender"` // 1: 男, 2: 女, 3: 未知
 	PhoneNumber   string    `json:"phone_number" gorm:"column:phone_number;default:NULL"`
 	Email         string    `json:"email" gorm:"column:email"`
 	Region        string    `json:"region" gorm:"column:region"`
@@ -21,6 +22,10 @@ type User struct {
 	UserLevel     int       `json:"user_level" gorm:"column:user_level"`
 	Password      string    `json:"password" gorm:"column:password"`
 	Role          int       `json:"role" gorm:"column:role;default:1"` // 默认=1，1：普通用户，2：管理员
+	Unit          string    `json:"unit" gorm:"column:unit;default:NULL"`
+	Department    string    `json:"department" gorm:"column:department;default:NULL"`
+	Position      string    `json:"position" gorm:"column:position;default:NULL"`
+	Industry      string    `json:"industry" gorm:"column:industry;default:NULL"`
 	CreateTime    time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime    time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 }

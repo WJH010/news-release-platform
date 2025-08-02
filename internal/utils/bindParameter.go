@@ -96,11 +96,19 @@ func GetValidationErrorMsg(err validator.FieldError) string {
 	case "max":
 		return err.Field() + "最大值为" + err.Param()
 	case "oneof":
-		return err.Field() + "必须为" + err.Param() + "中的一个"
+		return err.Field() + "值不在有效范围内"
 	case "numeric":
 		return err.Field() + "必须为数字"
 	case "time_format":
 		return err.Field() + "日期格式错误"
+	case "nickname":
+		return err.Field() + "昵称格式错误，必须为2-20个字符，支持中英文、数字和下划线"
+	case "real_name":
+		return err.Field() + "姓名格式错误，必须为2-10个中文字符或4-20个英文字符"
+	case "phone":
+		return err.Field() + "手机号格式错误"
+	case "email":
+		return err.Field() + "邮箱格式错误"
 	default:
 		return err.Field() + "参数格式错误"
 	}

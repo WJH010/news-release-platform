@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"regexp"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -13,7 +14,20 @@ func RegisterCustomValidators(v *validator.Validate) {
 	if err != nil {
 		panic("注册时间格式验证失败: " + err.Error())
 	}
+	// 用户昵称验证
+	if err := v.RegisterValidation("nickname", validateNickname); err != nil {
+		panic("注册昵称验证失败: " + err.Error())
+	}
 
+	// 真实姓名验证（支持中英文）
+	if err := v.RegisterValidation("real_name", validateRealName); err != nil {
+		panic("注册真实姓名验证失败: " + err.Error())
+	}
+
+	// 手机号验证
+	if err := v.RegisterValidation("phone", validatePhoneNumber); err != nil {
+		panic("注册手机号验证失败: " + err.Error())
+	}
 	// 其他自定义规则...
 }
 
@@ -37,4 +51,46 @@ func validateTimeFormat(fl validator.FieldLevel) bool {
 	}
 
 	return false
+}
+
+// 用户昵称验证实现
+func validateNickname(fl validator.FieldLevel) bool {
+	fieldValue := fl.Field().String()
+	if fieldValue == "" {
+		return true // 空值通过（配合omitempty使用）
+	}
+	// 检查长度
+	if len(fieldValue) < 2 || len(fieldValue) > 20 {
+		return false
+	}
+	// 检查是否包含非法字符（仅允许汉字、数字、大小写字母和下划线）
+	match, _ := regexp.MatchString(`^[\p{Han}0-9a-zA-Z_]+$`, fieldValue)
+
+	return match
+}
+
+// 姓名验证实现
+func validateRealName(fl validator.FieldLevel) bool {
+	fieldValue := fl.Field().String()
+	if fieldValue == "" {
+		return true // 空值通过（配合omitempty使用）
+	}
+	// 检查长度 (1-50个字符)
+	if len(fieldValue) < 1 || len(fieldValue) > 50 {
+		return false
+	}
+	// 允许：汉字、英文字母、空格、点、连字符和单引号
+	match, _ := regexp.MatchString(`^[\p{Han}a-zA-Z .'-]+$`, fieldValue)
+	return match
+}
+
+// 手机号验证实现（中国大陆手机号）
+func validatePhoneNumber(fl validator.FieldLevel) bool {
+	fieldValue := fl.Field().String()
+	if fieldValue == "" {
+		return true // 空值通过（配合omitempty使用）
+	}
+	// 中国大陆手机号规则：1开头，第二位3-9，后面9位数字
+	match, _ := regexp.MatchString(`^1[3-9]\d{9}$`, fieldValue)
+	return match
 }
