@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"news-release/internal/config"
+	"news-release/internal/user/dto"
 	"news-release/internal/user/model"
 	"news-release/internal/user/repository"
 	"time"
@@ -25,6 +26,7 @@ type WxLoginResponse struct {
 // UserService 用户服务接口
 type UserService interface {
 	Login(ctx context.Context, code string) (string, error)
+	UpdateUserInfo(ctx context.Context, userID int, req dto.UserUpdateRequest) error
 }
 
 // UserServiceImpl 用户服务实现
@@ -104,10 +106,15 @@ func (s *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessionK
 
 	// 如果用户不存在，创建新用户
 	if user == nil {
+		// 生成默认昵称和头像
+		defaultNickname := fmt.Sprintf("微信用户%s", openID[:5]) // 使用OpenID的一部分作为默认昵称
+		defaultAvatar := "http://47.113.194.28:9000/news-platform/images/202508/1754126743005963551.webp"
 		user = &model.User{
 			OpenID:        openID,
 			SessionKey:    sessionKey,
 			UnionID:       unionID,
+			Nickname:      defaultNickname,
+			AvatarURL:     defaultAvatar,
 			LastLoginTime: now,
 		}
 
@@ -139,4 +146,61 @@ func (s *UserServiceImpl) generateToken(openID string, userID int) (string, erro
 
 	// 签名令牌
 	return token.SignedString([]byte(s.cfg.JWT.JwtSecret))
+}
+
+// UpdateUserInfo 更新用户信息
+func (s *UserServiceImpl) UpdateUserInfo(ctx context.Context, userID int, req dto.UserUpdateRequest) error {
+	// 查询用户是否存在
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("查询用户失败: %v", err)
+	}
+	if user == nil {
+		return fmt.Errorf("用户不存在")
+	}
+
+	// 构建更新字段映射
+	updateFields := make(map[string]interface{})
+	if req.Nickname != nil {
+		updateFields["nickname"] = *req.Nickname
+	}
+	if req.AvatarURL != nil {
+		updateFields["avatar_url"] = *req.AvatarURL
+	}
+	if req.Name != nil {
+		updateFields["name"] = *req.Name
+	}
+	if req.Gender != nil {
+		updateFields["gender"] = *req.Gender
+	}
+	if req.PhoneNumber != nil {
+		updateFields["phone_number"] = *req.PhoneNumber
+	}
+	if req.Email != nil {
+		updateFields["email"] = *req.Email
+	}
+	if req.Unit != nil {
+		updateFields["unit"] = *req.Unit
+	}
+	if req.Department != nil {
+		updateFields["department"] = *req.Department
+	}
+	if req.Position != nil {
+		updateFields["position"] = *req.Position
+	}
+	if req.Industry != nil {
+		updateFields["industry"] = *req.Industry
+	}
+
+	// 添加更新时间
+	updateFields["update_time"] = time.Now()
+
+	// 执行更新
+	if len(updateFields) > 0 {
+		if err := s.userRepo.Update(ctx, userID, updateFields); err != nil {
+			return fmt.Errorf("更新用户信息失败: %v", err)
+		}
+	}
+
+	return nil
 }

@@ -45,3 +45,31 @@ func (c *UserController) Login(ctx *gin.Context) {
 		"token":   token,
 	})
 }
+
+// UpdateUserInfo 更新用户信息接口
+func (c *UserController) UpdateUserInfo(ctx *gin.Context) {
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		return
+	}
+
+	// 绑定并验证请求参数
+	var req dto.UserUpdateRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 调用服务更新用户信息
+	err = c.userService.UpdateUserInfo(ctx, userID, req)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "更新用户信息失败")
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "更新成功",
+	})
+}
