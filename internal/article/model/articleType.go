@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// article数据模型
+// ArticleType 数据模型
 type ArticleType struct {
 	ID         int       `json:"id" gorm:"primaryKey;column:id"`
 	TypeCode   string    `json:"type_code" gorm:"column:type_code"`

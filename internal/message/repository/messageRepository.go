@@ -9,30 +9,30 @@ import (
 	"gorm.io/gorm"
 )
 
-// 数据访问接口，定义数据访问的方法集
+// MessageRepository 数据访问接口，定义数据访问的方法集
 type MessageRepository interface {
-	// 分页查询
+	// List 分页查询
 	List(ctx context.Context, page, pageSize int, userID int, messageType string) ([]*model.Message, int64, error)
-	// 内容查询
+	// GetMessageContent 内容查询
 	GetMessageContent(ctx context.Context, messageID int) (*model.Message, error)
-	// 获取未读消息数
+	// GetUnreadMessageCount 获取未读消息数
 	GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error)
-	// 更新消息为已读
+	// MarkAsRead 更新消息为已读
 	MarkAsRead(ctx context.Context, userID, messageID int) error
 }
 
-// 实现接口的具体结构体
+// MessageRepositoryImpl 实现接口的具体结构体
 type MessageRepositoryImpl struct {
 	db *gorm.DB
 }
 
-// 创建数据访问实例
+// NewMessageRepository 创建数据访问实例
 func NewMessageRepository(db *gorm.DB) MessageRepository {
 	return &MessageRepositoryImpl{db: db}
 }
 
-// 分页查询数据
-func (r *MessageRepositoryImpl) List(ctx context.Context, page, pageSize int, userID int, messageType string) ([]*model.Message, int64, error) {
+// List 分页查询数据
+func (repo *MessageRepositoryImpl) List(ctx context.Context, page, pageSize int, userID int, messageType string) ([]*model.Message, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -42,7 +42,7 @@ func (r *MessageRepositoryImpl) List(ctx context.Context, page, pageSize int, us
 
 	offset := (page - 1) * pageSize
 	var messages []*model.Message
-	query := r.db.WithContext(ctx)
+	query := repo.db.WithContext(ctx)
 
 	// 构建基础查询
 	query = query.Table("users u").
@@ -75,11 +75,11 @@ func (r *MessageRepositoryImpl) List(ctx context.Context, page, pageSize int, us
 	return messages, total, nil
 }
 
-// 内容查询
-func (r *MessageRepositoryImpl) GetMessageContent(ctx context.Context, messageID int) (*model.Message, error) {
+// GetMessageContent 内容查询
+func (repo *MessageRepositoryImpl) GetMessageContent(ctx context.Context, messageID int) (*model.Message, error) {
 	var message model.Message
 
-	result := r.db.WithContext(ctx).First(&message, messageID)
+	result := repo.db.WithContext(ctx).First(&message, messageID)
 	err := result.Error
 
 	// 查询消息内容
@@ -90,12 +90,12 @@ func (r *MessageRepositoryImpl) GetMessageContent(ctx context.Context, messageID
 	return &message, nil
 }
 
-// 获取未读消息数
-func (r *MessageRepositoryImpl) GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error) {
+// GetUnreadMessageCount 获取未读消息数
+func (repo *MessageRepositoryImpl) GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error) {
 	var count int64
 
 	// 构建查询
-	query := r.db.WithContext(ctx).
+	query := repo.db.WithContext(ctx).
 		Table("users u").
 		Joins("INNER JOIN user_message_mappings um ON u.user_id = um.user_id").
 		Joins("INNER JOIN messages m ON um.message_id = m.id").
@@ -116,9 +116,9 @@ func (r *MessageRepositoryImpl) GetUnreadMessageCount(ctx context.Context, userI
 	return int(count), nil
 }
 
-// 更新消息为已读
-func (r *MessageRepositoryImpl) MarkAsRead(ctx context.Context, userID, messageID int) error {
-	result := r.db.WithContext(ctx).
+// MarkAsRead 更新消息为已读
+func (repo *MessageRepositoryImpl) MarkAsRead(ctx context.Context, userID, messageID int) error {
+	result := repo.db.WithContext(ctx).
 		Model(&model.MessageUserMapping{}).
 		Where("user_id = ? AND message_id = ?", userID, messageID).
 		Updates(map[string]interface{}{

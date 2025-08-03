@@ -19,7 +19,7 @@ type Image struct {
 	UpdateTime   time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`      // 更新时间，自动更新
 }
 
-// TableName 设置表名，若数据库表名与结构体名不一致需指定
+// TableName 设置表名
 func (*Image) TableName() string {
-	return "images" // 假设数据库表名为images，可根据实际表名调整
+	return "images"
 }

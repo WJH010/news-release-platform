@@ -23,6 +23,6 @@ func NewFileRepository(db *gorm.DB) FileRepository {
 }
 
 // CreateFile 创建文件记录
-func (r *FileRepositoryImpl) CreateFile(ctx context.Context, file *model.File) error {
-	return r.db.WithContext(ctx).Create(file).Error
+func (repo *FileRepositoryImpl) CreateFile(ctx context.Context, file *model.File) error {
+	return repo.db.WithContext(ctx).Create(file).Error
 }

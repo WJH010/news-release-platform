@@ -14,9 +14,9 @@ type ArticleListRequest struct {
 	Status       int    `form:"status" binding:"omitempty,numeric"`           // 状态，必须为数字
 }
 
-// 文章内容查询请求参数
+// ArticleContentRequest 文章内容查询请求参数
 type ArticleContentRequest struct {
-	ArticleID int `form:"article_id" binding:"required,numeric"` // 文章ID，必须为数字
+	ArticleID int `uri:"id" binding:"required,numeric"` // 文章ID，必须为数字
 }
 
 // ArticleListResponse 文章列表响应结构体

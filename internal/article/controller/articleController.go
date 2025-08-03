@@ -12,18 +12,18 @@ import (
 	"gorm.io/gorm"
 )
 
-// 控制器
+// ArticleController 控制器
 type ArticleController struct {
 	articleService service.ArticleService
 }
 
-// 创建控制器实例
+// NewArticleController 创建控制器实例
 func NewArticleController(articleService service.ArticleService) *ArticleController {
 	return &ArticleController{articleService: articleService}
 }
 
-// 分页查询
-func (a *ArticleController) ListArticle(ctx *gin.Context) {
+// ListArticle 分页查询
+func (ctr *ArticleController) ListArticle(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
 	var req dto.ArticleListRequest
 	if !utils.BindQuery(ctx, &req) {
@@ -43,7 +43,7 @@ func (a *ArticleController) ListArticle(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	article, total, err := a.articleService.ListArticle(ctx, page, pageSize, req.ArticleTitle, req.ArticleType, req.ReleaseTime, req.FieldID, req.IsSelection, req.Status)
+	article, total, err := ctr.articleService.ListArticle(ctx, page, pageSize, req.ArticleTitle, req.ArticleType, req.ReleaseTime, req.FieldID, req.IsSelection, req.Status)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取文章列表失败")
 		return
@@ -74,8 +74,8 @@ func (a *ArticleController) ListArticle(ctx *gin.Context) {
 	})
 }
 
-// 获取文章内容
-func (p *ArticleController) GetArticleContent(ctx *gin.Context) {
+// GetArticleContent 获取文章内容
+func (ctr *ArticleController) GetArticleContent(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
 	var req dto.ArticleContentRequest
 	if !utils.BindUrl(ctx, &req) {
@@ -83,7 +83,7 @@ func (p *ArticleController) GetArticleContent(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	article, err := p.articleService.GetArticleContent(ctx, req.ArticleID)
+	article, err := ctr.articleService.GetArticleContent(ctx, req.ArticleID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			msg := fmt.Sprintf("文章不存在(id=%d)", req.ArticleID)

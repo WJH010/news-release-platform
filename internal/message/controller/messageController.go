@@ -12,18 +12,18 @@ import (
 	"gorm.io/gorm"
 )
 
-// 控制器
+// MessageController 控制器
 type MessageController struct {
 	messageService service.MessageService
 }
 
-// 创建控制器实例
+// NewMessageController 创建控制器实例
 func NewMessageController(messageService service.MessageService) *MessageController {
 	return &MessageController{messageService: messageService}
 }
 
-// 分页查询
-func (m *MessageController) ListMessage(ctx *gin.Context) {
+// ListMessage 分页查询
+func (ctr *MessageController) ListMessage(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
 	var req dto.MessageListRequest
 	if !utils.BindQuery(ctx, &req) {
@@ -50,7 +50,7 @@ func (m *MessageController) ListMessage(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	message, total, err := m.messageService.ListMessage(ctx, page, pageSize, userID, req.MessageType)
+	message, total, err := ctr.messageService.ListMessage(ctx, page, pageSize, userID, req.MessageType)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取消息列表失败")
 		return
@@ -77,8 +77,8 @@ func (m *MessageController) ListMessage(ctx *gin.Context) {
 	})
 }
 
-// 获取消息内容
-func (m *MessageController) GetMessageContent(ctx *gin.Context) {
+// GetMessageContent 获取消息内容
+func (ctr *MessageController) GetMessageContent(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
 	var req dto.MessageContentRequest
 	if !utils.BindUrl(ctx, &req) {
@@ -93,14 +93,14 @@ func (m *MessageController) GetMessageContent(ctx *gin.Context) {
 	}
 
 	// 标记消息为已读
-	err = m.messageService.MarkAsRead(ctx, userID, req.MessageID)
+	err = ctr.messageService.MarkAsRead(ctx, userID, req.MessageID)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，更新消息状态失败")
 		return
 	}
 
 	// 调用服务层
-	message, err := m.messageService.GetMessageContent(ctx, req.MessageID)
+	message, err := ctr.messageService.GetMessageContent(ctx, req.MessageID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			msg := fmt.Sprintf("文章不存在(id=%d)", req.MessageID)
@@ -122,8 +122,8 @@ func (m *MessageController) GetMessageContent(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"data": result})
 }
 
-// 获取未读消息数
-func (m *MessageController) GetUnreadMessageCount(ctx *gin.Context) {
+// GetUnreadMessageCount 获取未读消息数
+func (ctr *MessageController) GetUnreadMessageCount(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
 	var req dto.UnreadMessageCountRequest
 	if !utils.BindQuery(ctx, &req) {
@@ -138,7 +138,7 @@ func (m *MessageController) GetUnreadMessageCount(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	count, err := m.messageService.GetUnreadMessageCount(ctx, userID, req.MessageType)
+	count, err := ctr.messageService.GetUnreadMessageCount(ctx, userID, req.MessageType)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取未读消息数失败")
 		return

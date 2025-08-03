@@ -21,14 +21,14 @@ func NewUserController(userService service.UserService) *UserController {
 }
 
 // Login 微信登录接口
-func (c *UserController) Login(ctx *gin.Context) {
+func (ctr *UserController) Login(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
 	var req dto.WxLoginRequest
 	if !utils.BindJSON(ctx, &req) {
 		return
 	}
 
-	token, err := c.userService.Login(ctx, req.Code)
+	token, err := ctr.userService.Login(ctx, req.Code)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "登录失败")
 		return
@@ -47,7 +47,7 @@ func (c *UserController) Login(ctx *gin.Context) {
 }
 
 // UpdateUserInfo 更新用户信息接口
-func (c *UserController) UpdateUserInfo(ctx *gin.Context) {
+func (ctr *UserController) UpdateUserInfo(ctx *gin.Context) {
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
 	if err != nil {
@@ -62,7 +62,7 @@ func (c *UserController) UpdateUserInfo(ctx *gin.Context) {
 	}
 
 	// 调用服务更新用户信息
-	err = c.userService.UpdateUserInfo(ctx, userID, req)
+	err = ctr.userService.UpdateUserInfo(ctx, userID, req)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "更新用户信息失败")
 		return
@@ -75,7 +75,7 @@ func (c *UserController) UpdateUserInfo(ctx *gin.Context) {
 }
 
 // GetUserInfo 获取用户信息接口
-func (c *UserController) GetUserInfo(ctx *gin.Context) {
+func (ctr *UserController) GetUserInfo(ctx *gin.Context) {
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
 	if err != nil {
@@ -84,7 +84,7 @@ func (c *UserController) GetUserInfo(ctx *gin.Context) {
 	}
 
 	// 调用服务获取用户信息
-	user, err := c.userService.GetUserByID(ctx, userID)
+	user, err := ctr.userService.GetUserByID(ctx, userID)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "获取用户信息失败")
 		return

@@ -101,7 +101,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		articles := api.Group("/articles")
 		{
 			articles.GET("", articleController.ListArticle)
-			articles.GET("/:ArticleID", articleController.GetArticleContent)
+			articles.GET("/:id", articleController.GetArticleContent)
 		}
 		// 领域类型相关路由
 		policyFieldType := api.Group("/fieldType")
@@ -112,7 +112,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		notice := api.Group("/notice")
 		{
 			notice.GET("", noticeController.ListNotice)
-			notice.GET("/:ID", noticeController.GetNoticeContent)
+			notice.GET("/:id", noticeController.GetNoticeContent)
 		}
 		// 用户相关路由
 		user := api.Group("/user")
@@ -133,13 +133,14 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		message.Use(middleware.AuthMiddleware(cfg))
 		{
 			message.GET("", msgController.ListMessage)
-			message.GET("/:MessageID", msgController.GetMessageContent)
+			message.GET("/:id", msgController.GetMessageContent)
 			message.GET("/UnreadMessageCount", msgController.GetUnreadMessageCount)
 		}
 		// 活动相关路由
 		event := api.Group("/event")
 		{
 			event.GET("", eventController.ListEvent)
+			event.GET("/:id", eventController.GetEventDetail)
 		}
 	}
 }

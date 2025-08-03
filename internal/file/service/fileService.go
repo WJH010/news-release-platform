@@ -39,9 +39,9 @@ func NewFileService(minioRepo repository.MinIORepository, fileRepo repository.Fi
 }
 
 // UploadFile 上传文件
-func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, userID int) (*model.File, error) {
+func (svc *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, userID int) (*model.File, error) {
 	// 确定文件类型
-	fileType := string(s.detectFileType(fileHeader.OriginalFileName))
+	fileType := string(detectFileType(fileHeader.OriginalFileName))
 
 	// 根据文件类型设置存储路径前缀
 	objectPrefix := getObjectPrefixByType(fileType)
@@ -51,7 +51,7 @@ func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader
 	objectName := fmt.Sprintf("%s/%d%s", objectPrefix, time.Now().UnixNano(), ext)
 
 	// 上传到MinIO
-	url, err := s.minioRepo.UploadFile(ctx, objectName, fileHeader.TemporaryFile)
+	url, err := svc.minioRepo.UploadFile(ctx, objectName, fileHeader.TemporaryFile)
 	if err != nil {
 		return nil, err
 	}
@@ -68,9 +68,9 @@ func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader
 		UploadUserID: userID,
 	}
 
-	if err := s.fileRepo.CreateFile(ctx, file); err != nil {
+	if err := svc.fileRepo.CreateFile(ctx, file); err != nil {
 		// 上传到数据库失败，删除MinIO中的文件
-		_ = s.minioRepo.DeleteFile(ctx, objectName)
+		_ = svc.minioRepo.DeleteFile(ctx, objectName)
 		return nil, err
 	}
 
@@ -78,7 +78,7 @@ func (s *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader
 }
 
 // detectFileType 检测文件类型
-func (s *FileServiceImpl) detectFileType(filename string) model.FileType {
+func detectFileType(filename string) model.FileType {
 	ext := strings.ToLower(filepath.Ext(filename))
 
 	// 图片类型

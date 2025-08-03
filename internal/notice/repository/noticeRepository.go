@@ -8,26 +8,26 @@ import (
 	"gorm.io/gorm"
 )
 
-// 数据访问接口，定义数据访问的方法集
+// NoticeRepository 数据访问接口，定义数据访问的方法集
 type NoticeRepository interface {
-	// 分页查询公告列表
+	// List 分页查询公告列表
 	List(ctx context.Context, page, pageSize int) ([]*model.Notice, int64, error)
-	// 根据id获取公告内容
+	// GetNoticeContent 根据id获取公告内容
 	GetNoticeContent(ctx context.Context, noticeID int) (*model.Notice, error)
 }
 
-// 实现接口的具体结构体
+// NoticeRepositoryImpl 实现接口的具体结构体
 type NoticeRepositoryImpl struct {
 	db *gorm.DB
 }
 
-// 创建数据访问实例
+// NewNoticeRepository 创建数据访问实例
 func NewNoticeRepository(db *gorm.DB) NoticeRepository {
 	return &NoticeRepositoryImpl{db: db}
 }
 
-// 分页查询数据
-func (r *NoticeRepositoryImpl) List(ctx context.Context, page, pageSize int) ([]*model.Notice, int64, error) {
+// List 分页查询数据
+func (repo *NoticeRepositoryImpl) List(ctx context.Context, page, pageSize int) ([]*model.Notice, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -37,7 +37,7 @@ func (r *NoticeRepositoryImpl) List(ctx context.Context, page, pageSize int) ([]
 
 	offset := (page - 1) * pageSize
 	var notices []*model.Notice
-	query := r.db.WithContext(ctx)
+	query := repo.db.WithContext(ctx)
 
 	// 添加条件查询
 	// 只展示有效公告
@@ -61,11 +61,11 @@ func (r *NoticeRepositoryImpl) List(ctx context.Context, page, pageSize int) ([]
 	return notices, total, nil
 }
 
-// 内容查询
-func (r *NoticeRepositoryImpl) GetNoticeContent(ctx context.Context, noticeID int) (*model.Notice, error) {
+// GetNoticeContent 内容查询
+func (repo *NoticeRepositoryImpl) GetNoticeContent(ctx context.Context, noticeID int) (*model.Notice, error) {
 	var notice model.Notice
 
-	result := r.db.WithContext(ctx).First(&notice, noticeID)
+	result := repo.db.WithContext(ctx).First(&notice, noticeID)
 	err := result.Error
 
 	// 查询公告内容

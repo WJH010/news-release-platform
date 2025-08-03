@@ -11,7 +11,7 @@ type MessageListRequest struct {
 
 // MessageContentRequest 消息内容查询请求参数
 type MessageContentRequest struct {
-	MessageID int `form:"id" binding:"required,numeric"` // 消息ID，必须为数字
+	MessageID int `uri:"id" binding:"required,numeric"` // 消息ID，必须为数字
 }
 
 // UnreadMessageCountRequest 获取未读消息数请求参数

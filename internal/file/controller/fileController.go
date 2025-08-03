@@ -25,7 +25,7 @@ func NewFileController(fileService service.FileService) *FileController {
 }
 
 // UploadFile 上传文件
-func (c *FileController) UploadFile(ctx *gin.Context) {
+func (ctr *FileController) UploadFile(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
 	var req dto.FileUploadRequest
 	if !utils.BindForm(ctx, &req) {
@@ -67,7 +67,7 @@ func (c *FileController) UploadFile(ctx *gin.Context) {
 	// objectPrefix := getObjectPrefixByType(fileType)
 
 	// 上传文件
-	fileInfo, err := c.fileService.UploadFile(ctx, fileHeader, req.ArticleID, userID)
+	fileInfo, err := ctr.fileService.UploadFile(ctx, fileHeader, req.ArticleID, userID)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，上传文件失败")
 		return
