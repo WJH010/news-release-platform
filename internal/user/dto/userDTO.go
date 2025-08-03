@@ -18,6 +18,7 @@ type UserUpdateRequest struct {
 	Industry    *string `json:"industry" binding:"omitempty"`
 }
 
+// UserInfoResponse 用户信息响应
 type UserInfoResponse struct {
 	Nickname    string `json:"nickname"`
 	AvatarURL   string `json:"avatar_url"`

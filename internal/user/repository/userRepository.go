@@ -30,9 +30,9 @@ func NewUserRepository(db *gorm.DB) UserRepository {
 }
 
 // GetUserByOpenID 根据 openid 获取用户信息
-func (r *UserRepositoryImpl) GetUserByOpenID(ctx context.Context, openid string) (*model.User, error) {
+func (repo *UserRepositoryImpl) GetUserByOpenID(ctx context.Context, openid string) (*model.User, error) {
 	var user model.User
-	result := r.db.WithContext(ctx).Where("openid = ?", openid).First(&user)
+	result := repo.db.WithContext(ctx).Where("openid = ?", openid).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -43,13 +43,13 @@ func (r *UserRepositoryImpl) GetUserByOpenID(ctx context.Context, openid string)
 }
 
 // Create 创建新用户
-func (r *UserRepositoryImpl) Create(ctx context.Context, user *model.User) error {
-	return r.db.WithContext(ctx).Create(user).Error
+func (repo *UserRepositoryImpl) Create(ctx context.Context, user *model.User) error {
+	return repo.db.WithContext(ctx).Create(user).Error
 }
 
 // UpdateSessionAndLoginTime 登录时更新session_key和最后登录时间
-func (r *UserRepositoryImpl) UpdateSessionAndLoginTime(ctx context.Context, userID int, sessionKey string) error {
-	result := r.db.WithContext(ctx).Model(&model.User{}).
+func (repo *UserRepositoryImpl) UpdateSessionAndLoginTime(ctx context.Context, userID int, sessionKey string) error {
+	result := repo.db.WithContext(ctx).Model(&model.User{}).
 		Where("user_id = ?", userID).
 		Updates(map[string]interface{}{
 			"session_key":     sessionKey,
@@ -67,9 +67,9 @@ func (r *UserRepositoryImpl) UpdateSessionAndLoginTime(ctx context.Context, user
 }
 
 // GetUserByID 获取用户信息
-func (r *UserRepositoryImpl) GetUserByID(ctx context.Context, userID int) (*model.User, error) {
+func (repo *UserRepositoryImpl) GetUserByID(ctx context.Context, userID int) (*model.User, error) {
 	var user model.User
-	result := r.db.WithContext(ctx).Where("user_id = ?", userID).First(&user)
+	result := repo.db.WithContext(ctx).Where("user_id = ?", userID).First(&user)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -80,9 +80,9 @@ func (r *UserRepositoryImpl) GetUserByID(ctx context.Context, userID int) (*mode
 }
 
 // Update 更新用户信息
-func (r *UserRepositoryImpl) Update(ctx context.Context, userID int, updateFields map[string]interface{}) error {
+func (repo *UserRepositoryImpl) Update(ctx context.Context, userID int, updateFields map[string]interface{}) error {
 
-	result := r.db.WithContext(ctx).Model(&model.User{}).
+	result := repo.db.WithContext(ctx).Model(&model.User{}).
 		Where("user_id = ?", userID).
 		Updates(updateFields)
 
