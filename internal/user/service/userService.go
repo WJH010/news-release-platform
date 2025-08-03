@@ -27,6 +27,7 @@ type WxLoginResponse struct {
 type UserService interface {
 	Login(ctx context.Context, code string) (string, error)
 	UpdateUserInfo(ctx context.Context, userID int, req dto.UserUpdateRequest) error
+	GetUserByID(ctx context.Context, userID int) (*model.User, error)
 }
 
 // UserServiceImpl 用户服务实现
@@ -107,7 +108,7 @@ func (s *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessionK
 	// 如果用户不存在，创建新用户
 	if user == nil {
 		// 生成默认昵称和头像
-		defaultNickname := fmt.Sprintf("微信用户%s", openID[:5]) // 使用OpenID的一部分作为默认昵称
+		defaultNickname := fmt.Sprintf("微信用户%s", openID[len(openID)-5:]) // 拼接OpenID的后5位作为默认昵称
 		defaultAvatar := "http://47.113.194.28:9000/news-platform/images/202508/1754126743005963551.webp"
 		user = &model.User{
 			OpenID:        openID,
@@ -203,4 +204,17 @@ func (s *UserServiceImpl) UpdateUserInfo(ctx context.Context, userID int, req dt
 	}
 
 	return nil
+}
+
+func (s *UserServiceImpl) GetUserByID(ctx context.Context, userID int) (*model.User, error) {
+	// 查询用户信息
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("查询用户失败: %v", err)
+	}
+	if user == nil {
+		return nil, fmt.Errorf("用户不存在")
+	}
+
+	return user, nil
 }
