@@ -140,6 +140,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		event := api.Group("/event")
 		{
 			event.GET("", eventController.ListEvent)
+			event.GET("/:id", eventController.GetEventDetail)
 		}
 	}
 }

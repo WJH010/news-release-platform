@@ -9,6 +9,7 @@ import (
 // EventService 定义事件服务接口，提供事件相关的业务逻辑方法
 type EventService interface {
 	ListEvent(ctx context.Context, page, pageSize int, eventStatus string) ([]*model.Event, int, error)
+	GetEventDetail(ctx context.Context, eventID int) (*model.Event, error)
 }
 
 // EventServiceImpl 实现 EventService 接口，提供事件相关的业务逻辑
@@ -23,31 +24,25 @@ func NewEventService(eventRepo repository.EventRepository) EventService {
 
 // ListEvent 分页查询活动列表
 func (s *EventServiceImpl) ListEvent(ctx context.Context, page, pageSize int, eventStatus string) ([]*model.Event, int, error) {
-	events, total, err := s.eventRepo.List(ctx, page, pageSize, eventStatus)
+	return s.eventRepo.List(ctx, page, pageSize, eventStatus)
+}
+
+// GetEventDetail 获取活动详情
+func (s *EventServiceImpl) GetEventDetail(ctx context.Context, eventID int) (*model.Event, error) {
+	event, err := s.eventRepo.GetEventDetail(ctx, eventID)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	// 获取关联图片列表
-	var eventIDs []int
-	for _, event := range events {
-		eventIDs = append(eventIDs, event.ID)
-	}
 	var images []repository.EventImage
-	if len(eventIDs) > 0 {
-		images = s.eventRepo.ListEventImage(ctx, eventIDs)
-	}
+	images = s.eventRepo.ListEventImage(ctx, eventID)
 
-	// 建立图片映射关系
-	imageMap := make(map[int][]string)
+	// 添加图片到活动详情
+	event.Images = make([]string, 0, len(images)) // 预分配空间，提高性能
 	for _, img := range images {
-		imageMap[img.BizID] = append(imageMap[img.BizID], img.URL)
+		event.Images = append(event.Images, img.URL)
 	}
 
-	// 为每个活动设置图片列表
-	for _, event := range events {
-		event.Images = imageMap[event.ID]
-	}
-
-	return events, total, nil
+	return event, nil
 }

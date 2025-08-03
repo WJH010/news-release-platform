@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -13,8 +14,10 @@ import (
 type EventRepository interface {
 	// List 分页查询
 	List(ctx context.Context, page, pageSize int, eventStatus string) ([]*model.Event, int, error)
+	// GetEventDetail 获取活动详情
+	GetEventDetail(ctx context.Context, eventID int) (*model.Event, error)
 	// ListEventImage 获取活动图片列表
-	ListEventImage(ctx context.Context, bizIDs []int) []EventImage
+	ListEventImage(ctx context.Context, bizID int) []EventImage
 }
 
 // EventRepositoryImpl 实现接口的具体结构体
@@ -78,13 +81,31 @@ func (r *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, even
 	return events, int(total), nil
 }
 
+// GetEventDetail 获取活动详情
+func (r *EventRepositoryImpl) GetEventDetail(ctx context.Context, eventID int) (*model.Event, error) {
+	var event model.Event
+
+	// 查询活动详情
+	result := r.db.WithContext(ctx).First(&event, eventID)
+	err := result.Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("活动不存在或已被删除")
+		}
+		return nil, fmt.Errorf("获取活动详情失败: %w", err)
+	}
+
+	return &event, nil
+}
+
 // ListEventImage 获取活动图片列表
-func (r *EventRepositoryImpl) ListEventImage(ctx context.Context, bizIDs []int) []EventImage {
+func (r *EventRepositoryImpl) ListEventImage(ctx context.Context, bizID int) []EventImage {
 	var images []EventImage
 
 	err := r.db.WithContext(ctx).
 		Table("images").
-		Where("biz_type = ? AND biz_id IN (?)", "EVENT", bizIDs).
+		Where("biz_type = ? AND biz_id = ?", "EVENT", bizID).
 		Find(&images).Error
 
 	if err != nil {
