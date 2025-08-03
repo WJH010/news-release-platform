@@ -4,8 +4,8 @@ import (
 	"time"
 )
 
-// UserMessageMapping 对应user_message_mappings表的数据模型
-type UserMessageMapping struct {
+// MessageUserMapping 对应user_message_mappings表的数据模型
+type MessageUserMapping struct {
 	ID         int       `json:"id" gorm:"primaryKey;column:id"`
 	UserID     int       `json:"user_id" gorm:"column:user_id"`
 	MessageID  int       `json:"message_id" gorm:"column:message_id"`
@@ -16,6 +16,6 @@ type UserMessageMapping struct {
 }
 
 // TableName 设置表名
-func (*UserMessageMapping) TableName() string {
-	return "user_message_mappings" // 表名指定为user_message_mappings
+func (*MessageUserMapping) TableName() string {
+	return "message_user_mappings" // 表名指定为user_message_mappings
 }
