@@ -52,26 +52,26 @@ func NewMinIORepository(endpoint, accessKeyID, secretAccessKey string, useSSL bo
 }
 
 // UploadFile 上传文件到MinIO
-func (r *MinIORepositoryImpl) UploadFile(ctx context.Context, objectName, filePath string) (string, error) {
-	info, err := r.client.FPutObject(ctx, r.bucketName, objectName, filePath, minio.PutObjectOptions{})
+func (repo *MinIORepositoryImpl) UploadFile(ctx context.Context, objectName, filePath string) (string, error) {
+	info, err := repo.client.FPutObject(ctx, repo.bucketName, objectName, filePath, minio.PutObjectOptions{})
 	if err != nil {
 		return "", fmt.Errorf("上传文件到MinIO失败: %w", err)
 	}
 
 	// 生成文件的访问URL
-	url := fmt.Sprintf("%s/%s/%s", r.client.EndpointURL().String(), r.bucketName, info.Key)
+	url := fmt.Sprintf("%s/%s/%s", repo.client.EndpointURL().String(), repo.bucketName, info.Key)
 	return url, nil
 }
 
 // DeleteFile 从MinIO删除文件
-func (r *MinIORepositoryImpl) DeleteFile(ctx context.Context, objectName string) error {
-	return r.client.RemoveObject(ctx, r.bucketName, objectName, minio.RemoveObjectOptions{})
+func (repo *MinIORepositoryImpl) DeleteFile(ctx context.Context, objectName string) error {
+	return repo.client.RemoveObject(ctx, repo.bucketName, objectName, minio.RemoveObjectOptions{})
 }
 
 // GetFileURL 获取文件URL
-func (r *MinIORepositoryImpl) GetFileURL(ctx context.Context, objectName string) (string, error) {
+func (repo *MinIORepositoryImpl) GetFileURL(ctx context.Context, objectName string) (string, error) {
 	// 生成预签名URL，有效期1小时
-	url, err := r.client.PresignedGetObject(ctx, r.bucketName, objectName, time.Hour, nil)
+	url, err := repo.client.PresignedGetObject(ctx, repo.bucketName, objectName, time.Hour, nil)
 	if err != nil {
 		return "", fmt.Errorf("生成文件URL失败: %w", err)
 	}

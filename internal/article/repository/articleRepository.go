@@ -8,26 +8,26 @@ import (
 	"gorm.io/gorm"
 )
 
-// 数据访问接口，定义数据访问的方法集
+// ArticleRepository 数据访问接口，定义数据访问的方法集
 type ArticleRepository interface {
-	// 分页查询
+	// List 分页查询
 	List(ctx context.Context, page, pageSize int, articleTitle, articleType, releaseTime string, fieldID, isSelection, status int) ([]*model.Article, int64, error)
-	// 内容查询
+	// GetArticleContent 内容查询
 	GetArticleContent(ctx context.Context, articleID int) (*model.Article, error)
 }
 
-// 实现接口的具体结构体
+// ArticleRepositoryImpl 实现接口的具体结构体
 type ArticleRepositoryImpl struct {
 	db *gorm.DB
 }
 
-// 创建数据访问实例
+// NewArticleRepository 创建数据访问实例
 func NewArticleRepository(db *gorm.DB) ArticleRepository {
 	return &ArticleRepositoryImpl{db: db}
 }
 
-// 分页查询数据
-func (r *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, articleTitle, articleType, releaseTime string, fieldID, isSelection, status int) ([]*model.Article, int64, error) {
+// List 分页查询数据
+func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, articleTitle, articleType, releaseTime string, fieldID, isSelection, status int) ([]*model.Article, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -37,7 +37,7 @@ func (r *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, ar
 
 	offset := (page - 1) * pageSize
 	var articles []*model.Article
-	query := r.db.WithContext(ctx)
+	query := repo.db.WithContext(ctx)
 
 	// 构建基础查询
 	query = query.Table("articles a").
@@ -83,11 +83,11 @@ func (r *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, ar
 	return articles, total, nil
 }
 
-// 内容查询
-func (r *ArticleRepositoryImpl) GetArticleContent(ctx context.Context, articleID int) (*model.Article, error) {
+// GetArticleContent 内容查询
+func (repo *ArticleRepositoryImpl) GetArticleContent(ctx context.Context, articleID int) (*model.Article, error) {
 	var article model.Article
 
-	result := r.db.WithContext(ctx).First(&article, articleID)
+	result := repo.db.WithContext(ctx).First(&article, articleID)
 	err := result.Error
 
 	// 查询文章内容

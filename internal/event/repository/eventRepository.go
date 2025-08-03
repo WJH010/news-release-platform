@@ -37,7 +37,7 @@ type EventImage struct {
 }
 
 // List 分页查询数据
-func (r *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, eventStatus string) ([]*model.Event, int, error) {
+func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, eventStatus string) ([]*model.Event, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -49,7 +49,7 @@ func (r *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, even
 	var events []*model.Event
 	var total int64
 
-	query := r.db.WithContext(ctx)
+	query := repo.db.WithContext(ctx)
 	// 构建基础查询
 	query = query.Table("events e").
 		Where("is_deleted = ?", "N") // 软删除标志，查询未被删除的活动
@@ -82,11 +82,11 @@ func (r *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, even
 }
 
 // GetEventDetail 获取活动详情
-func (r *EventRepositoryImpl) GetEventDetail(ctx context.Context, eventID int) (*model.Event, error) {
+func (repo *EventRepositoryImpl) GetEventDetail(ctx context.Context, eventID int) (*model.Event, error) {
 	var event model.Event
 
 	// 查询活动详情
-	result := r.db.WithContext(ctx).First(&event, eventID)
+	result := repo.db.WithContext(ctx).First(&event, eventID)
 	err := result.Error
 
 	if err != nil {
@@ -100,10 +100,10 @@ func (r *EventRepositoryImpl) GetEventDetail(ctx context.Context, eventID int) (
 }
 
 // ListEventImage 获取活动图片列表
-func (r *EventRepositoryImpl) ListEventImage(ctx context.Context, bizID int) []EventImage {
+func (repo *EventRepositoryImpl) ListEventImage(ctx context.Context, bizID int) []EventImage {
 	var images []EventImage
 
-	err := r.db.WithContext(ctx).
+	err := repo.db.WithContext(ctx).
 		Table("images").
 		Where("biz_type = ? AND biz_id = ?", "EVENT", bizID).
 		Find(&images).Error

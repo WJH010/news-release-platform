@@ -4,6 +4,7 @@ import (
 	"time"
 )
 
+// Notice 公告模型
 type Notice struct {
 	ID          int        `json:"id" gorm:"primaryKey;autoIncrement;column:id"`
 	Title       string     `json:"title" gorm:"type:varchar(255)"`

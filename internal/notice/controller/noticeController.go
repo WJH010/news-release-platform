@@ -12,18 +12,18 @@ import (
 	"gorm.io/gorm"
 )
 
-// 控制器
+// NoticeController 控制器
 type NoticeController struct {
 	noticeService service.NoticeService
 }
 
-// 创建控制器实例
+// NewNoticeController 创建控制器实例
 func NewNoticeController(noticeService service.NoticeService) *NoticeController {
 	return &NoticeController{noticeService: noticeService}
 }
 
-// 分页查询公告列表
-func (n *NoticeController) ListNotice(ctx *gin.Context) {
+// ListNotice 分页查询公告列表
+func (ctr *NoticeController) ListNotice(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
 	var req dto.NoticeListRequest
 	if !utils.BindQuery(ctx, &req) {
@@ -43,7 +43,7 @@ func (n *NoticeController) ListNotice(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	notice, total, err := n.noticeService.ListNotice(ctx, page, pageSize)
+	notice, total, err := ctr.noticeService.ListNotice(ctx, page, pageSize)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取公告列表失败")
 		return
@@ -69,8 +69,8 @@ func (n *NoticeController) ListNotice(ctx *gin.Context) {
 	})
 }
 
-// 获取公告内容
-func (p *NoticeController) GetNoticeContent(ctx *gin.Context) {
+// GetNoticeContent 获取公告内容
+func (ctr *NoticeController) GetNoticeContent(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
 	var req dto.NoticeContentRequest
 	if !utils.BindUrl(ctx, &req) {
@@ -78,7 +78,7 @@ func (p *NoticeController) GetNoticeContent(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	notice, err := p.noticeService.GetNoticeContent(ctx, req.ID)
+	notice, err := ctr.noticeService.GetNoticeContent(ctx, req.ID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			msg := fmt.Sprintf("公告不存在(id=%d)", req.ID)

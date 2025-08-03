@@ -19,7 +19,7 @@ func NewEventController(eventService service.EventService) *EventController {
 }
 
 // ListEvent 处理分页查询事件列表的请求
-func (e *EventController) ListEvent(ctx *gin.Context) {
+func (ctr *EventController) ListEvent(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
 	var req dto.EventListRequest
 	if !utils.BindQuery(ctx, &req) {
@@ -39,7 +39,7 @@ func (e *EventController) ListEvent(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	event, total, err := e.eventService.ListEvent(ctx, page, pageSize, req.EventStatus)
+	event, total, err := ctr.eventService.ListEvent(ctx, page, pageSize, req.EventStatus)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取活动列表失败")
 		return
@@ -69,7 +69,7 @@ func (e *EventController) ListEvent(ctx *gin.Context) {
 }
 
 // GetEventDetail 处理获取活动详情的请求
-func (e *EventController) GetEventDetail(ctx *gin.Context) {
+func (ctr *EventController) GetEventDetail(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
 	var req dto.EventDetailRequest
 	if !utils.BindUrl(ctx, &req) {
@@ -77,7 +77,7 @@ func (e *EventController) GetEventDetail(ctx *gin.Context) {
 	}
 
 	// 调用服务层获取活动详情
-	event, err := e.eventService.GetEventDetail(ctx, req.EventID)
+	event, err := ctr.eventService.GetEventDetail(ctx, req.EventID)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取活动详情失败")
 		return

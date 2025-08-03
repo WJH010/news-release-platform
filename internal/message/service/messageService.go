@@ -6,7 +6,7 @@ import (
 	"news-release/internal/message/repository"
 )
 
-// 服务接口，定义方法，接收 context.Context 和数据模型。
+// MessageService 服务接口，定义方法，接收 context.Context 和数据模型。
 type MessageService interface {
 	ListMessage(ctx context.Context, page, pageSize int, userID int, messageType string) ([]*model.Message, int64, error)
 	GetMessageContent(ctx context.Context, messageID int) (*model.Message, error)
@@ -14,32 +14,32 @@ type MessageService interface {
 	MarkAsRead(ctx context.Context, userID, messageID int) error
 }
 
-// 实现接口的具体结构体，持有数据访问层接口 Repository 的实例
+// MessageServiceImpl 实现接口的具体结构体，持有数据访问层接口 Repository 的实例
 type MessageServiceImpl struct {
 	messageRepo repository.MessageRepository
 }
 
-// 创建服务实例
+// NewMessageService 创建服务实例
 func NewMessageService(messageRepo repository.MessageRepository) MessageService {
 	return &MessageServiceImpl{messageRepo: messageRepo}
 }
 
-// 分页查询数据
-func (s *MessageServiceImpl) ListMessage(ctx context.Context, page, pageSize int, userID int, messageType string) ([]*model.Message, int64, error) {
-	return s.messageRepo.List(ctx, page, pageSize, userID, messageType)
+// ListMessage 分页查询数据
+func (svc *MessageServiceImpl) ListMessage(ctx context.Context, page, pageSize int, userID int, messageType string) ([]*model.Message, int64, error) {
+	return svc.messageRepo.List(ctx, page, pageSize, userID, messageType)
 }
 
-// 获取消息内容
-func (s *MessageServiceImpl) GetMessageContent(ctx context.Context, messageID int) (*model.Message, error) {
-	return s.messageRepo.GetMessageContent(ctx, messageID)
+// GetMessageContent 获取消息内容
+func (svc *MessageServiceImpl) GetMessageContent(ctx context.Context, messageID int) (*model.Message, error) {
+	return svc.messageRepo.GetMessageContent(ctx, messageID)
 }
 
-// 获取未读消息数
-func (s *MessageServiceImpl) GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error) {
-	return s.messageRepo.GetUnreadMessageCount(ctx, userID, messageType)
+// GetUnreadMessageCount 获取未读消息数
+func (svc *MessageServiceImpl) GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error) {
+	return svc.messageRepo.GetUnreadMessageCount(ctx, userID, messageType)
 }
 
-// 标记消息为已读
-func (s *MessageServiceImpl) MarkAsRead(ctx context.Context, userID, messageID int) error {
-	return s.messageRepo.MarkAsRead(ctx, userID, messageID)
+// MarkAsRead 标记消息为已读
+func (svc *MessageServiceImpl) MarkAsRead(ctx context.Context, userID, messageID int) error {
+	return svc.messageRepo.MarkAsRead(ctx, userID, messageID)
 }

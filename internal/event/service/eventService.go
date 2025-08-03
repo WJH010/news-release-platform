@@ -23,20 +23,20 @@ func NewEventService(eventRepo repository.EventRepository) EventService {
 }
 
 // ListEvent 分页查询活动列表
-func (s *EventServiceImpl) ListEvent(ctx context.Context, page, pageSize int, eventStatus string) ([]*model.Event, int, error) {
-	return s.eventRepo.List(ctx, page, pageSize, eventStatus)
+func (svc *EventServiceImpl) ListEvent(ctx context.Context, page, pageSize int, eventStatus string) ([]*model.Event, int, error) {
+	return svc.eventRepo.List(ctx, page, pageSize, eventStatus)
 }
 
 // GetEventDetail 获取活动详情
-func (s *EventServiceImpl) GetEventDetail(ctx context.Context, eventID int) (*model.Event, error) {
-	event, err := s.eventRepo.GetEventDetail(ctx, eventID)
+func (svc *EventServiceImpl) GetEventDetail(ctx context.Context, eventID int) (*model.Event, error) {
+	event, err := svc.eventRepo.GetEventDetail(ctx, eventID)
 	if err != nil {
 		return nil, err
 	}
 
 	// 获取关联图片列表
 	var images []repository.EventImage
-	images = s.eventRepo.ListEventImage(ctx, eventID)
+	images = svc.eventRepo.ListEventImage(ctx, eventID)
 
 	// 添加图片到活动详情
 	event.Images = make([]string, 0, len(images)) // 预分配空间，提高性能

@@ -8,21 +8,21 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// 控制器
+// FieldTypeController 控制器
 type FieldTypeController struct {
-	fieldTyprService service.FieldTypeService
+	fieldTypeService service.FieldTypeService
 }
 
-// 创建控制器实例
+// NewFieldTypeController 创建控制器实例
 func NewFieldTypeController(fieldTyprService service.FieldTypeService) *FieldTypeController {
-	return &FieldTypeController{fieldTyprService: fieldTyprService}
+	return &FieldTypeController{fieldTypeService: fieldTyprService}
 }
 
-// 获取政策内容
-func (f *FieldTypeController) GetFieldType(ctx *gin.Context) {
+// GetFieldType 获取政策内容
+func (ctr *FieldTypeController) GetFieldType(ctx *gin.Context) {
 
 	// 调用服务层
-	fieldType, err := f.fieldTyprService.GetFieldType(ctx)
+	fieldType, err := ctr.fieldTypeService.GetFieldType(ctx)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取领域类型列表失败")
 		return
