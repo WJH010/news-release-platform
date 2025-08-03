@@ -26,6 +26,10 @@ import (
 	msgrepo "news-release/internal/message/repository"
 	msgsvc "news-release/internal/message/service"
 
+	eventctr "news-release/internal/event/controller"
+	eventrepo "news-release/internal/event/repository"
+	eventsvc "news-release/internal/event/service"
+
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 )
@@ -70,6 +74,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fileRepo := filerepo.NewFileRepository(db)
 	userRepo := userrepo.NewUserRepository(db)
 	msgRepo := msgrepo.NewMessageRepository(db)
+	eventRepo := eventrepo.NewEventRepository(db)
 
 	// 初始化服务
 	articleService := articlesvc.NewArticleService(articleRepo)
@@ -78,6 +83,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fileService := filesvc.NewFileService(minioRepo, fileRepo)
 	userService := usersvc.NewUserService(userRepo, cfg)
 	msgService := msgsvc.NewMessageService(msgRepo)
+	eventService := eventsvc.NewEventService(eventRepo)
 
 	// 初始化控制器
 	articleController := articlectr.NewArticleController(articleService)
@@ -86,6 +92,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fileController := filectr.NewFileController(fileService)
 	userController := userctr.NewUserController(userService)
 	msgController := msgctr.NewMessageController(msgService)
+	eventController := eventctr.NewEventController(eventService)
 
 	// API分组
 	api := router.Group("/api")
@@ -128,6 +135,11 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			message.GET("", msgController.ListMessage)
 			message.GET("/:MessageID", msgController.GetMessageContent)
 			message.GET("/UnreadMessageCount", msgController.GetUnreadMessageCount)
+		}
+		// 活动相关路由
+		event := api.Group("/event")
+		{
+			event.GET("", eventController.ListEvent)
 		}
 	}
 }
