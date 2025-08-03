@@ -119,7 +119,7 @@ func (r *MessageRepositoryImpl) GetUnreadMessageCount(ctx context.Context, userI
 // 更新消息为已读
 func (r *MessageRepositoryImpl) MarkAsRead(ctx context.Context, userID, messageID int) error {
 	result := r.db.WithContext(ctx).
-		Model(&model.UserMessageMapping{}).
+		Model(&model.MessageUserMapping{}).
 		Where("user_id = ? AND message_id = ?", userID, messageID).
 		Updates(map[string]interface{}{
 			"is_read":     "Y",

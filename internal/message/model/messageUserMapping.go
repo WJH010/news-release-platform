@@ -6,7 +6,7 @@ import (
 
 // MessageUserMapping 对应user_message_mappings表的数据模型
 type MessageUserMapping struct {
-	ID         int       `json:"id" gorm:"primaryKey;column:id"`
+	ID         int64     `json:"id" gorm:"primaryKey;column:id"`
 	UserID     int       `json:"user_id" gorm:"column:user_id"`
 	MessageID  int       `json:"message_id" gorm:"column:message_id"`
 	IsRead     string    `json:"is_read" gorm:"type:varchar(2);column:is_read;default:N"`
