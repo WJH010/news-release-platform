@@ -11,7 +11,7 @@ type EventListRequest struct {
 
 // EventDetailRequest 活动详情查询请求参数
 type EventDetailRequest struct {
-	EventID int `uri:"id" form:"id" binding:"required,numeric"` // 活动ID，必须为数字
+	EventID int `uri:"id" binding:"required,numeric"` // 活动ID，必须为数字
 }
 
 // EventListResponse 活动列表响应结构体

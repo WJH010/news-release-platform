@@ -10,7 +10,7 @@ type NoticeListRequest struct {
 
 // 公告内容查询请求参数
 type NoticeContentRequest struct {
-	ID int `form:"id" binding:"required,numeric"` // 公告ID，必须为数字
+	ID int `uri:"id" binding:"required,numeric"` // 公告ID，必须为数字
 }
 
 // NoticeResponse 公告列表响应结构体

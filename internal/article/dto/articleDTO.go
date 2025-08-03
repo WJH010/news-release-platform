@@ -16,7 +16,7 @@ type ArticleListRequest struct {
 
 // 文章内容查询请求参数
 type ArticleContentRequest struct {
-	ArticleID int `form:"article_id" binding:"required,numeric"` // 文章ID，必须为数字
+	ArticleID int `uri:"id" binding:"required,numeric"` // 文章ID，必须为数字
 }
 
 // ArticleListResponse 文章列表响应结构体
