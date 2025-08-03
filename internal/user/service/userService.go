@@ -27,6 +27,7 @@ type WxLoginResponse struct {
 type UserService interface {
 	Login(ctx context.Context, code string) (string, error)
 	UpdateUserInfo(ctx context.Context, userID int, req dto.UserUpdateRequest) error
+	GetUserByID(ctx context.Context, userID int) (*model.User, error)
 }
 
 // UserServiceImpl 用户服务实现
@@ -203,4 +204,17 @@ func (s *UserServiceImpl) UpdateUserInfo(ctx context.Context, userID int, req dt
 	}
 
 	return nil
+}
+
+func (s *UserServiceImpl) GetUserByID(ctx context.Context, userID int) (*model.User, error) {
+	// 查询用户信息
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("查询用户失败: %v", err)
+	}
+	if user == nil {
+		return nil, fmt.Errorf("用户不存在")
+	}
+
+	return user, nil
 }

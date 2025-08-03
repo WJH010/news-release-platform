@@ -73,3 +73,37 @@ func (c *UserController) UpdateUserInfo(ctx *gin.Context) {
 		"message": "更新成功",
 	})
 }
+
+// GetUserInfo 获取用户信息接口
+func (c *UserController) GetUserInfo(ctx *gin.Context) {
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		return
+	}
+
+	// 调用服务获取用户信息
+	user, err := c.userService.GetUserByID(ctx, userID)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "获取用户信息失败")
+		return
+	}
+
+	result := dto.UserInfoResponse{
+		Nickname:    user.Nickname,
+		AvatarURL:   user.AvatarURL,
+		Name:        user.Name,
+		Gender:      map[int]string{1: "男", 2: "女", 3: "未知"}[user.Gender],
+		PhoneNumber: user.PhoneNumber,
+		Email:       user.Email,
+		Unit:        user.Unit,
+		Department:  user.Department,
+		Position:    user.Position,
+		Industry:    user.Industry,
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data": result,
+	})
+}

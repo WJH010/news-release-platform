@@ -17,3 +17,16 @@ type UserUpdateRequest struct {
 	Position    *string `json:"position" binding:"omitempty"`
 	Industry    *string `json:"industry" binding:"omitempty"`
 }
+
+type UserInfoResponse struct {
+	Nickname    string `json:"nickname"`
+	AvatarURL   string `json:"avatar_url"`
+	Name        string `json:"name"`
+	Gender      string `json:"gender"`
+	PhoneNumber string `json:"phone_number"`
+	Email       string `json:"email"`
+	Unit        string `json:"unit"`
+	Department  string `json:"department"`
+	Position    string `json:"position"`
+	Industry    string `json:"industry"`
+}
