@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"news-release/internal/event/model"
 	"time"
@@ -12,6 +13,8 @@ import (
 type EventRepository interface {
 	// List 分页查询
 	List(ctx context.Context, page, pageSize int, eventStatus string) ([]*model.Event, int, error)
+	// ListEventImage 获取活动图片列表
+	ListEventImage(ctx context.Context, bizIDs []int) []EventImage
 }
 
 // EventRepositoryImpl 实现接口的具体结构体
@@ -22,6 +25,12 @@ type EventRepositoryImpl struct {
 // NewEventRepository 创建数据访问实例
 func NewEventRepository(db *gorm.DB) EventRepository {
 	return &EventRepositoryImpl{db: db}
+}
+
+// EventImage 结构体用于暂存图片查询结果,只在当前包内使用
+type EventImage struct {
+	BizID int    `json:"biz_id" gorm:"column:biz_id"`
+	URL   string `json:"url" gorm:"column:url"`
 }
 
 // List 分页查询数据
@@ -40,7 +49,7 @@ func (r *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, even
 	query := r.db.WithContext(ctx)
 	// 构建基础查询
 	query = query.Table("events e").
-		Where("status = ?", 1) // 只查询状态为1的活动
+		Where("is_deleted = ?", "N") // 软删除标志，查询未被删除的活动
 
 	// 根据活动状态拼接查询条件
 	if eventStatus == model.EventStatusInProgress {
@@ -58,7 +67,7 @@ func (r *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, even
 	// 计算总数
 	countQuery := query.Session(&gorm.Session{})
 	if err := countQuery.Count(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("计算总数时数据库查询失败: %v", err)
+		return nil, 0, fmt.Errorf("计算总数时数据库查询失败: %w", err)
 	}
 
 	// 分页查询数据
@@ -67,4 +76,21 @@ func (r *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, even
 	}
 
 	return events, int(total), nil
+}
+
+// ListEventImage 获取活动图片列表
+func (r *EventRepositoryImpl) ListEventImage(ctx context.Context, bizIDs []int) []EventImage {
+	var images []EventImage
+
+	err := r.db.WithContext(ctx).
+		Table("images").
+		Where("biz_type = ? AND biz_id IN (?)", "EVENT", bizIDs).
+		Find(&images).Error
+
+	if err != nil {
+		logrus.Errorf("获取活动图片失败: %v", err) // 只记录异常，不影响活动信息的返回
+		return nil
+	}
+
+	return images
 }

@@ -56,6 +56,8 @@ func (e *EventController) ListEvent(ctx *gin.Context) {
 			RegistrationEndTime:   ev.RegistrationEndTime,
 			EventAddress:          ev.EventAddress,
 			RegistrationFee:       ev.RegistrationFee,
+			CoverImageURL:         ev.CoverImageURL,
+			Images:                ev.Images,
 		})
 	}
 

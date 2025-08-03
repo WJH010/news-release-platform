@@ -21,7 +21,33 @@ func NewEventService(eventRepo repository.EventRepository) EventService {
 	return &EventServiceImpl{eventRepo: eventRepo}
 }
 
-// ListEvent 分页查询事件列表
+// ListEvent 分页查询活动列表
 func (s *EventServiceImpl) ListEvent(ctx context.Context, page, pageSize int, eventStatus string) ([]*model.Event, int, error) {
-	return s.eventRepo.List(ctx, page, pageSize, eventStatus)
+	events, total, err := s.eventRepo.List(ctx, page, pageSize, eventStatus)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// 获取关联图片列表
+	var eventIDs []int
+	for _, event := range events {
+		eventIDs = append(eventIDs, event.ID)
+	}
+	var images []repository.EventImage
+	if len(eventIDs) > 0 {
+		images = s.eventRepo.ListEventImage(ctx, eventIDs)
+	}
+
+	// 建立图片映射关系
+	imageMap := make(map[int][]string)
+	for _, img := range images {
+		imageMap[img.BizID] = append(imageMap[img.BizID], img.URL)
+	}
+
+	// 为每个活动设置图片列表
+	for _, event := range events {
+		event.Images = imageMap[event.ID]
+	}
+
+	return events, total, nil
 }
