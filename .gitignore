@@ -1,3 +1,6 @@
 logs
 config.yaml
 /cmd/news-release-platform
+/.idea/workspace.xml
+/.idea/news-release-platform.iml
+/.idea/vcs.xml
