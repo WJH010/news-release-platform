@@ -136,6 +136,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			message.GET("", msgController.ListMessage)
 			message.GET("/:id", msgController.GetMessageContent)
 			message.GET("/unreadMessageCount", msgController.GetUnreadMessageCount)
+			message.POST("/markAllAsRead", msgController.MarkAllMessagesAsRead)
 		}
 		// 活动相关路由
 		event := api.Group("/event")
