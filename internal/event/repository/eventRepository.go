@@ -24,6 +24,8 @@ type EventRepository interface {
 	CreatEventUserMap(ctx context.Context, eventUserMapping *model.EventUserMapping) error
 	// UpdateEUMapDeleteFlag 更新活动-用户关联删除标志
 	UpdateEUMapDeleteFlag(ctx context.Context, eventID int, userID int, isDeleted string) error
+	// IsUserRegistered 查询用户是否已报名活动
+	IsUserRegistered(ctx context.Context, eventID int, userID int) (bool, error)
 }
 
 // EventRepositoryImpl 实现接口的具体结构体
@@ -163,4 +165,19 @@ func (repo *EventRepositoryImpl) UpdateEUMapDeleteFlag(ctx context.Context, even
 	}
 
 	return nil
+}
+
+// IsUserRegistered 查询用户是否已报名活动
+func (repo *EventRepositoryImpl) IsUserRegistered(ctx context.Context, eventID int, userID int) (bool, error) {
+	var count int64
+	err := repo.db.WithContext(ctx).
+		Model(&model.EventUserMapping{}).
+		Where("event_id = ? AND user_id = ? AND is_deleted = ?", eventID, userID, "N").
+		Count(&count).Error
+
+	if err != nil {
+		return false, fmt.Errorf("查询用户是否已报名活动失败: %w", err)
+	}
+
+	return count > 0, nil
 }

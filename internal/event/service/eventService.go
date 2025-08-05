@@ -19,6 +19,8 @@ type EventService interface {
 	GetEventDetail(ctx context.Context, eventID int) (*model.Event, error)
 	// RegistrationEvent 活动报名
 	RegistrationEvent(ctx context.Context, eventID int, userID int) error
+	// IsUserRegistered 查询用户是否已报名活动
+	IsUserRegistered(ctx context.Context, eventID int, userID int) (bool, error)
 }
 
 // EventServiceImpl 实现 EventService 接口，提供事件相关的业务逻辑
@@ -135,4 +137,9 @@ func (svc *EventServiceImpl) RegistrationEvent(ctx context.Context, eventID int,
 	}
 
 	return err
+}
+
+// IsUserRegistered 查询用户是否已报名活动
+func (svc *EventServiceImpl) IsUserRegistered(ctx context.Context, eventID int, userID int) (bool, error) {
+	return svc.eventRepo.IsUserRegistered(ctx, eventID, userID)
 }

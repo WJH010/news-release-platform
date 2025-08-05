@@ -122,3 +122,43 @@ func (ctr *EventController) RegistrationEvent(ctx *gin.Context) {
 		"message": "活动报名成功",
 	})
 }
+
+// IsUserRegistered 查询用户是否报名该活动
+func (ctr *EventController) IsUserRegistered(ctx *gin.Context) {
+	// 初始化参数结构体并绑定查询参数
+	var req dto.EventDetailRequest
+	if !utils.BindUrl(ctx, &req) {
+		return
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		return
+	}
+
+	// 调用服务层查询用户是否报名该活动
+	isRegistered, err := ctr.eventService.IsUserRegistered(ctx, req.EventID, userID)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，查询用户报名状态失败")
+		return
+	}
+
+	var flag, message string
+	if isRegistered {
+		flag = "Y"
+		message = "已报名"
+	} else {
+		flag = "N"
+		message = "未报名"
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code": 200,
+		"data": gin.H{
+			"is_registered": flag,
+			"message":       message,
+		},
+	})
+}
