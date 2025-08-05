@@ -11,6 +11,7 @@ type MessageUserMapping struct {
 	MessageID  int       `json:"message_id" gorm:"column:message_id"`
 	IsRead     string    `json:"is_read" gorm:"type:varchar(2);column:is_read;default:N"`
 	ReadTime   time.Time `json:"read_time" gorm:"column:read_time"`
+	IsDeleted  string    `json:"is_deleted" gorm:"column:is_deleted;default:N"` // 软删除标志，默认值为N
 	CreateTime time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 }

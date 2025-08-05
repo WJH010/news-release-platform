@@ -28,7 +28,7 @@ func NewUserGroupRepository(db *gorm.DB) UserGroupRepository {
 // GetUserGroupByEventID 根据用户组ID获取用户组信息
 func (repo *UserGroupRepositoryImpl) GetUserGroupByEventID(ctx context.Context, eventID int) (*model.UserGroup, error) {
 	var group model.UserGroup
-	result := repo.db.WithContext(ctx).Where("event_id = ?", eventID).First(&group)
+	result := repo.db.WithContext(ctx).Where("event_id = ? AND id_deleted = ?", eventID, "N").First(&group)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil

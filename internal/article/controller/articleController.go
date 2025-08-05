@@ -43,7 +43,7 @@ func (ctr *ArticleController) ListArticle(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	article, total, err := ctr.articleService.ListArticle(ctx, page, pageSize, req.ArticleTitle, req.ArticleType, req.ReleaseTime, req.FieldID, req.IsSelection, req.Status)
+	article, total, err := ctr.articleService.ListArticle(ctx, page, pageSize, req.ArticleTitle, req.ArticleType, req.ReleaseTime, req.FieldType, req.IsSelection)
 	if err != nil {
 		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取文章列表失败")
 		return

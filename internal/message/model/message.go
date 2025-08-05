@@ -11,7 +11,7 @@ type Message struct {
 	Content    string    `json:"content" gorm:"type:mediumtext;column:content"`
 	SendTime   time.Time `json:"send_time" gorm:"column:send_time"`
 	Type       string    `json:"type" gorm:"type:varchar(50);column:type"`
-	Status     int       `json:"status" gorm:"column:status"`
+	IsDeleted  string    `json:"is_deleted" gorm:"column:is_deleted;default:N"` // 软删除标志，默认值为N
 	CreateTime time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 	// 关联字段

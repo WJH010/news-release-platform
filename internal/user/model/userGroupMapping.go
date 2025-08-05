@@ -9,7 +9,7 @@ type UserGroupMapping struct {
 	ID         int       `json:"id" gorm:"primaryKey;column:id"`
 	UserID     int       `json:"user_id" gorm:"column:user_id"`
 	GroupID    int       `json:"group_id" gorm:"column:group_id"`
-	Status     int       `json:"status" gorm:"column:status;default:1"`
+	IsDeleted  string    `json:"is_deleted" gorm:"column:is_deleted;default:N"` // 软删除标志，默认值为N
 	CreateTime time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 }
