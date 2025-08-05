@@ -12,6 +12,7 @@ type MessageService interface {
 	GetMessageContent(ctx context.Context, messageID int) (*model.Message, error)
 	GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error)
 	MarkAsRead(ctx context.Context, userID, messageID int) error
+	MarkAllMessagesAsRead(ctx context.Context, userID int) error
 }
 
 // MessageServiceImpl 实现接口的具体结构体，持有数据访问层接口 Repository 的实例
@@ -42,4 +43,9 @@ func (svc *MessageServiceImpl) GetUnreadMessageCount(ctx context.Context, userID
 // MarkAsRead 标记消息为已读
 func (svc *MessageServiceImpl) MarkAsRead(ctx context.Context, userID, messageID int) error {
 	return svc.messageRepo.MarkAsRead(ctx, userID, messageID)
+}
+
+// MarkAllMessagesAsRead 一键已读，更新所有未读消息为已读
+func (svc *MessageServiceImpl) MarkAllMessagesAsRead(ctx context.Context, userID int) error {
+	return svc.messageRepo.MarkAllMessagesAsRead(ctx, userID)
 }

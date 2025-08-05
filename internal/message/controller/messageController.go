@@ -151,3 +151,26 @@ func (ctr *MessageController) GetUnreadMessageCount(ctx *gin.Context) {
 		},
 	})
 }
+
+// MarkAllMessagesAsRead 一键已读
+func (ctr *MessageController) MarkAllMessagesAsRead(ctx *gin.Context) {
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		return
+	}
+
+	// 调用服务层
+	err = ctr.messageService.MarkAllMessagesAsRead(ctx, userID)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，更新消息状态失败")
+		return
+	}
+
+	// 返回成功响应
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "所有消息已标记为已读",
+	})
+}

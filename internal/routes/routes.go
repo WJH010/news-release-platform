@@ -135,7 +135,8 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		{
 			message.GET("", msgController.ListMessage)
 			message.GET("/:id", msgController.GetMessageContent)
-			message.GET("/UnreadMessageCount", msgController.GetUnreadMessageCount)
+			message.GET("/unreadMessageCount", msgController.GetUnreadMessageCount)
+			message.POST("/markAllAsRead", msgController.MarkAllMessagesAsRead)
 		}
 		// 活动相关路由
 		event := api.Group("/event")
@@ -143,6 +144,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			event.GET("", eventController.ListEvent)
 			event.GET("/:id", eventController.GetEventDetail)
 			event.POST("/registration", middleware.AuthMiddleware(cfg), eventController.RegistrationEvent)
+			event.GET("/isUserRegistered/:id", middleware.AuthMiddleware(cfg), eventController.IsUserRegistered)
 		}
 	}
 }
