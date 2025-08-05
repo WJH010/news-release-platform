@@ -14,6 +14,11 @@ type EventDetailRequest struct {
 	EventID int `uri:"id" binding:"required,numeric"` // 活动ID，必须为数字
 }
 
+// EventRegistrationRequest 活动报名请求参数
+type EventRegistrationRequest struct {
+	EventID int `json:"event_id" binding:"required,numeric"` // 活动ID
+}
+
 // EventListResponse 活动列表响应结构体
 type EventListResponse struct {
 	ID                    int       `json:"id"`                      // 活动ID

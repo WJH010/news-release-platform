@@ -73,6 +73,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	noticeRepo := noticerepo.NewNoticeRepository(db)
 	fileRepo := filerepo.NewFileRepository(db)
 	userRepo := userrepo.NewUserRepository(db)
+	userGroupRepo := userrepo.NewUserGroupRepository(db)
 	msgRepo := msgrepo.NewMessageRepository(db)
 	eventRepo := eventrepo.NewEventRepository(db)
 
@@ -83,7 +84,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fileService := filesvc.NewFileService(minioRepo, fileRepo)
 	userService := usersvc.NewUserService(userRepo, cfg)
 	msgService := msgsvc.NewMessageService(msgRepo)
-	eventService := eventsvc.NewEventService(eventRepo)
+	eventService := eventsvc.NewEventService(eventRepo, userRepo, userGroupRepo)
 
 	// 初始化控制器
 	articleController := articlectr.NewArticleController(articleService)
@@ -141,6 +142,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		{
 			event.GET("", eventController.ListEvent)
 			event.GET("/:id", eventController.GetEventDetail)
+			event.POST("/registration", middleware.AuthMiddleware(cfg), eventController.RegistrationEvent)
 		}
 	}
 }

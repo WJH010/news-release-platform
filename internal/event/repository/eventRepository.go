@@ -18,6 +18,12 @@ type EventRepository interface {
 	GetEventDetail(ctx context.Context, eventID int) (*model.Event, error)
 	// ListEventImage 获取活动图片列表
 	ListEventImage(ctx context.Context, bizID int) []EventImage
+	// GetEventUserMap 查询活动-用户关联映射
+	GetEventUserMap(ctx context.Context, eventID int, userID int) (*model.EventUserMapping, error)
+	// CreatEventUserMap 创建活动-用户关联映射,将用户添加到活动中
+	CreatEventUserMap(ctx context.Context, eventUserMapping *model.EventUserMapping) error
+	// UpdateEUMapDeleteFlag 更新活动-用户关联删除标志
+	UpdateEUMapDeleteFlag(ctx context.Context, eventID int, userID int, isDeleted string) error
 }
 
 // EventRepositoryImpl 实现接口的具体结构体
@@ -114,4 +120,47 @@ func (repo *EventRepositoryImpl) ListEventImage(ctx context.Context, bizID int) 
 	}
 
 	return images
+}
+
+// GetEventUserMap 查询活动-用户关联映射
+func (repo *EventRepositoryImpl) GetEventUserMap(ctx context.Context, eventID int, userID int) (*model.EventUserMapping, error) {
+	var mapping model.EventUserMapping
+
+	// 查询活动-用户关联映射
+	result := repo.db.WithContext(ctx).
+		Where("event_id = ? AND user_id = ?", eventID, userID).
+		First(&mapping)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil // 映射不存在
+		}
+		return nil, fmt.Errorf("查询活动-用户映射失败: %w", result.Error)
+	}
+
+	return &mapping, nil
+}
+
+// CreatEventUserMap 创建活动-用户关联映射,将用户添加到活动中
+func (repo *EventRepositoryImpl) CreatEventUserMap(ctx context.Context, eventUserMapping *model.EventUserMapping) error {
+	return repo.db.WithContext(ctx).Create(eventUserMapping).Error
+}
+
+// UpdateEUMapDeleteFlag 更新活动-用户关联删除标志
+func (repo *EventRepositoryImpl) UpdateEUMapDeleteFlag(ctx context.Context, eventID int, userID int, isDeleted string) error {
+	result := repo.db.WithContext(ctx).Model(&model.EventUserMapping{}).
+		Where("event_id = ?", eventID).
+		Where("user_id = ?", userID).
+		Updates(map[string]interface{}{
+			"is_deleted": isDeleted,
+		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
 }

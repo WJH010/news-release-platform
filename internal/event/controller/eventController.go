@@ -94,3 +94,31 @@ func (ctr *EventController) GetEventDetail(ctx *gin.Context) {
 		Images:                event.Images,
 	})
 }
+
+// RegistrationEvent 处理活动报名的请求
+func (ctr *EventController) RegistrationEvent(ctx *gin.Context) {
+	// 初始化参数结构体并绑定请求体
+	var req dto.EventRegistrationRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		return
+	}
+
+	// 调用服务层进行活动报名
+	err = ctr.eventService.RegistrationEvent(ctx, req.EventID, userID)
+	if err != nil {
+		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，活动报名失败")
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "活动报名成功",
+	})
+}
