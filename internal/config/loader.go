@@ -1,4 +1,4 @@
-// config/loader.go 用于解析配置文件config.yaml
+// Package config 用于解析配置文件config.yaml
 package config
 
 import (

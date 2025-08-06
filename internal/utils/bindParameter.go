@@ -1,29 +1,34 @@
 package utils
 
 import (
+	"errors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
-	"net/http"
 	"strconv"
 	"strings"
 )
 
-// Query参数绑定函数
+// BindQuery Query参数绑定函数
 func BindQuery(ctx *gin.Context, req interface{}) bool {
 	if err := ctx.ShouldBindQuery(req); err != nil {
-		if validationErr, ok := err.(validator.ValidationErrors); ok {
+		var validationErr validator.ValidationErrors
+		var numErr *strconv.NumError
+		if errors.As(err, &validationErr) {
 			// 转换为友好提示
 			// msg := GetValidationErrorMsg(validationErr[0])
 			var msg strings.Builder
 			for _, e := range validationErr {
 				msg.WriteString(GetValidationErrorMsg(e) + "; ")
 			}
-			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamInvalid, msg.String())
-		} else if _, ok := err.(*strconv.NumError); ok {
+			err = NewBusinessError(ErrCodeParamInvalid, msg.String())
+			WrapErrorHandler(ctx, err)
+		} else if errors.As(err, &numErr) {
 			// 捕获数字转换错误（如非数字字符串传入int字段）
-			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamInvalid, "查询参数格式错误")
+			err = NewBusinessError(ErrCodeParamInvalid, "参数类型错误，请检查参数格式")
+			WrapErrorHandler(ctx, err)
 		} else {
-			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamBind, "参数绑定失败")
+			err = NewBusinessError(ErrCodeParamBind, "参数绑定失败")
+			WrapErrorHandler(ctx, err)
 		}
 
 		return false
@@ -31,62 +36,71 @@ func BindQuery(ctx *gin.Context, req interface{}) bool {
 	return true
 }
 
-// JSON格式请求体绑定函数
+// BindJSON JSON格式请求体绑定函数
 func BindJSON(ctx *gin.Context, req interface{}) bool {
 	if err := ctx.ShouldBindJSON(req); err != nil {
-		if validationErr, ok := err.(validator.ValidationErrors); ok {
+		var validationErr validator.ValidationErrors
+		if errors.As(err, &validationErr) {
 			// 转换为友好提示
 			// msg := GetValidationErrorMsg(validationErr[0])
 			var msg strings.Builder
 			for _, e := range validationErr {
 				msg.WriteString(GetValidationErrorMsg(e) + "; ")
 			}
-			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamInvalid, msg.String())
+			err = NewBusinessError(ErrCodeParamInvalid, msg.String())
+			WrapErrorHandler(ctx, err)
 		} else {
-			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamBind, "参数绑定失败")
+			err = NewBusinessError(ErrCodeParamBind, "参数绑定失败")
+			WrapErrorHandler(ctx, err)
 		}
 		return false
 	}
 	return true
 }
 
-// URL 路径参数绑定函数
+// BindUrl URL 路径参数绑定函数
 func BindUrl(ctx *gin.Context, req interface{}) bool {
 	if err := ctx.ShouldBindUri(req); err != nil {
-		if validationErr, ok := err.(validator.ValidationErrors); ok {
+		var validationErr validator.ValidationErrors
+		if errors.As(err, &validationErr) {
 			// 转换为友好提示
 			var msg strings.Builder
 			for _, e := range validationErr {
 				msg.WriteString(GetValidationErrorMsg(e) + "; ")
 			}
-			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamInvalid, msg.String())
+			err = NewBusinessError(ErrCodeParamInvalid, msg.String())
+			WrapErrorHandler(ctx, err)
 		} else {
-			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamBind, "参数绑定失败")
+			err = NewBusinessError(ErrCodeParamBind, "参数绑定失败")
+			WrapErrorHandler(ctx, err)
 		}
 		return false
 	}
 	return true
 }
 
-// 表单参数绑定函数
+// BindForm 表单参数绑定函数
 func BindForm(ctx *gin.Context, req interface{}) bool {
 	if err := ctx.ShouldBind(req); err != nil {
-		if validationErr, ok := err.(validator.ValidationErrors); ok {
+		var validationErr validator.ValidationErrors
+		if errors.As(err, &validationErr) {
 			// 转换为友好提示
 			var msg strings.Builder
 			for _, e := range validationErr {
 				msg.WriteString(GetValidationErrorMsg(e) + "; ")
 			}
-			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamInvalid, msg.String())
+			err = NewBusinessError(ErrCodeParamInvalid, msg.String())
+			WrapErrorHandler(ctx, err)
 		} else {
-			HandleError(ctx, err, http.StatusBadRequest, ErrCodeParamBind, "参数绑定失败")
+			err = NewBusinessError(ErrCodeParamBind, "参数绑定失败")
+			WrapErrorHandler(ctx, err)
 		}
 		return false
 	}
 	return true
 }
 
-// 转换验证错误为友好提示
+// GetValidationErrorMsg 转换验证错误为友好提示
 func GetValidationErrorMsg(err validator.FieldError) string {
 	switch err.Tag() {
 	case "required":

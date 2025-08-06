@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"news-release/internal/file/model"
+	"news-release/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -24,5 +26,9 @@ func NewFileRepository(db *gorm.DB) FileRepository {
 
 // CreateFile 创建文件记录
 func (repo *FileRepositoryImpl) CreateFile(ctx context.Context, file *model.File) error {
-	return repo.db.WithContext(ctx).Create(file).Error
+	err := repo.db.WithContext(ctx).Create(file).Error
+	if err != nil {
+		return utils.NewSystemError(fmt.Errorf("创建文件记录失败: %w", err))
+	}
+	return err
 }

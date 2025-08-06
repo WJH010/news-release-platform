@@ -1,15 +1,12 @@
 package controller
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 	"news-release/internal/message/dto"
 	"news-release/internal/message/service"
 	"news-release/internal/utils"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // MessageController 控制器
@@ -44,15 +41,17 @@ func (ctr *MessageController) ListMessage(ctx *gin.Context) {
 
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
 	// 调用服务层
 	message, total, err := ctr.messageService.ListMessage(ctx, page, pageSize, userID, req.MessageType)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取消息列表失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
@@ -87,27 +86,25 @@ func (ctr *MessageController) GetMessageContent(ctx *gin.Context) {
 
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
 	// 标记消息为已读
 	err = ctr.messageService.MarkAsRead(ctx, userID, req.MessageID)
-	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，更新消息状态失败")
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
 	// 调用服务层
 	message, err := ctr.messageService.GetMessageContent(ctx, req.MessageID)
+	// 处理异常
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			msg := fmt.Sprintf("文章不存在(id=%d)", req.MessageID)
-			utils.HandleError(ctx, err, http.StatusNotFound, utils.ErrCodeResourceNotFound, msg)
-			return
-		}
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取消息内容失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
@@ -132,15 +129,17 @@ func (ctr *MessageController) GetUnreadMessageCount(ctx *gin.Context) {
 
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
 	// 调用服务层
 	count, err := ctr.messageService.GetUnreadMessageCount(ctx, userID, req.MessageType)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取未读消息数失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
@@ -156,15 +155,17 @@ func (ctr *MessageController) GetUnreadMessageCount(ctx *gin.Context) {
 func (ctr *MessageController) MarkAllMessagesAsRead(ctx *gin.Context) {
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
 	// 调用服务层
 	err = ctr.messageService.MarkAllMessagesAsRead(ctx, userID)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，更新消息状态失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 

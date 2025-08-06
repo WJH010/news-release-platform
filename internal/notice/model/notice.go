@@ -10,7 +10,7 @@ type Notice struct {
 	Title       string     `json:"title" gorm:"type:varchar(255)"`
 	Content     string     `json:"content" gorm:"type:text;not null"`
 	ReleaseTime *time.Time `json:"release_time" gorm:"column:release_time"`
-	Status      int        `json:"status" gorm:"type:int;not null;default:1"` // 默认=1，1：有效
+	IsDeleted   string     `json:"is_deleted" gorm:"column:is_deleted;default:N"` // 软删除标志，默认值为N
 	CreateTime  *time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime  *time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 }

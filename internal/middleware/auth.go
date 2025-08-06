@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// 自定义Claims结构体，明确指定字段类型
+// CustomClaims 自定义Claims结构体，明确指定字段类型
 type CustomClaims struct {
 	OpenID             string `json:"openid"`
 	UserID             int    `json:"userid"`
@@ -67,8 +67,9 @@ func parseToken(cfg *config.Config, tokenString string) (*CustomClaims, error) {
 	})
 
 	if err != nil {
-		if ve, ok := err.(*jwt.ValidationError); ok {
-			if ve.Errors&jwt.ValidationErrorExpired != 0 {
+		var validationErr *jwt.ValidationError
+		if errors.As(err, &validationErr) {
+			if validationErr.Errors&jwt.ValidationErrorExpired != 0 {
 				return nil, errors.New("令牌已过期")
 			}
 		}

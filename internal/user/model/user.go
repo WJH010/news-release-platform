@@ -13,7 +13,7 @@ type User struct {
 	Nickname      string    `json:"nickname" gorm:"column:nickname"`
 	AvatarURL     string    `json:"avatar_url" gorm:"column:avatar_url"`
 	Name          string    `json:"name" gorm:"column:name"`
-	Gender        int       `json:"gender" gorm:"column:gender"` // 1: 男, 2: 女, 3: 未知
+	Gender        string    `json:"gender" gorm:"column:gender"` // M: 男, F: 女, U: 未知
 	PhoneNumber   string    `json:"phone_number" gorm:"column:phone_number;default:NULL"`
 	Email         string    `json:"email" gorm:"column:email"`
 	Region        string    `json:"region" gorm:"column:region"`

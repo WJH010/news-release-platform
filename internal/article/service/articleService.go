@@ -8,7 +8,7 @@ import (
 
 // ArticleService 服务接口，定义方法，接收 context.Context 和数据模型。
 type ArticleService interface {
-	ListArticle(ctx context.Context, page, pageSize int, articleTitle, articleType, releaseTime string, fieldID, isSelection, status int) ([]*model.Article, int64, error)
+	ListArticle(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int) ([]*model.Article, int64, error)
 	GetArticleContent(ctx context.Context, articleID int) (*model.Article, error)
 }
 
@@ -23,8 +23,8 @@ func NewArticleService(articleRepo repository.ArticleRepository) ArticleService 
 }
 
 // ListArticle 分页查询数据
-func (svc *ArticleServiceImpl) ListArticle(ctx context.Context, page, pageSize int, articleTitle, articleType, releaseTime string, fieldID, isSelection, status int) ([]*model.Article, int64, error) {
-	return svc.articleRepo.List(ctx, page, pageSize, articleTitle, articleType, releaseTime, fieldID, isSelection, status)
+func (svc *ArticleServiceImpl) ListArticle(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int) ([]*model.Article, int64, error) {
+	return svc.articleRepo.List(ctx, page, pageSize, articleTitle, articleType, releaseTime, fieldType, isSelection)
 }
 
 // GetArticleContent 获取文章内容

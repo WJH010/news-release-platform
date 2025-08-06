@@ -9,6 +9,7 @@ type MessageUserGroupMapping struct {
 	ID         int       `json:"id" gorm:"primaryKey;column:id"`
 	GroupID    int       `json:"group_id" gorm:"column:group_id"`
 	MessageID  int       `json:"message_id" gorm:"column:message_id"`
+	IsDeleted  string    `json:"is_deleted" gorm:"column:is_deleted;default:N"` // 软删除标志，默认值为N
 	CreateTime time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 }

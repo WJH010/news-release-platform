@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"news-release/internal/event/model"
+	"news-release/internal/utils"
 	"time"
 )
 
@@ -78,12 +79,12 @@ func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, e
 	// 计算总数
 	countQuery := query.Session(&gorm.Session{})
 	if err := countQuery.Count(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("计算总数时数据库查询失败: %w", err)
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
 	}
 
 	// 分页查询数据
 	if err := query.Offset(offset).Limit(pageSize).Find(&events).Error; err != nil {
-		return nil, 0, err
+		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 
 	return events, int(total), nil
@@ -99,9 +100,9 @@ func (repo *EventRepositoryImpl) GetEventDetail(ctx context.Context, eventID int
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, fmt.Errorf("活动不存在或已被删除")
+			return nil, utils.NewBusinessError(utils.ErrCodeResourceNotFound, "活动不存在或已被删除，请刷新页面后重试")
 		}
-		return nil, fmt.Errorf("获取活动详情失败: %w", err)
+		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 
 	return &event, nil
@@ -129,15 +130,15 @@ func (repo *EventRepositoryImpl) GetEventUserMap(ctx context.Context, eventID in
 	var mapping model.EventUserMapping
 
 	// 查询活动-用户关联映射
-	result := repo.db.WithContext(ctx).
+	err := repo.db.WithContext(ctx).
 		Where("event_id = ? AND user_id = ?", eventID, userID).
-		First(&mapping)
+		First(&mapping).Error
 
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, nil // 映射不存在
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil // 映射不存在，只用来判断用户是否已报名活动，所以不返回异常
 		}
-		return nil, fmt.Errorf("查询活动-用户映射失败: %w", result.Error)
+		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 
 	return &mapping, nil
@@ -145,7 +146,15 @@ func (repo *EventRepositoryImpl) GetEventUserMap(ctx context.Context, eventID in
 
 // CreatEventUserMap 创建活动-用户关联映射,将用户添加到活动中
 func (repo *EventRepositoryImpl) CreatEventUserMap(ctx context.Context, eventUserMapping *model.EventUserMapping) error {
-	return repo.db.WithContext(ctx).Create(eventUserMapping).Error
+	err := repo.db.WithContext(ctx).Create(eventUserMapping).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return utils.NewBusinessError(utils.ErrCodeResourceExists, "已报名该活动，请勿重复报名")
+		} else {
+			return utils.NewSystemError(fmt.Errorf("创建活动-用户关联映射失败: %w", err))
+		}
+	}
+	return nil
 }
 
 // UpdateEUMapDeleteFlag 更新活动-用户关联删除标志
@@ -158,10 +167,10 @@ func (repo *EventRepositoryImpl) UpdateEUMapDeleteFlag(ctx context.Context, even
 		})
 
 	if result.Error != nil {
-		return result.Error
+		return utils.NewSystemError(fmt.Errorf("数据更新异常: %w", result.Error))
 	}
 	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "数据更新异常，未找到活动或状态已更新，请刷新页面后重试")
 	}
 
 	return nil
@@ -176,7 +185,7 @@ func (repo *EventRepositoryImpl) IsUserRegistered(ctx context.Context, eventID i
 		Count(&count).Error
 
 	if err != nil {
-		return false, fmt.Errorf("查询用户是否已报名活动失败: %w", err)
+		return false, utils.NewSystemError(fmt.Errorf("查询用户是否已报名活动失败: %w", err))
 	}
 
 	return count > 0, nil

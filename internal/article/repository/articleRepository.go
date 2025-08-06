@@ -2,8 +2,10 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"news-release/internal/article/model"
+	"news-release/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -11,7 +13,7 @@ import (
 // ArticleRepository 数据访问接口，定义数据访问的方法集
 type ArticleRepository interface {
 	// List 分页查询
-	List(ctx context.Context, page, pageSize int, articleTitle, articleType, releaseTime string, fieldID, isSelection, status int) ([]*model.Article, int64, error)
+	List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int) ([]*model.Article, int64, error)
 	// GetArticleContent 内容查询
 	GetArticleContent(ctx context.Context, articleID int) (*model.Article, error)
 }
@@ -27,7 +29,7 @@ func NewArticleRepository(db *gorm.DB) ArticleRepository {
 }
 
 // List 分页查询数据
-func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, articleTitle, articleType, releaseTime string, fieldID, isSelection, status int) ([]*model.Article, int64, error) {
+func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int) ([]*model.Article, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -42,8 +44,9 @@ func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int,
 	// 构建基础查询
 	query = query.Table("articles a").
 		Select("a.article_id, a.article_title, a.article_type, a.release_time, a.brief_content, a.is_selection, f.field_name, a.cover_image_url,a.article_source,at.type_name").
-		Joins("LEFT JOIN field_types f ON a.field_id = f.field_id").
-		Joins("LEFT JOIN article_types at ON a.article_type = at.type_code")
+		Joins("LEFT JOIN field_types f ON a.field_type = f.field_code").
+		Joins("LEFT JOIN article_types at ON a.article_type = at.type_code").
+		Where("a.is_deleted = ?", "N")
 
 	// 添加条件查询
 	if releaseTime != "" {
@@ -52,17 +55,14 @@ func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int,
 	if articleTitle != "" {
 		query = query.Where("a.article_title LIKE ?", "%"+articleTitle+"%")
 	}
-	if fieldID != 0 {
-		query = query.Where("a.field_id = ?", fieldID)
+	if fieldType != "" {
+		query = query.Where("a.field_type = ?", fieldType)
 	}
 	if articleType != "" {
 		query = query.Where("a.article_type = ?", articleType)
 	}
 	if isSelection != 0 {
 		query = query.Where("a.is_selection = ?", isSelection)
-	}
-	if status != 0 {
-		query = query.Where("a.status = ?", status)
 	}
 
 	// 按发布时间降序排列
@@ -72,12 +72,12 @@ func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int,
 	var total int64
 	countQuery := query.Session(&gorm.Session{})
 	if err := countQuery.Count(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("计算总数时数据库查询失败: %v", err)
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
 	}
 
 	// 查询数据
 	if err := query.Offset(offset).Limit(pageSize).Find(&articles).Error; err != nil {
-		return nil, 0, fmt.Errorf("数据库查询失败: %v", err)
+		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 
 	return articles, total, nil
@@ -92,7 +92,10 @@ func (repo *ArticleRepositoryImpl) GetArticleContent(ctx context.Context, articl
 
 	// 查询文章内容
 	if err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.NewBusinessError(utils.ErrCodeResourceNotFound, "文章不存在或已被删除，请刷新页面后重试")
+		}
+		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 
 	return &article, nil

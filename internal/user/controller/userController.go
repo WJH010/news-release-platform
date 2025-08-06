@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 
 	"news-release/internal/user/dto"
@@ -29,13 +30,16 @@ func (ctr *UserController) Login(ctx *gin.Context) {
 	}
 
 	token, err := ctr.userService.Login(ctx, req.Code)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "登录失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
 	if token == "" {
-		utils.HandleError(ctx, nil, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "token生成异常")
+		err = utils.NewSystemError(fmt.Errorf("token生成异常"))
+		utils.WrapErrorHandler(ctx, err)
+
 		return
 	}
 
@@ -50,8 +54,9 @@ func (ctr *UserController) Login(ctx *gin.Context) {
 func (ctr *UserController) UpdateUserInfo(ctx *gin.Context) {
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
@@ -63,8 +68,9 @@ func (ctr *UserController) UpdateUserInfo(ctx *gin.Context) {
 
 	// 调用服务更新用户信息
 	err = ctr.userService.UpdateUserInfo(ctx, userID, req)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "更新用户信息失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
@@ -78,15 +84,17 @@ func (ctr *UserController) UpdateUserInfo(ctx *gin.Context) {
 func (ctr *UserController) GetUserInfo(ctx *gin.Context) {
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
 	// 调用服务获取用户信息
 	user, err := ctr.userService.GetUserByID(ctx, userID)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "获取用户信息失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
@@ -94,7 +102,8 @@ func (ctr *UserController) GetUserInfo(ctx *gin.Context) {
 		Nickname:    user.Nickname,
 		AvatarURL:   user.AvatarURL,
 		Name:        user.Name,
-		Gender:      map[int]string{1: "男", 2: "女", 3: "未知"}[user.Gender],
+		GenderCode:  user.Gender,
+		Gender:      map[string]string{"M": "男", "F": "女", "U": "未知"}[user.Gender],
 		PhoneNumber: user.PhoneNumber,
 		Email:       user.Email,
 		Unit:        user.Unit,

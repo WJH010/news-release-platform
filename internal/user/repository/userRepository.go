@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"news-release/internal/user/model"
+	"news-release/internal/utils"
 	"time"
 
 	"gorm.io/gorm"
@@ -37,14 +38,18 @@ func (repo *UserRepositoryImpl) GetUserByOpenID(ctx context.Context, openid stri
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		return nil, result.Error
+		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", result.Error))
 	}
 	return &user, nil
 }
 
 // Create 创建新用户
 func (repo *UserRepositoryImpl) Create(ctx context.Context, user *model.User) error {
-	return repo.db.WithContext(ctx).Create(user).Error
+	err := repo.db.WithContext(ctx).Create(user).Error
+	if err != nil {
+		return utils.NewSystemError(fmt.Errorf("创建用户失败: %w", err))
+	}
+	return err
 }
 
 // UpdateSessionAndLoginTime 登录时更新session_key和最后登录时间
@@ -57,10 +62,10 @@ func (repo *UserRepositoryImpl) UpdateSessionAndLoginTime(ctx context.Context, u
 		})
 
 	if result.Error != nil {
-		return fmt.Errorf("更新登录信息失败: %v", result.Error)
+		return utils.NewSystemError(fmt.Errorf("更新登录信息失败: %w", result.Error))
 	}
 	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+		return utils.NewSystemError(fmt.Errorf("更新登录信息异常，未更新任何数据: %w", result.Error))
 	}
 
 	return nil
@@ -74,7 +79,7 @@ func (repo *UserRepositoryImpl) GetUserByID(ctx context.Context, userID int) (*m
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		return nil, result.Error
+		return nil, utils.NewSystemError(fmt.Errorf("查询用户信息失败: %v", result.Error))
 	}
 	return &user, nil
 }
@@ -87,10 +92,10 @@ func (repo *UserRepositoryImpl) Update(ctx context.Context, userID int, updateFi
 		Updates(updateFields)
 
 	if result.Error != nil {
-		return result.Error
+		return utils.NewSystemError(fmt.Errorf("更新用户信息失败: %w", result.Error))
 	}
 	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "更新用户信息失败，用户数据异常，请刷新页面后重试")
 	}
 	return nil
 }

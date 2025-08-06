@@ -11,7 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// 初始化日志记录器,使用 logrus 作为日志记录器
+// InitLogger 初始化日志记录器,使用 logrus 作为日志记录器
 func InitLogger() {
 	// 创建日志目录
 	os.MkdirAll("../logs/info", 0755)

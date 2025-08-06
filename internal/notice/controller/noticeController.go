@@ -1,15 +1,12 @@
 package controller
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 	"news-release/internal/notice/dto"
 	"news-release/internal/notice/service"
 	"news-release/internal/utils"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // NoticeController 控制器
@@ -44,8 +41,9 @@ func (ctr *NoticeController) ListNotice(ctx *gin.Context) {
 
 	// 调用服务层
 	notice, total, err := ctr.noticeService.ListNotice(ctx, page, pageSize)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取公告列表失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
@@ -79,13 +77,9 @@ func (ctr *NoticeController) GetNoticeContent(ctx *gin.Context) {
 
 	// 调用服务层
 	notice, err := ctr.noticeService.GetNoticeContent(ctx, req.ID)
+	// 处理异常
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			msg := fmt.Sprintf("公告不存在(id=%d)", req.ID)
-			utils.HandleError(ctx, err, http.StatusNotFound, 0, msg)
-			return
-		}
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取公告内容失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
