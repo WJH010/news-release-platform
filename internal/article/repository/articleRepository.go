@@ -2,8 +2,10 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"news-release/internal/article/model"
+	"news-release/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -70,12 +72,12 @@ func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int,
 	var total int64
 	countQuery := query.Session(&gorm.Session{})
 	if err := countQuery.Count(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("计算总数时数据库查询失败: %v", err)
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
 	}
 
 	// 查询数据
 	if err := query.Offset(offset).Limit(pageSize).Find(&articles).Error; err != nil {
-		return nil, 0, fmt.Errorf("数据库查询失败: %v", err)
+		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 
 	return articles, total, nil
@@ -90,7 +92,10 @@ func (repo *ArticleRepositoryImpl) GetArticleContent(ctx context.Context, articl
 
 	// 查询文章内容
 	if err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.NewBusinessError(utils.ErrCodeResourceNotFound, "文章不存在或已被删除，请刷新页面后重试")
+		}
+		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 
 	return &article, nil

@@ -2,8 +2,11 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"news-release/internal/message/model"
+	"news-release/internal/utils"
 	"time"
 
 	"gorm.io/gorm"
@@ -66,12 +69,12 @@ func (repo *MessageRepositoryImpl) List(ctx context.Context, page, pageSize int,
 	var total int64
 	countQuery := query.Session(&gorm.Session{})
 	if err := countQuery.Select("count(distinct m.id)").Count(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("计算总数时数据库查询失败: %v", err)
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
 	}
 
 	// 查询数据
 	if err := query.Offset(offset).Limit(pageSize).Find(&messages).Error; err != nil {
-		return nil, 0, fmt.Errorf("数据库查询失败: %v", err)
+		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 
 	return messages, total, nil
@@ -86,7 +89,11 @@ func (repo *MessageRepositoryImpl) GetMessageContent(ctx context.Context, messag
 
 	// 查询消息内容
 	if err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// 如果消息不存在，返回业务错误
+			return nil, utils.NewBusinessError(utils.ErrCodeResourceNotFound, "消息不存在或已被删除，请刷新页面后重试")
+		}
+		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 
 	return &message, nil
@@ -112,7 +119,7 @@ func (repo *MessageRepositoryImpl) GetUnreadMessageCount(ctx context.Context, us
 
 	// 执行计数查询，使用distinct确保消息不被重复计数
 	if err := query.Select("count(distinct um.id)").Count(&count).Error; err != nil {
-		return 0, fmt.Errorf("查询未读消息数失败: %v", err)
+		return 0, utils.NewSystemError(fmt.Errorf("查询未读消息数失败: %w", err))
 	}
 
 	return int(count), nil
@@ -130,11 +137,9 @@ func (repo *MessageRepositoryImpl) MarkAsRead(ctx context.Context, userID, messa
 		})
 
 	if result.Error != nil {
-		return fmt.Errorf("更新消息状态失败: %v", result.Error)
-	}
-
-	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+		// return utils.NewSystemError(fmt.Errorf("更新消息状态失败: %w", result.Error))
+		// 只记录日志，更新已读状态失败不影响消息加载
+		logrus.Errorf("更新消息状态失败: %v", result.Error)
 	}
 	return nil
 }
@@ -150,11 +155,8 @@ func (repo *MessageRepositoryImpl) MarkAllMessagesAsRead(ctx context.Context, us
 		})
 
 	if result.Error != nil {
-		return fmt.Errorf("一键已读操作失败: %v", result.Error)
+		return utils.NewSystemError(fmt.Errorf("一键已读操作失败: %w", result.Error))
 	}
 
-	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
-	}
 	return nil
 }

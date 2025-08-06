@@ -2,9 +2,10 @@ package repository
 
 import (
 	"context"
-	"news-release/internal/article/model"
-
+	"fmt"
 	"gorm.io/gorm"
+	"news-release/internal/article/model"
+	"news-release/internal/utils"
 )
 
 // FieldTypeRepository 数据访问接口，定义数据访问的方法集
@@ -31,7 +32,7 @@ func (repo *FieldTypeRepositoryImpl) GetFieldType(ctx context.Context) ([]*model
 	err := result.Error
 
 	if err != nil {
-		return nil, err
+		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 
 	return fieldType, nil

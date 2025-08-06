@@ -1,15 +1,12 @@
 package controller
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 	"news-release/internal/article/dto"
 	"news-release/internal/article/service"
 	"news-release/internal/utils"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 // ArticleController 控制器
@@ -44,8 +41,9 @@ func (ctr *ArticleController) ListArticle(ctx *gin.Context) {
 
 	// 调用服务层
 	article, total, err := ctr.articleService.ListArticle(ctx, page, pageSize, req.ArticleTitle, req.ArticleType, req.ReleaseTime, req.FieldType, req.IsSelection)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取文章列表失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
@@ -84,13 +82,9 @@ func (ctr *ArticleController) GetArticleContent(ctx *gin.Context) {
 
 	// 调用服务层
 	article, err := ctr.articleService.GetArticleContent(ctx, req.ArticleID)
+	// 处理异常
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			msg := fmt.Sprintf("文章不存在(id=%d)", req.ArticleID)
-			utils.HandleError(ctx, err, http.StatusNotFound, utils.ErrCodeResourceNotFound, msg)
-			return
-		}
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取文章内容失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 

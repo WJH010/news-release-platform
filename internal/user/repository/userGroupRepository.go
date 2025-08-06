@@ -3,8 +3,10 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"gorm.io/gorm"
 	"news-release/internal/user/model"
+	"news-release/internal/utils"
 )
 
 // UserGroupRepository 用户群组仓库接口
@@ -33,13 +35,20 @@ func (repo *UserGroupRepositoryImpl) GetUserGroupByEventID(ctx context.Context, 
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-		return nil, result.Error
+		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", result.Error))
 	}
 	return &group, nil
 }
 
 // AddUserToGroup 将用户添加到用户组
 func (repo *UserGroupRepositoryImpl) AddUserToGroup(ctx context.Context, userGroupMap *model.UserGroupMapping) error {
-	// 添加用户到用户组
-	return repo.db.WithContext(ctx).Create(userGroupMap).Error
+	err := repo.db.WithContext(ctx).Create(userGroupMap).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			// 如果是重复键错误，说明用户已在该用户组中
+			return err
+		}
+		return utils.NewSystemError(fmt.Errorf("添加用户到用户组失败: %w", err))
+	}
+	return err
 }

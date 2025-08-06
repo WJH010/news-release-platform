@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"news-release/internal/event/model"
 	"news-release/internal/event/repository"
 	usermodel "news-release/internal/user/model"
@@ -78,19 +80,19 @@ func (svc *EventServiceImpl) RegistrationEvent(ctx context.Context, eventID int,
 	}
 	// 检查活动是否已删除
 	if event.IsDeleted == utils.DeletedFlagYes {
-		return fmt.Errorf("活动已失效")
+		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "活动已失效")
 	}
 	// 检查活动是否在报名时间内
 	if event.RegistrationStartTime.After(time.Now()) || event.RegistrationEndTime.Before(time.Now()) {
-		return fmt.Errorf("未在活动报名时间内")
+		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "未在活动报名时间内")
 	}
 	// 检查用户信息是否完整
 	user, err := svc.userRepo.GetUserByID(ctx, userID)
 	if err != nil || user == nil {
-		return fmt.Errorf("查询用户信息失败: %w", err)
+		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "加载用户信息失败")
 	}
 	if user.Name == "" || user.PhoneNumber == "" || user.Email == "" || user.Unit == "" || user.Department == "" || user.Position == "" || user.Industry == "" {
-		return fmt.Errorf("用户信息不完整，请完善个人信息")
+		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "用户信息不完整，请完善个人信息")
 	}
 
 	// 执行活动报名逻辑
@@ -106,26 +108,26 @@ func (svc *EventServiceImpl) RegistrationEvent(ctx context.Context, eventID int,
 		}
 		err = svc.eventRepo.CreatEventUserMap(ctx, mapping)
 		if err != nil {
+			if errors.Is(err, gorm.ErrDuplicatedKey) {
+				return utils.NewBusinessError(utils.ErrCodeResourceExists, "已报名该活动，请勿重复报名")
+			}
 			return err
 		}
-		return nil
-	}
-	// 如果关联关系存在且有效，则返回错误提示
-	if mapping.IsDeleted == utils.DeletedFlagNo {
-		return fmt.Errorf("已报名该活动")
-	}
-	// 如果关联关系软删除了，则恢复
-	if mapping.IsDeleted == utils.DeletedFlagYes {
+	} else if mapping.IsDeleted == utils.DeletedFlagYes {
+		// 如果关联关系软删除了，则恢复
 		err = svc.eventRepo.UpdateEUMapDeleteFlag(ctx, eventID, userID, utils.DeletedFlagNo)
 		if err != nil {
 			return err
 		}
-		return nil
+	} else if mapping.IsDeleted == utils.DeletedFlagNo {
+		// 如果关联关系存在且有效，则返回错误提示
+		return utils.NewBusinessError(utils.ErrCodeResourceExists, "已报名该活动，请勿重复报名")
 	}
+
 	// 添加用户到对应群组
 	userGroup, err := svc.userGroupRepo.GetUserGroupByEventID(ctx, eventID)
 	if err != nil || userGroup == nil {
-		return fmt.Errorf("获取活动群组信息失败: %w", err)
+		return utils.NewSystemError(fmt.Errorf("获取活动群组信息失败: %w", err))
 	}
 	userGroupMap := &usermodel.UserGroupMapping{
 		UserID:  userID,
@@ -133,10 +135,13 @@ func (svc *EventServiceImpl) RegistrationEvent(ctx context.Context, eventID int,
 	}
 	err = svc.userGroupRepo.AddUserToGroup(ctx, userGroupMap)
 	if err != nil {
-		return fmt.Errorf("添加用户到活动群组失败: %w", err)
+		if errors.Is(err, gorm.ErrDuplicatedKey) {
+			return utils.NewBusinessError(utils.ErrCodeResourceExists, "用户已在该活动群组中")
+		}
+		return err
 	}
 
-	return err
+	return nil
 }
 
 // IsUserRegistered 查询用户是否已报名活动

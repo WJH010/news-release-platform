@@ -40,8 +40,9 @@ func (ctr *EventController) ListEvent(ctx *gin.Context) {
 
 	// 调用服务层
 	event, total, err := ctr.eventService.ListEvent(ctx, page, pageSize, req.EventStatus)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取活动列表失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
@@ -78,8 +79,9 @@ func (ctr *EventController) GetEventDetail(ctx *gin.Context) {
 
 	// 调用服务层获取活动详情
 	event, err := ctr.eventService.GetEventDetail(ctx, req.EventID)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取活动详情失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
@@ -105,15 +107,17 @@ func (ctr *EventController) RegistrationEvent(ctx *gin.Context) {
 
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
 	// 调用服务层进行活动报名
 	err = ctr.eventService.RegistrationEvent(ctx, req.EventID, userID)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，活动报名失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
@@ -133,15 +137,17 @@ func (ctr *EventController) IsUserRegistered(ctx *gin.Context) {
 
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
 	// 调用服务层查询用户是否报名该活动
 	isRegistered, err := ctr.eventService.IsUserRegistered(ctx, req.EventID, userID)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，查询用户报名状态失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 

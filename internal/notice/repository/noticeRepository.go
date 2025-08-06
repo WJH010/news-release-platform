@@ -2,8 +2,10 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"news-release/internal/notice/model"
+	"news-release/internal/utils"
 
 	"gorm.io/gorm"
 )
@@ -50,12 +52,12 @@ func (repo *NoticeRepositoryImpl) List(ctx context.Context, page, pageSize int) 
 	var total int64
 	countQuery := query.Session(&gorm.Session{})
 	if err := countQuery.Model(&model.Notice{}).Count(&total).Error; err != nil {
-		return nil, 0, fmt.Errorf("计算总数时数据库查询失败: %v", err)
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
 	}
 
 	// 查询数据
 	if err := query.Offset(offset).Limit(pageSize).Find(&notices).Error; err != nil {
-		return nil, 0, fmt.Errorf("数据库查询失败: %v", err)
+		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 
 	return notices, total, nil
@@ -70,7 +72,10 @@ func (repo *NoticeRepositoryImpl) GetNoticeContent(ctx context.Context, noticeID
 
 	// 查询公告内容
 	if err != nil {
-		return nil, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, utils.NewBusinessError(utils.ErrCodeResourceNotFound, "公告不存在或已被删除，请刷新页面后重试")
+		}
+		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 
 	return &notice, nil

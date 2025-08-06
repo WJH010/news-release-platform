@@ -23,8 +23,9 @@ func (ctr *FieldTypeController) GetFieldType(ctx *gin.Context) {
 
 	// 调用服务层
 	fieldType, err := ctr.fieldTypeService.GetFieldType(ctx)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，获取领域类型列表失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 

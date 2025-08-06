@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"news-release/internal/file/dto"
 	"news-release/internal/file/service"
@@ -34,8 +35,9 @@ func (ctr *FileController) UploadFile(ctx *gin.Context) {
 
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
+	// 处理异常
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeAuthFailed, "获取用户ID失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
@@ -49,7 +51,8 @@ func (ctr *FileController) UploadFile(ctx *gin.Context) {
 	// 保存临时文件
 	tempFilePath := filepath.Join(os.TempDir(), uuid.New().String())
 	if err := ctx.SaveUploadedFile(req.File, tempFilePath); err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，保存临时文件失败")
+		err = utils.NewSystemError(fmt.Errorf("保存临时文件失败: %w", err))
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 	defer os.Remove(tempFilePath)
@@ -62,14 +65,10 @@ func (ctr *FileController) UploadFile(ctx *gin.Context) {
 		TemporaryFile:    tempFilePath,
 	}
 
-	// 根据文件类型设置存储路径前缀
-	// fileType := detectFileType(req.File.Filename, req.File.Header.Get("Content-Type"))
-	// objectPrefix := getObjectPrefixByType(fileType)
-
 	// 上传文件
 	fileInfo, err := ctr.fileService.UploadFile(ctx, fileHeader, req.ArticleID, userID)
 	if err != nil {
-		utils.HandleError(ctx, err, http.StatusInternalServerError, utils.ErrCodeServerInternalError, "服务器内部错误，上传文件失败")
+		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
