@@ -43,6 +43,7 @@ const (
 	// 业务逻辑相关
 	ErrCodeBusinessLogicError = 70001 // 业务逻辑错误（如订单状态不允许操作）
 	ErrCodeDataConflict       = 70002 // 数据冲突（如更新时数据已被修改）
+	ErrCodeFileUploadError    = 70003 // 文件上传失败（如文件格式不支持、大小超限）
 
 	// 依赖/外部服务相关
 	ErrCodeDependencyServiceError = 80001 // 依赖服务调用失败（如调用第三方 API 超时）

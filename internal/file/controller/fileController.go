@@ -66,7 +66,7 @@ func (ctr *FileController) UploadFile(ctx *gin.Context) {
 	}
 
 	// 上传文件
-	fileInfo, err := ctr.fileService.UploadFile(ctx, fileHeader, req.ArticleID, userID)
+	response, err := ctr.fileService.UploadFile(ctx, fileHeader, req.BizType, req.BizID, userID)
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
 		return
@@ -76,6 +76,6 @@ func (ctr *FileController) UploadFile(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":    200,
 		"message": "文件上传成功",
-		"data":    fileInfo,
+		"data":    response,
 	})
 }
