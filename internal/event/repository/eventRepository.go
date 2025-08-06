@@ -27,6 +27,8 @@ type EventRepository interface {
 	UpdateEUMapDeleteFlag(ctx context.Context, eventID int, userID int, isDeleted string) error
 	// IsUserRegistered 查询用户是否已报名活动
 	IsUserRegistered(ctx context.Context, eventID int, userID int) (bool, error)
+	// ListUserRegisteredEvents 获取用户已报名活动列表
+	ListUserRegisteredEvents(ctx context.Context, userID int) ([]*model.Event, error)
 }
 
 // EventRepositoryImpl 实现接口的具体结构体
@@ -189,4 +191,22 @@ func (repo *EventRepositoryImpl) IsUserRegistered(ctx context.Context, eventID i
 	}
 
 	return count > 0, nil
+}
+
+// ListUserRegisteredEvents 获取用户已报名活动列表
+func (repo *EventRepositoryImpl) ListUserRegisteredEvents(ctx context.Context, userID int) ([]*model.Event, error) {
+	var events []*model.Event
+
+	err := repo.db.WithContext(ctx).
+		Table("events e").
+		Joins("JOIN event_user_mappings eum ON e.id = eum.event_id").
+		Where("e.is_deleted = ? AND eum.user_id = ? AND eum.is_deleted = ?", "N", userID, "N").
+		Order("e.event_start_time ASC").
+		Find(&events).Error
+
+	if err != nil {
+		return nil, utils.NewSystemError(fmt.Errorf("查询用户已报名活动列表失败: %w", err))
+	}
+
+	return events, nil
 }

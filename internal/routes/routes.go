@@ -145,6 +145,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			event.POST("/registration", middleware.AuthMiddleware(cfg), eventController.RegistrationEvent)
 			event.GET("/isUserRegistered/:id", middleware.AuthMiddleware(cfg), eventController.IsUserRegistered)
 			event.POST("/cancelRegistration", middleware.AuthMiddleware(cfg), eventController.CancelRegistrationEvent)
+			event.GET("/userRegisteredEvents", middleware.AuthMiddleware(cfg), eventController.ListUserRegisteredEvents)
 		}
 	}
 }

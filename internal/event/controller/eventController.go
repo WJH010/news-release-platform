@@ -198,3 +198,41 @@ func (ctr *EventController) CancelRegistrationEvent(ctx *gin.Context) {
 		"message": "取消活动报名成功",
 	})
 }
+
+// ListUserRegisteredEvents 获取用户已报名的活动列表
+func (ctr *EventController) ListUserRegisteredEvents(ctx *gin.Context) {
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务层获取用户已报名的活动列表
+	events, err := ctr.eventService.ListUserRegisteredEvents(ctx, userID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	var result []dto.EventListResponse
+	for _, ev := range events {
+		result = append(result, dto.EventListResponse{
+			ID:                    ev.ID,
+			Title:                 ev.Title,
+			EventStartTime:        ev.EventStartTime,
+			EventEndTime:          ev.EventEndTime,
+			RegistrationStartTime: ev.RegistrationStartTime,
+			RegistrationEndTime:   ev.RegistrationEndTime,
+			EventAddress:          ev.EventAddress,
+			RegistrationFee:       ev.RegistrationFee,
+			CoverImageURL:         ev.CoverImageURL,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data": result,
+	})
+}
