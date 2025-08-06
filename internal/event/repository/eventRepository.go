@@ -149,8 +149,7 @@ func (repo *EventRepositoryImpl) CreatEventUserMap(ctx context.Context, eventUse
 	err := repo.db.WithContext(ctx).Create(eventUserMapping).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			// 如果是重复键错误，说明用户已报名该活动
-			return err
+			return utils.NewBusinessError(utils.ErrCodeResourceExists, "已报名该活动，请勿重复报名")
 		} else {
 			return utils.NewSystemError(fmt.Errorf("创建活动-用户关联映射失败: %w", err))
 		}

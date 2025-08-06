@@ -2,9 +2,7 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"news-release/internal/event/model"
 	"news-release/internal/event/repository"
 	usermodel "news-release/internal/user/model"
@@ -108,9 +106,6 @@ func (svc *EventServiceImpl) RegistrationEvent(ctx context.Context, eventID int,
 		}
 		err = svc.eventRepo.CreatEventUserMap(ctx, mapping)
 		if err != nil {
-			if errors.Is(err, gorm.ErrDuplicatedKey) {
-				return utils.NewBusinessError(utils.ErrCodeResourceExists, "已报名该活动，请勿重复报名")
-			}
 			return err
 		}
 	} else if mapping.IsDeleted == utils.DeletedFlagYes {
@@ -135,9 +130,6 @@ func (svc *EventServiceImpl) RegistrationEvent(ctx context.Context, eventID int,
 	}
 	err = svc.userGroupRepo.AddUserToGroup(ctx, userGroupMap)
 	if err != nil {
-		if errors.Is(err, gorm.ErrDuplicatedKey) {
-			return utils.NewBusinessError(utils.ErrCodeResourceExists, "用户已在该活动群组中")
-		}
 		return err
 	}
 

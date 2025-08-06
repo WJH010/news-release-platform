@@ -21,7 +21,7 @@ func Recovery() gin.HandlerFunc {
 
 				// 分割堆栈为行
 				lines := strings.Split(stackStr, "\n")
-				filteredLines := []string{}
+				var filteredLines []string
 
 				// 过滤规则：只保留包含项目业务代码路径的行（根据实际项目路径调整关键字）
 				// 例如项目代码路径包含 "news-release-platform/internal/"，则保留相关行

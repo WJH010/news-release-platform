@@ -46,7 +46,7 @@ func (repo *UserGroupRepositoryImpl) AddUserToGroup(ctx context.Context, userGro
 	if err != nil {
 		if errors.Is(err, gorm.ErrDuplicatedKey) {
 			// 如果是重复键错误，说明用户已在该用户组中
-			return err
+			return utils.NewBusinessError(utils.ErrCodeResourceExists, "用户已在该活动群组中")
 		}
 		return utils.NewSystemError(fmt.Errorf("添加用户到用户组失败: %w", err))
 	}
