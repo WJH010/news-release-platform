@@ -2,10 +2,8 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"news-release/internal/event/model"
 	"news-release/internal/event/repository"
-	usermodel "news-release/internal/user/model"
 	userrepo "news-release/internal/user/repository"
 	"news-release/internal/utils"
 	"time"
@@ -25,21 +23,18 @@ type EventService interface {
 
 // EventServiceImpl 实现 EventService 接口，提供事件相关的业务逻辑
 type EventServiceImpl struct {
-	eventRepo     repository.EventRepository   // 事件数据访问接口
-	userRepo      userrepo.UserRepository      // 用户数据访问接口
-	userGroupRepo userrepo.UserGroupRepository // 用户群组数据访问接口
+	eventRepo repository.EventRepository // 事件数据访问接口
+	userRepo  userrepo.UserRepository    // 用户数据访问接口
 }
 
 // NewEventService 创建服务实例
 func NewEventService(
 	eventRepo repository.EventRepository,
 	userRepo userrepo.UserRepository,
-	userGroupRepo userrepo.UserGroupRepository,
 ) EventService {
 	return &EventServiceImpl{
-		eventRepo:     eventRepo,
-		userRepo:      userRepo,
-		userGroupRepo: userGroupRepo,
+		eventRepo: eventRepo,
+		userRepo:  userRepo,
 	}
 }
 
@@ -117,20 +112,6 @@ func (svc *EventServiceImpl) RegistrationEvent(ctx context.Context, eventID int,
 	} else if mapping.IsDeleted == utils.DeletedFlagNo {
 		// 如果关联关系存在且有效，则返回错误提示
 		return utils.NewBusinessError(utils.ErrCodeResourceExists, "已报名该活动，请勿重复报名")
-	}
-
-	// 添加用户到对应群组
-	userGroup, err := svc.userGroupRepo.GetUserGroupByEventID(ctx, eventID)
-	if err != nil || userGroup == nil {
-		return utils.NewSystemError(fmt.Errorf("获取活动群组信息失败: %w", err))
-	}
-	userGroupMap := &usermodel.UserGroupMapping{
-		UserID:  userID,
-		GroupID: userGroup.ID,
-	}
-	err = svc.userGroupRepo.AddUserToGroup(ctx, userGroupMap)
-	if err != nil {
-		return err
 	}
 
 	return nil
