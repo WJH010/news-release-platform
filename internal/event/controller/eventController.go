@@ -168,3 +168,33 @@ func (ctr *EventController) IsUserRegistered(ctx *gin.Context) {
 		},
 	})
 }
+
+// CancelRegistrationEvent 处理取消活动报名的请求
+func (ctr *EventController) CancelRegistrationEvent(ctx *gin.Context) {
+	// 初始化参数结构体并绑定查询参数
+	var req dto.EventRegistrationRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务层取消活动报名
+	err = ctr.eventService.CancelRegistrationEvent(ctx, req.EventID, userID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "取消活动报名成功",
+	})
+}
