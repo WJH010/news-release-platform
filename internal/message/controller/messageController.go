@@ -175,3 +175,91 @@ func (ctr *MessageController) MarkAllMessagesAsRead(ctx *gin.Context) {
 		"message": "所有消息已标记为已读",
 	})
 }
+
+// ListMessageByTypeGroups 按类型分组查询消息
+func (ctr *MessageController) ListMessageByTypeGroups(ctx *gin.Context) {
+	// 初始化参数结构体并绑定查询参数
+	var req dto.TypeGroupMessageListRequest
+	if !utils.BindQuery(ctx, &req) {
+		return
+	}
+
+	// page 默认1
+	page := req.Page
+	if page == 0 {
+		page = 1
+	}
+
+	// pageSize 默认10
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 10
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务层
+	list, total, err := ctr.messageService.ListMessageByTypeGroups(ctx, page, pageSize, userID, req.TypeCodes)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+		"data":      list,
+	})
+}
+
+// ListMessageByEventGroups 按活动分组查询消息
+func (ctr *MessageController) ListMessageByEventGroups(ctx *gin.Context) {
+	// 初始化参数结构体并绑定查询参数
+	var req dto.EventGroupMessageListRequest
+	if !utils.BindQuery(ctx, &req) {
+		return
+	}
+
+	// page 默认1
+	page := req.Page
+	if page == 0 {
+		page = 1
+	}
+
+	// pageSize 默认10
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 10
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务层
+	list, total, err := ctr.messageService.ListMessageByEventGroups(ctx, page, pageSize, userID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+		"data":      list,
+	})
+}
