@@ -87,6 +87,7 @@ func (ctr *EventController) GetEventDetail(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, dto.EventDetailResponse{
 		Title:                 event.Title,
+		Detail:                event.Detail,
 		EventStartTime:        event.EventStartTime,
 		EventEndTime:          event.EventEndTime,
 		RegistrationStartTime: event.RegistrationStartTime,
@@ -166,5 +167,73 @@ func (ctr *EventController) IsUserRegistered(ctx *gin.Context) {
 			"is_registered": flag,
 			"message":       message,
 		},
+	})
+}
+
+// CancelRegistrationEvent 处理取消活动报名的请求
+func (ctr *EventController) CancelRegistrationEvent(ctx *gin.Context) {
+	// 初始化参数结构体并绑定查询参数
+	var req dto.EventRegistrationRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务层取消活动报名
+	err = ctr.eventService.CancelRegistrationEvent(ctx, req.EventID, userID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "取消活动报名成功",
+	})
+}
+
+// ListUserRegisteredEvents 获取用户已报名的活动列表
+func (ctr *EventController) ListUserRegisteredEvents(ctx *gin.Context) {
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务层获取用户已报名的活动列表
+	events, err := ctr.eventService.ListUserRegisteredEvents(ctx, userID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	var result []dto.EventListResponse
+	for _, ev := range events {
+		result = append(result, dto.EventListResponse{
+			ID:                    ev.ID,
+			Title:                 ev.Title,
+			EventStartTime:        ev.EventStartTime,
+			EventEndTime:          ev.EventEndTime,
+			RegistrationStartTime: ev.RegistrationStartTime,
+			RegistrationEndTime:   ev.RegistrationEndTime,
+			EventAddress:          ev.EventAddress,
+			RegistrationFee:       ev.RegistrationFee,
+			CoverImageURL:         ev.CoverImageURL,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data": result,
 	})
 }

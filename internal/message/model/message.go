@@ -16,7 +16,7 @@ type Message struct {
 	CreateTime time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 	// 关联字段
-	TypeName string `gorm:"-"` // 关联message_types表
+	TypeName string `json:"type_name" gorm:"column:type_name"` // 关联message_types表
 }
 
 // TableName 设置表名

@@ -35,6 +35,7 @@ type EventListResponse struct {
 // EventDetailResponse 活动详情响应结构体
 type EventDetailResponse struct {
 	Title                 string    `json:"title"`                   // 活动标题
+	Detail                string    `json:"detail"`                  // 活动内容
 	EventStartTime        time.Time `json:"event_start_time"`        // 活动开始时间
 	EventEndTime          time.Time `json:"event_end_time"`          // 活动结束时间
 	RegistrationStartTime time.Time `json:"registration_start_time"` // 活动报名开始时间

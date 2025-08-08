@@ -17,8 +17,12 @@ type EventService interface {
 	GetEventDetail(ctx context.Context, eventID int) (*model.Event, error)
 	// RegistrationEvent 活动报名
 	RegistrationEvent(ctx context.Context, eventID int, userID int) error
+	// CancelRegistrationEvent 取消活动报名
+	CancelRegistrationEvent(ctx context.Context, eventID int, userID int) error
 	// IsUserRegistered 查询用户是否已报名活动
 	IsUserRegistered(ctx context.Context, eventID int, userID int) (bool, error)
+	// ListUserRegisteredEvents 获取用户已报名的活动列表
+	ListUserRegisteredEvents(ctx context.Context, userID int) ([]*model.Event, error)
 }
 
 // EventServiceImpl 实现 EventService 接口，提供事件相关的业务逻辑
@@ -117,7 +121,33 @@ func (svc *EventServiceImpl) RegistrationEvent(ctx context.Context, eventID int,
 	return nil
 }
 
+// CancelRegistrationEvent 取消活动报名
+func (svc *EventServiceImpl) CancelRegistrationEvent(ctx context.Context, eventID int, userID int) error {
+	// 检查活动是否存在
+	event, err := svc.eventRepo.GetEventDetail(ctx, eventID)
+	if err != nil {
+		return err
+	}
+	// 检查活动是否已删除
+	if event.IsDeleted == utils.DeletedFlagYes {
+		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "活动已失效")
+	}
+
+	// 执行取消报名逻辑
+	err = svc.eventRepo.UpdateEUMapDeleteFlag(ctx, eventID, userID, utils.DeletedFlagYes)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // IsUserRegistered 查询用户是否已报名活动
 func (svc *EventServiceImpl) IsUserRegistered(ctx context.Context, eventID int, userID int) (bool, error) {
 	return svc.eventRepo.IsUserRegistered(ctx, eventID, userID)
+}
+
+// ListUserRegisteredEvents 获取用户已报名的活动列表
+func (svc *EventServiceImpl) ListUserRegisteredEvents(ctx context.Context, userID int) ([]*model.Event, error) {
+	return svc.eventRepo.ListUserRegisteredEvents(ctx, userID)
 }

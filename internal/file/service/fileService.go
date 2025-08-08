@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"news-release/internal/file/dto"
 	"path/filepath"
 	"strings"
 	"time"
@@ -13,7 +14,7 @@ import (
 
 // FileService 文件服务接口
 type FileService interface {
-	UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, userID int) (*model.File, error)
+	UploadFile(ctx context.Context, fileHeader *FileHeader, bizType string, bizID int, userID int) (dto.FileUploadResponse, error)
 }
 
 // FileHeader 文件头信息
@@ -39,7 +40,8 @@ func NewFileService(minioRepo repository.MinIORepository, fileRepo repository.Fi
 }
 
 // UploadFile 上传文件
-func (svc *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader, articleID int, userID int) (*model.File, error) {
+func (svc *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHeader, bizType string, bizID int, userID int) (dto.FileUploadResponse, error) {
+	var response dto.FileUploadResponse
 	// 确定文件类型
 	fileType := string(detectFileType(fileHeader.OriginalFileName))
 
@@ -53,28 +55,37 @@ func (svc *FileServiceImpl) UploadFile(ctx context.Context, fileHeader *FileHead
 	// 上传到MinIO
 	url, err := svc.minioRepo.UploadFile(ctx, objectName, fileHeader.TemporaryFile)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 
-	// 创建文件记录
-	file := &model.File{
-		ArticleID:    articleID,
-		ObjectName:   objectName,
-		URL:          url,
-		FileName:     fileHeader.OriginalFileName,
-		FileSize:     int(fileHeader.Size),
-		ContentType:  fileHeader.ContentType,
-		FileType:     fileType,
-		UploadUserID: userID,
-	}
+	// 图片与其他类型附件分开存储
+	if fileType == string(model.FileTypeImage) {
+		// 创建图片记录
+		file := &model.Image{
+			BizType:      bizType,
+			BizID:        bizID,
+			ObjectName:   objectName,
+			URL:          url,
+			FileName:     fileHeader.OriginalFileName,
+			FileSize:     int(fileHeader.Size),
+			ContentType:  fileHeader.ContentType,
+			UploadUserID: userID,
+		}
+		if err := svc.fileRepo.CreateImageFile(ctx, file); err != nil {
+			// 上传到数据库失败，删除MinIO中的文件
+			_ = svc.minioRepo.DeleteFile(ctx, objectName)
+			return response, err
+		}
+		response = dto.FileUploadResponse{
+			ID:       file.ID,
+			FileName: file.FileName,
+			URL:      file.URL,
+		}
 
-	if err := svc.fileRepo.CreateFile(ctx, file); err != nil {
-		// 上传到数据库失败，删除MinIO中的文件
-		_ = svc.minioRepo.DeleteFile(ctx, objectName)
-		return nil, err
-	}
+		return response, nil
+	} // 其他类型文件存储，暂不需要开发
 
-	return file, nil
+	return response, nil
 }
 
 // detectFileType 检测文件类型

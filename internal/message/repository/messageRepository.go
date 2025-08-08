@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
+	"news-release/internal/message/dto"
 	"news-release/internal/message/model"
 	"news-release/internal/utils"
 	"time"
@@ -24,6 +25,10 @@ type MessageRepository interface {
 	MarkAsRead(ctx context.Context, userID, messageID int) error
 	// MarkAllMessagesAsRead 一键已读，更新所有未读消息为已读
 	MarkAllMessagesAsRead(ctx context.Context, userID int) error
+	// ListMessageByTypeGroups 按消息类型分组统计消息列表
+	ListMessageByTypeGroups(ctx context.Context, page, pageSize int, userID int, typeCodes []string) ([]*dto.MessageGroupDTO, int64, error)
+	// ListMessageByEventGroups 按活动分组统计消息列表
+	ListMessageByEventGroups(ctx context.Context, page, pageSize int, userID int) ([]*dto.MessageGroupDTO, int64, error)
 }
 
 // MessageRepositoryImpl 实现接口的具体结构体
@@ -159,4 +164,103 @@ func (repo *MessageRepositoryImpl) MarkAllMessagesAsRead(ctx context.Context, us
 	}
 
 	return nil
+}
+
+// ListMessageByTypeGroups 按消息类型分组统计消息列表
+// 该方法查询每个消息类型的最新一条消息，并统计未读消息数
+func (repo *MessageRepositoryImpl) ListMessageByTypeGroups(ctx context.Context, page, pageSize int, userID int, typeCodes []string) ([]*dto.MessageGroupDTO, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	offset := (page - 1) * pageSize
+	var results []*dto.MessageGroupDTO
+
+	// 构建子查询
+	subQuery := repo.db.Table("messages m").
+		Select(`
+			mt.type_name AS group_name,
+			COUNT(CASE WHEN mum.is_read = 'N' THEN 1 END) OVER (PARTITION BY mt.id) AS unread_count,
+			m.content AS latest_content,
+			m.send_time AS latest_time,
+			ROW_NUMBER() OVER (PARTITION BY mt.id ORDER BY m.send_time DESC) AS rn
+		`).
+		Joins("JOIN message_user_mappings mum ON m.id = mum.message_id").
+		Joins("JOIN message_types mt ON m.type = mt.type_code").
+		Where("mum.user_id = ?", userID).
+		Where("m.type IN (?)", typeCodes)
+
+	// 主查询：筛选每组最新的一条消息
+	query := repo.db.WithContext(ctx).
+		Table("(?) AS t", subQuery).
+		Where("t.rn = 1").
+		Select("t.group_name, t.unread_count, t.latest_content, t.latest_time").
+		Order("t.latest_time DESC")
+
+	// 计算总数
+	var total int64
+	countQuery := query.Session(&gorm.Session{})
+	if err := countQuery.Count(&total).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
+	}
+
+	// 查询数据
+	if err := query.Offset(offset).Limit(pageSize).Find(&results).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
+	}
+
+	return results, total, nil
+}
+
+// ListMessageByEventGroups 按活动分组统计消息列表
+// 该方法查询每个活动的最新一条消息，并统计未读消息数
+func (repo *MessageRepositoryImpl) ListMessageByEventGroups(ctx context.Context, page, pageSize int, userID int) ([]*dto.MessageGroupDTO, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	offset := (page - 1) * pageSize
+	var results []*dto.MessageGroupDTO
+
+	// 构建子查询
+	subQuery := repo.db.Table("messages m").
+		Select(`
+			e.title AS group_name,
+			COUNT(CASE WHEN mum.is_read = 'N' THEN 1 END) OVER (PARTITION BY e.id) AS unread_count,
+			m.content AS latest_content,
+			m.send_time AS latest_time,
+			ROW_NUMBER() OVER (PARTITION BY e.id ORDER BY m.send_time DESC) AS rn
+		`).
+		Joins("JOIN message_user_mappings mum ON m.id = mum.message_id").
+		Joins("JOIN message_event_mappings mem ON m.id = mem.message_id").
+		Joins("JOIN events e ON mem.event_id = e.id").
+		Where("mum.user_id = ?", userID).
+		Where("m.type = ?", "EVENT")
+
+	// 主查询：筛选每组最新的一条消息
+	query := repo.db.WithContext(ctx).
+		Table("(?) AS t", subQuery).
+		Where("t.rn = 1").
+		Select("t.group_name, t.unread_count, t.latest_content, t.latest_time").
+		Order("t.latest_time DESC")
+
+	// 计算总数
+	var total int64
+	countQuery := query.Session(&gorm.Session{})
+	if err := countQuery.Count(&total).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
+	}
+
+	// 查询数据
+	if err := query.Offset(offset).Limit(pageSize).Find(&results).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
+	}
+
+	return results, total, nil
 }
