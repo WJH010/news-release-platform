@@ -87,6 +87,7 @@ func (ctr *EventController) GetEventDetail(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, dto.EventDetailResponse{
 		Title:                 event.Title,
+		Detail:                event.Detail,
 		EventStartTime:        event.EventStartTime,
 		EventEndTime:          event.EventEndTime,
 		RegistrationStartTime: event.RegistrationStartTime,
