@@ -118,7 +118,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		user := api.Group("/user")
 		{
 			user.POST("/login", userController.Login)
-			user.POST("/update", middleware.AuthMiddleware(cfg), userController.UpdateUserInfo)
+			user.PUT("/update", middleware.AuthMiddleware(cfg), userController.UpdateUserInfo)
 			user.GET("/info", middleware.AuthMiddleware(cfg), userController.GetUserInfo)
 		}
 		// 文件上传路由
@@ -135,7 +135,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			message.GET("", msgController.ListMessage)
 			message.GET("/:id", msgController.GetMessageContent)
 			message.GET("/unreadMessageCount", msgController.GetUnreadMessageCount)
-			message.POST("/markAllAsRead", msgController.MarkAllMessagesAsRead)
+			message.PUT("/markAllAsRead", msgController.MarkAllMessagesAsRead)
 			message.GET("/byTypeGroups", msgController.ListMessageByTypeGroups)
 			message.GET("/byEventGroups", msgController.ListMessageByEventGroups)
 		}
@@ -146,7 +146,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			event.GET("/:id", eventController.GetEventDetail)
 			event.POST("/registration", middleware.AuthMiddleware(cfg), eventController.RegistrationEvent)
 			event.GET("/isUserRegistered/:id", middleware.AuthMiddleware(cfg), eventController.IsUserRegistered)
-			event.POST("/cancelRegistration", middleware.AuthMiddleware(cfg), eventController.CancelRegistrationEvent)
+			event.DELETE("/cancelRegistration", middleware.AuthMiddleware(cfg), eventController.CancelRegistrationEvent)
 			event.GET("/userRegisteredEvents", middleware.AuthMiddleware(cfg), eventController.ListUserRegisteredEvents)
 		}
 	}
