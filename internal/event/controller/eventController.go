@@ -173,8 +173,8 @@ func (ctr *EventController) IsUserRegistered(ctx *gin.Context) {
 // CancelRegistrationEvent 处理取消活动报名的请求
 func (ctr *EventController) CancelRegistrationEvent(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
-	var req dto.EventRegistrationRequest
-	if !utils.BindJSON(ctx, &req) {
+	var req dto.EventDetailRequest
+	if !utils.BindUrl(ctx, &req) {
 		return
 	}
 
