@@ -7,7 +7,7 @@ type ArticleListRequest struct {
 	Page         int    `form:"page" binding:"omitempty,min=1"`               // 页码，最小为1
 	PageSize     int    `form:"page_size" binding:"omitempty,min=1,max=100"`  // 页大小，1-100
 	ArticleTitle string `form:"article_title"`                                // 文章标题
-	FieldType    string `form:"field_type" binding:"omitempty,numeric"`       // 领域ID，必须为数字
+	FieldType    string `form:"field_type" binding:"omitempty"`               // 领域类型代码
 	IsSelection  int    `form:"is_selection" binding:"omitempty,numeric"`     // 是否精选，必须为数字
 	ArticleType  string `form:"article_type"`                                 // 文章类型
 	ReleaseTime  string `form:"release_time" binding:"omitempty,time_format"` // 发布时间
