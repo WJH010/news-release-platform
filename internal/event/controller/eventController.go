@@ -202,6 +202,24 @@ func (ctr *EventController) CancelRegistrationEvent(ctx *gin.Context) {
 
 // ListUserRegisteredEvents 获取用户已报名的活动列表
 func (ctr *EventController) ListUserRegisteredEvents(ctx *gin.Context) {
+	// 初始化参数结构体并绑定查询参数
+	var req dto.EventListRequest
+	if !utils.BindQuery(ctx, &req) {
+		return
+	}
+
+	// page 默认1
+	page := req.Page
+	if page == 0 {
+		page = 1
+	}
+
+	// pageSize 默认10
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 10
+	}
+
 	// 获取userID
 	userID, err := utils.GetUserID(ctx)
 	// 处理异常
@@ -211,7 +229,7 @@ func (ctr *EventController) ListUserRegisteredEvents(ctx *gin.Context) {
 	}
 
 	// 调用服务层获取用户已报名的活动列表
-	events, err := ctr.eventService.ListUserRegisteredEvents(ctx, userID)
+	events, total, err := ctr.eventService.ListUserRegisteredEvents(ctx, req.Page, req.PageSize, userID, req.EventStatus)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
@@ -234,6 +252,9 @@ func (ctr *EventController) ListUserRegisteredEvents(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"data": result,
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+		"data":      result,
 	})
 }

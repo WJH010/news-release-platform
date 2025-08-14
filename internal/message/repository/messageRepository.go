@@ -191,7 +191,9 @@ func (repo *MessageRepositoryImpl) ListMessageByTypeGroups(ctx context.Context, 
 		Joins("JOIN message_user_mappings mum ON m.id = mum.message_id").
 		Joins("JOIN message_types mt ON m.type = mt.type_code").
 		Where("mum.user_id = ?", userID).
-		Where("m.type IN (?)", typeCodes)
+		Where("m.type IN (?)", typeCodes).
+		Where("m.is_deleted = ?", "N").
+		Where("mum.is_deleted = ?", "N")
 
 	// 主查询：筛选每组最新的一条消息
 	query := repo.db.WithContext(ctx).
@@ -241,7 +243,11 @@ func (repo *MessageRepositoryImpl) ListMessageByEventGroups(ctx context.Context,
 		Joins("JOIN message_event_mappings mem ON m.id = mem.message_id").
 		Joins("JOIN events e ON mem.event_id = e.id").
 		Where("mum.user_id = ?", userID).
-		Where("m.type = ?", "EVENT")
+		Where("m.type = ?", "EVENT").
+		Where("m.is_deleted = ?", "N").
+		Where("mum.is_deleted = ?", "N").
+		Where("e.is_deleted = ?", "N").
+		Where("mem.is_deleted = ?", "N")
 
 	// 主查询：筛选每组最新的一条消息
 	query := repo.db.WithContext(ctx).
