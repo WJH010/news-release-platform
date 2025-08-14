@@ -22,7 +22,7 @@ type EventService interface {
 	// IsUserRegistered 查询用户是否已报名活动
 	IsUserRegistered(ctx context.Context, eventID int, userID int) (bool, error)
 	// ListUserRegisteredEvents 获取用户已报名的活动列表
-	ListUserRegisteredEvents(ctx context.Context, userID int) ([]*model.Event, error)
+	ListUserRegisteredEvents(ctx context.Context, page, pageSize int, userID int, eventStatus string) ([]*model.Event, int, error)
 }
 
 // EventServiceImpl 实现 EventService 接口，提供事件相关的业务逻辑
@@ -148,6 +148,6 @@ func (svc *EventServiceImpl) IsUserRegistered(ctx context.Context, eventID int, 
 }
 
 // ListUserRegisteredEvents 获取用户已报名的活动列表
-func (svc *EventServiceImpl) ListUserRegisteredEvents(ctx context.Context, userID int) ([]*model.Event, error) {
-	return svc.eventRepo.ListUserRegisteredEvents(ctx, userID)
+func (svc *EventServiceImpl) ListUserRegisteredEvents(ctx context.Context, page, pageSize int, userID int, eventStatus string) ([]*model.Event, int, error) {
+	return svc.eventRepo.ListUserRegisteredEvents(ctx, page, pageSize, userID, eventStatus)
 }

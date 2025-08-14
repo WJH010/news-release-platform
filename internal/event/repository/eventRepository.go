@@ -28,7 +28,7 @@ type EventRepository interface {
 	// IsUserRegistered 查询用户是否已报名活动
 	IsUserRegistered(ctx context.Context, eventID int, userID int) (bool, error)
 	// ListUserRegisteredEvents 获取用户已报名活动列表
-	ListUserRegisteredEvents(ctx context.Context, userID int) ([]*model.Event, error)
+	ListUserRegisteredEvents(ctx context.Context, page, pageSize int, userID int, eventStatus string) ([]*model.Event, int, error)
 }
 
 // EventRepositoryImpl 实现接口的具体结构体
@@ -194,19 +194,48 @@ func (repo *EventRepositoryImpl) IsUserRegistered(ctx context.Context, eventID i
 }
 
 // ListUserRegisteredEvents 获取用户已报名活动列表
-func (repo *EventRepositoryImpl) ListUserRegisteredEvents(ctx context.Context, userID int) ([]*model.Event, error) {
-	var events []*model.Event
-
-	err := repo.db.WithContext(ctx).
-		Table("events e").
-		Joins("JOIN event_user_mappings eum ON e.id = eum.event_id").
-		Where("e.is_deleted = ? AND eum.user_id = ? AND eum.is_deleted = ?", "N", userID, "N").
-		Order("e.event_start_time ASC").
-		Find(&events).Error
-
-	if err != nil {
-		return nil, utils.NewSystemError(fmt.Errorf("查询用户已报名活动列表失败: %w", err))
+func (repo *EventRepositoryImpl) ListUserRegisteredEvents(ctx context.Context, page, pageSize int, userID int, eventStatus string) ([]*model.Event, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
 	}
 
-	return events, nil
+	offset := (page - 1) * pageSize
+	var events []*model.Event
+	var total int64
+
+	query := repo.db.WithContext(ctx)
+
+	query = query.Table("events e").
+		Joins("JOIN event_user_mappings eum ON e.id = eum.event_id").
+		Where("eum.user_id = ? AND e.is_deleted = ? AND eum.is_deleted = ?", userID, "N", "N").
+		Find(&events)
+
+	// 根据活动状态拼接查询条件
+	if eventStatus == model.EventStatusInProgress {
+		// 进行中的活动：报名时间在当前时间范围内
+		query = query.Where("e.registration_start_time <= ? AND e.registration_end_time >= ?", time.Now(), time.Now())
+		// 按活动开始时间升序排列
+		query = query.Order("e.event_start_time ASC")
+	} else if eventStatus == model.EventStatusCompleted {
+		// 已结束的活动：报名截止时间在当前时间之前
+		query = query.Where("e.registration_end_time < ?", time.Now())
+		// 按活动开始时间降序排列
+		query = query.Order("e.event_start_time DESC")
+	}
+
+	// 计算总数
+	countQuery := query.Session(&gorm.Session{})
+	if err := countQuery.Count(&total).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
+	}
+
+	// 分页查询数据
+	if err := query.Offset(offset).Limit(pageSize).Find(&events).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
+	}
+
+	return events, int(total), nil
 }
