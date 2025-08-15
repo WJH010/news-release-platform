@@ -74,6 +74,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fileRepo := filerepo.NewFileRepository(db)
 	userRepo := userrepo.NewUserRepository(db)
 	msgRepo := msgrepo.NewMessageRepository(db)
+	msgType := msgrepo.NewMessageTypeRepository(db)
 	eventRepo := eventrepo.NewEventRepository(db)
 
 	// 初始化服务
@@ -83,6 +84,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fileService := filesvc.NewFileService(minioRepo, fileRepo)
 	userService := usersvc.NewUserService(userRepo, cfg)
 	msgService := msgsvc.NewMessageService(msgRepo)
+	msgTypeService := msgsvc.NewMessageTypeService(msgType)
 	eventService := eventsvc.NewEventService(eventRepo, userRepo)
 
 	// 初始化控制器
@@ -92,6 +94,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fileController := filectr.NewFileController(fileService)
 	userController := userctr.NewUserController(userService)
 	msgController := msgctr.NewMessageController(msgService)
+	msgTypeController := msgctr.NewMessageTypeController(msgTypeService)
 	eventController := eventctr.NewEventController(eventService)
 
 	// API分组
@@ -138,6 +141,10 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			message.GET("/byTypeGroups", msgController.ListMessageByTypeGroups)
 			message.GET("/byEventGroups", msgController.ListMessageByEventGroups)
 			message.GET("/byGroups", msgController.ListMsgByGroups)
+		}
+		messageType := api.Group("/messageType")
+		{
+			messageType.GET("", msgTypeController.ListMessageType)
 		}
 		// 活动相关路由
 		event := api.Group("/event")
