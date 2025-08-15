@@ -20,15 +20,16 @@ type UserUpdateRequest struct {
 
 // UserInfoResponse 用户信息响应
 type UserInfoResponse struct {
-	Nickname    string `json:"nickname"`
-	AvatarURL   string `json:"avatar_url"`
-	Name        string `json:"name"`
-	GenderCode  string `json:"gender_code"`
-	Gender      string `json:"gender"`
-	PhoneNumber string `json:"phone_number"`
-	Email       string `json:"email"`
-	Unit        string `json:"unit"`
-	Department  string `json:"department"`
-	Position    string `json:"position"`
-	Industry    string `json:"industry"`
+	Nickname     string `json:"nickname"`
+	AvatarURL    string `json:"avatar_url"`
+	Name         string `json:"name"`
+	GenderCode   string `json:"gender_code"`
+	Gender       string `json:"gender"`
+	PhoneNumber  string `json:"phone_number"`
+	Email        string `json:"email"`
+	Unit         string `json:"unit"`
+	Department   string `json:"department"`
+	Position     string `json:"position"`
+	Industry     string `json:"industry"`
+	IndustryName string `json:"industry_name"`
 }

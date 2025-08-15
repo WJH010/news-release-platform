@@ -74,7 +74,13 @@ func (repo *UserRepositoryImpl) UpdateSessionAndLoginTime(ctx context.Context, u
 // GetUserByID 获取用户信息
 func (repo *UserRepositoryImpl) GetUserByID(ctx context.Context, userID int) (*model.User, error) {
 	var user model.User
-	result := repo.db.WithContext(ctx).Where("user_id = ?", userID).First(&user)
+	query := repo.db.WithContext(ctx)
+
+	result := query.Table("users u").
+		Select("u.nickname, u.avatar_url, u.name, u.gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name").
+		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
+		Where("user_id = ?", userID).First(&user)
+
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, nil

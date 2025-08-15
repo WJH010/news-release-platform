@@ -73,6 +73,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	noticeRepo := noticerepo.NewNoticeRepository(db)
 	fileRepo := filerepo.NewFileRepository(db)
 	userRepo := userrepo.NewUserRepository(db)
+	industryRepo := userrepo.NewIndustryRepository(db)
 	msgRepo := msgrepo.NewMessageRepository(db)
 	msgType := msgrepo.NewMessageTypeRepository(db)
 	eventRepo := eventrepo.NewEventRepository(db)
@@ -83,6 +84,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	noticeService := noticesvc.NewNoticeService(noticeRepo)
 	fileService := filesvc.NewFileService(minioRepo, fileRepo)
 	userService := usersvc.NewUserService(userRepo, cfg)
+	industryService := usersvc.NewIndustryService(industryRepo)
 	msgService := msgsvc.NewMessageService(msgRepo)
 	msgTypeService := msgsvc.NewMessageTypeService(msgType)
 	eventService := eventsvc.NewEventService(eventRepo, userRepo)
@@ -93,6 +95,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	noticeController := noticectr.NewNoticeController(noticeService)
 	fileController := filectr.NewFileController(fileService)
 	userController := userctr.NewUserController(userService)
+	industryController := userctr.NewIndustryController(industryService)
 	msgController := msgctr.NewMessageController(msgService)
 	msgTypeController := msgctr.NewMessageTypeController(msgTypeService)
 	eventController := eventctr.NewEventController(eventService)
@@ -123,6 +126,11 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			user.POST("/login", userController.Login)
 			user.PUT("/update", middleware.AuthMiddleware(cfg), userController.UpdateUserInfo)
 			user.GET("/info", middleware.AuthMiddleware(cfg), userController.GetUserInfo)
+		}
+		// 行业路由
+		industry := api.Group("/industry")
+		{
+			industry.GET("", industryController.ListIndustries)
 		}
 		// 文件上传路由
 		file := api.Group("/file")
