@@ -15,8 +15,6 @@ import (
 
 // MessageRepository 数据访问接口，定义数据访问的方法集
 type MessageRepository interface {
-	// List 分页查询
-	List(ctx context.Context, page, pageSize int, userID int, messageType string) ([]*model.Message, int64, error)
 	// GetMessageContent 内容查询
 	GetMessageContent(ctx context.Context, messageID int) (*model.Message, error)
 	// GetUnreadMessageCount 获取未读消息数
@@ -29,6 +27,8 @@ type MessageRepository interface {
 	ListMessageByTypeGroups(ctx context.Context, page, pageSize int, userID int, typeCodes []string) ([]*dto.MessageGroupDTO, int64, error)
 	// ListMessageByEventGroups 按活动分组统计消息列表
 	ListMessageByEventGroups(ctx context.Context, page, pageSize int, userID int) ([]*dto.MessageGroupDTO, int64, error)
+	// ListMsgByGroups 分页查询分组内消息列表
+	ListMsgByGroups(ctx context.Context, page, pageSize int, userID int, eventID int, messageType string) ([]*dto.ListMessageDTO, int64, error)
 }
 
 // MessageRepositoryImpl 实现接口的具体结构体
@@ -39,50 +39,6 @@ type MessageRepositoryImpl struct {
 // NewMessageRepository 创建数据访问实例
 func NewMessageRepository(db *gorm.DB) MessageRepository {
 	return &MessageRepositoryImpl{db: db}
-}
-
-// List 分页查询数据
-func (repo *MessageRepositoryImpl) List(ctx context.Context, page, pageSize int, userID int, messageType string) ([]*model.Message, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 {
-		pageSize = 10
-	}
-
-	offset := (page - 1) * pageSize
-	var messages []*model.Message
-	query := repo.db.WithContext(ctx)
-
-	// 构建基础查询
-	query = query.Table("messages m").
-		Select("m.id, um.user_id, m.title, m.content, um.is_read, m.send_time, m.type, mt.type_name").
-		Joins("INNER JOIN user_message_mappings um ON um.message_id = m.id").
-		Joins("LEFT JOIN message_types mt ON m.type = mt.type_code").
-		Where("u.user_id = ?", userID).
-		Where("m.is_deleted = ?", "N"). // 只查询未删除的消息
-		Where("um.is_deleted = ?", "N") // 只查询未删除的用户消息
-
-	if messageType != "" {
-		query = query.Where("m.type = ?", messageType)
-	}
-
-	// 按发送时间降序排列
-	query = query.Order("m.send_time DESC")
-
-	// 计算总数
-	var total int64
-	countQuery := query.Session(&gorm.Session{})
-	if err := countQuery.Select("count(distinct m.id)").Count(&total).Error; err != nil {
-		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
-	}
-
-	// 查询数据
-	if err := query.Offset(offset).Limit(pageSize).Find(&messages).Error; err != nil {
-		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
-	}
-
-	return messages, total, nil
 }
 
 // GetMessageContent 内容查询
@@ -260,6 +216,53 @@ func (repo *MessageRepositoryImpl) ListMessageByEventGroups(ctx context.Context,
 	var total int64
 	countQuery := query.Session(&gorm.Session{})
 	if err := countQuery.Count(&total).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
+	}
+
+	// 查询数据
+	if err := query.Offset(offset).Limit(pageSize).Find(&results).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
+	}
+
+	return results, total, nil
+}
+
+// ListMsgByGroups 分页查询分组内消息列表
+func (repo *MessageRepositoryImpl) ListMsgByGroups(ctx context.Context, page, pageSize int, userID int, eventID int, messageType string) ([]*dto.ListMessageDTO, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	offset := (page - 1) * pageSize
+	var results []*dto.ListMessageDTO
+	query := repo.db.WithContext(ctx)
+
+	// 构建基础查询
+	query = query.Table("messages m").
+		Select("m.id, m.title, m.content, mum.is_read, m.send_time").
+		Joins("JOIN message_user_mappings mum ON mum.message_id = m.id").
+		Where("mum.user_id = ?", userID).
+		Where("m.type = ?", messageType).
+		Where("m.is_deleted = ?", "N").  // 只查询未删除的消息
+		Where("mum.is_deleted = ?", "N") // 只查询未删除的用户消息
+
+	// 如果是活动消息，添加活动ID筛选
+	if messageType == model.MessageTypeEvent && eventID > 0 {
+		query = query.Joins("JOIN message_event_mappings mem ON mem.message_id = m.id").
+			Where("mem.event_id = ?", eventID).
+			Where("mem.is_deleted = ?", "N") // 只查询未删除的活动消息映射
+	}
+
+	// 按发送时间降序排列
+	query = query.Order("m.send_time DESC")
+
+	// 计算总数
+	var total int64
+	countQuery := query.Session(&gorm.Session{})
+	if err := countQuery.Select("count(distinct m.id)").Count(&total).Error; err != nil {
 		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
 	}
 

@@ -99,17 +99,18 @@ func (ctr *UserController) GetUserInfo(ctx *gin.Context) {
 	}
 
 	result := dto.UserInfoResponse{
-		Nickname:    user.Nickname,
-		AvatarURL:   user.AvatarURL,
-		Name:        user.Name,
-		GenderCode:  user.Gender,
-		Gender:      map[string]string{"M": "男", "F": "女", "U": "未知"}[user.Gender],
-		PhoneNumber: user.PhoneNumber,
-		Email:       user.Email,
-		Unit:        user.Unit,
-		Department:  user.Department,
-		Position:    user.Position,
-		Industry:    user.Industry,
+		Nickname:     user.Nickname,
+		AvatarURL:    user.AvatarURL,
+		Name:         user.Name,
+		GenderCode:   user.Gender,
+		Gender:       map[string]string{"M": "男", "F": "女", "U": "未知"}[user.Gender],
+		PhoneNumber:  user.PhoneNumber,
+		Email:        user.Email,
+		Unit:         user.Unit,
+		Department:   user.Department,
+		Position:     user.Position,
+		Industry:     user.Industry,
+		IndustryName: user.IndustryName,
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{

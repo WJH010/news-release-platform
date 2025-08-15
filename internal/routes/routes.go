@@ -73,7 +73,9 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	noticeRepo := noticerepo.NewNoticeRepository(db)
 	fileRepo := filerepo.NewFileRepository(db)
 	userRepo := userrepo.NewUserRepository(db)
+	industryRepo := userrepo.NewIndustryRepository(db)
 	msgRepo := msgrepo.NewMessageRepository(db)
+	msgType := msgrepo.NewMessageTypeRepository(db)
 	eventRepo := eventrepo.NewEventRepository(db)
 
 	// 初始化服务
@@ -82,7 +84,9 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	noticeService := noticesvc.NewNoticeService(noticeRepo)
 	fileService := filesvc.NewFileService(minioRepo, fileRepo)
 	userService := usersvc.NewUserService(userRepo, cfg)
+	industryService := usersvc.NewIndustryService(industryRepo)
 	msgService := msgsvc.NewMessageService(msgRepo)
+	msgTypeService := msgsvc.NewMessageTypeService(msgType)
 	eventService := eventsvc.NewEventService(eventRepo, userRepo)
 
 	// 初始化控制器
@@ -91,7 +95,9 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	noticeController := noticectr.NewNoticeController(noticeService)
 	fileController := filectr.NewFileController(fileService)
 	userController := userctr.NewUserController(userService)
+	industryController := userctr.NewIndustryController(industryService)
 	msgController := msgctr.NewMessageController(msgService)
+	msgTypeController := msgctr.NewMessageTypeController(msgTypeService)
 	eventController := eventctr.NewEventController(eventService)
 
 	// API分组
@@ -121,6 +127,11 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			user.PUT("/update", middleware.AuthMiddleware(cfg), userController.UpdateUserInfo)
 			user.GET("/info", middleware.AuthMiddleware(cfg), userController.GetUserInfo)
 		}
+		// 行业路由
+		industry := api.Group("/industry")
+		{
+			industry.GET("", industryController.ListIndustries)
+		}
 		// 文件上传路由
 		file := api.Group("/file")
 		// file.Use(middleware.AuthMiddleware(cfg))
@@ -132,12 +143,16 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		message := api.Group("/message")
 		message.Use(middleware.AuthMiddleware(cfg))
 		{
-			message.GET("", msgController.ListMessage)
 			message.GET("/:id", msgController.GetMessageContent)
 			message.GET("/unreadMessageCount", msgController.GetUnreadMessageCount)
 			message.PUT("/markAllAsRead", msgController.MarkAllMessagesAsRead)
 			message.GET("/byTypeGroups", msgController.ListMessageByTypeGroups)
 			message.GET("/byEventGroups", msgController.ListMessageByEventGroups)
+			message.GET("/byGroups", msgController.ListMsgByGroups)
+		}
+		messageType := api.Group("/messageType")
+		{
+			messageType.GET("", msgTypeController.ListMessageType)
 		}
 		// 活动相关路由
 		event := api.Group("/event")
