@@ -132,12 +132,12 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		message := api.Group("/message")
 		message.Use(middleware.AuthMiddleware(cfg))
 		{
-			message.GET("", msgController.ListMessage)
 			message.GET("/:id", msgController.GetMessageContent)
 			message.GET("/unreadMessageCount", msgController.GetUnreadMessageCount)
 			message.PUT("/markAllAsRead", msgController.MarkAllMessagesAsRead)
 			message.GET("/byTypeGroups", msgController.ListMessageByTypeGroups)
 			message.GET("/byEventGroups", msgController.ListMessageByEventGroups)
+			message.GET("/byGroups", msgController.ListMsgByGroups)
 		}
 		// 活动相关路由
 		event := api.Group("/event")

@@ -19,63 +19,6 @@ func NewMessageController(messageService service.MessageService) *MessageControl
 	return &MessageController{messageService: messageService}
 }
 
-// ListMessage 分页查询
-func (ctr *MessageController) ListMessage(ctx *gin.Context) {
-	// 初始化参数结构体并绑定查询参数
-	var req dto.MessageListRequest
-	if !utils.BindQuery(ctx, &req) {
-		return
-	}
-
-	// page 默认1
-	page := req.Page
-	if page == 0 {
-		page = 1
-	}
-
-	// pageSize 默认10
-	pageSize := req.PageSize
-	if pageSize == 0 {
-		pageSize = 10
-	}
-
-	// 获取userID
-	userID, err := utils.GetUserID(ctx)
-	// 处理异常
-	if err != nil {
-		utils.WrapErrorHandler(ctx, err)
-		return
-	}
-
-	// 调用服务层
-	message, total, err := ctr.messageService.ListMessage(ctx, page, pageSize, userID, req.MessageType)
-	// 处理异常
-	if err != nil {
-		utils.WrapErrorHandler(ctx, err)
-		return
-	}
-
-	var result []dto.MessageListResponse
-	for _, m := range message {
-		result = append(result, dto.MessageListResponse{
-			ID:       m.ID,
-			Title:    m.Title,
-			Content:  m.Content,
-			SendTime: m.SendTime,
-			Type:     m.Type,
-			TypeName: m.TypeName,
-		})
-	}
-
-	// 返回分页结果
-	ctx.JSON(http.StatusOK, gin.H{
-		"total":     total,
-		"page":      page,
-		"page_size": pageSize,
-		"data":      result,
-	})
-}
-
 // GetMessageContent 获取消息内容
 func (ctr *MessageController) GetMessageContent(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
@@ -250,6 +193,50 @@ func (ctr *MessageController) ListMessageByEventGroups(ctx *gin.Context) {
 
 	// 调用服务层
 	list, total, err := ctr.messageService.ListMessageByEventGroups(ctx, page, pageSize, userID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+		"data":      list,
+	})
+}
+
+// ListMsgByGroups 分页查询分组内消息列表
+func (ctr *MessageController) ListMsgByGroups(ctx *gin.Context) {
+	// 初始化参数结构体并绑定查询参数
+	var req dto.ListMessageByGroupsRequest
+	if !utils.BindQuery(ctx, &req) {
+		return
+	}
+
+	// page 默认1
+	page := req.Page
+	if page == 0 {
+		page = 1
+	}
+
+	// pageSize 默认10
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 10
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务层
+	list, total, err := ctr.messageService.ListMsgByGroups(ctx, page, pageSize, userID, req.EventID, req.MessageType)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
