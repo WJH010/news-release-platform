@@ -65,5 +65,9 @@ func (svc *MessageServiceImpl) ListMsgByGroups(ctx context.Context, page, pageSi
 		// 如果是活动消息类型，但未指定活动ID，返回错误
 		return nil, 0, utils.NewBusinessError(utils.ErrCodeParamInvalid, "活动消息类型必须指定活动ID")
 	}
+
+	// 标记组内所有消息为已读
+	svc.messageRepo.MarkAsReadByGroup(ctx, userID, eventID, messageType)
+
 	return svc.messageRepo.ListMsgByGroups(ctx, page, pageSize, userID, eventID, messageType)
 }
