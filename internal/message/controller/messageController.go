@@ -27,22 +27,6 @@ func (ctr *MessageController) GetMessageContent(ctx *gin.Context) {
 		return
 	}
 
-	// 获取userID
-	userID, err := utils.GetUserID(ctx)
-	// 处理异常
-	if err != nil {
-		utils.WrapErrorHandler(ctx, err)
-		return
-	}
-
-	// 标记消息为已读
-	err = ctr.messageService.MarkAsRead(ctx, userID, req.MessageID)
-	// 处理异常
-	if err != nil {
-		utils.WrapErrorHandler(ctx, err)
-		return
-	}
-
 	// 调用服务层
 	message, err := ctr.messageService.GetMessageContent(ctx, req.MessageID)
 	// 处理异常

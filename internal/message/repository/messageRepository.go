@@ -29,6 +29,8 @@ type MessageRepository interface {
 	ListMessageByEventGroups(ctx context.Context, page, pageSize int, userID int) ([]*dto.MessageGroupDTO, int64, error)
 	// ListMsgByGroups 分页查询分组内消息列表
 	ListMsgByGroups(ctx context.Context, page, pageSize int, userID int, eventID int, messageType string) ([]*dto.ListMessageDTO, int64, error)
+	// MarkAsReadByGroup 按分组更新消息为已读
+	MarkAsReadByGroup(ctx context.Context, userID int, eventID int, messageType string)
 }
 
 // MessageRepositoryImpl 实现接口的具体结构体
@@ -272,4 +274,35 @@ func (repo *MessageRepositoryImpl) ListMsgByGroups(ctx context.Context, page, pa
 	}
 
 	return results, total, nil
+}
+
+// MarkAsReadByGroup 按分组更新消息为已读
+func (repo *MessageRepositoryImpl) MarkAsReadByGroup(ctx context.Context, userID int, eventID int, messageType string) {
+	// 构建更新查询
+	query := repo.db.WithContext(ctx).
+		Table("message_user_mappings mum").
+		Where("mum.user_id = ?", userID).
+		Where("mum.is_deleted = ?", "N"). // 只更新未删除的用户消息映射
+		Where("mum.is_read = ?", "N")     // 只更新未读状态的消息
+
+	// 关联消息表，添加消息类型和消息删除状态筛选
+	query = query.Joins("JOIN messages m ON mum.message_id = m.id").
+		Where("m.type = ?", messageType).
+		Where("m.is_deleted = ?", "N") // 只更新未删除的消息
+
+	// 如果是活动消息，添加活动ID筛选
+	if messageType == model.MessageTypeEvent && eventID > 0 {
+		query = query.Joins("JOIN message_event_mappings mem ON mem.message_id = m.id").
+			Where("mem.event_id = ?", eventID).
+			Where("mem.is_deleted = ?", "N") // 只更新未删除的活动消息映射
+	}
+
+	// 执行更新操作，将is_read设为"Y"
+	result := query.Update("is_read", "Y")
+
+	if result.Error != nil {
+		// return utils.NewSystemError(fmt.Errorf("更新消息状态失败: %w", result.Error))
+		// 只记录日志，更新已读状态失败不影响消息加载
+		logrus.Errorf("更新消息状态失败: %v", result.Error)
+	}
 }
