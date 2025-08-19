@@ -191,6 +191,7 @@ func (repo *MessageRepositoryImpl) ListMessageByEventGroups(ctx context.Context,
 	// 构建子查询
 	subQuery := repo.db.Table("messages m").
 		Select(`
+			e.id AS event_id,
 			e.title AS group_name,
 			COUNT(CASE WHEN mum.is_read = 'N' THEN 1 END) OVER (PARTITION BY e.id) AS unread_count,
 			m.content AS latest_content,
@@ -211,7 +212,7 @@ func (repo *MessageRepositoryImpl) ListMessageByEventGroups(ctx context.Context,
 	query := repo.db.WithContext(ctx).
 		Table("(?) AS t", subQuery).
 		Where("t.rn = 1").
-		Select("t.group_name, t.unread_count, t.latest_content, t.latest_time").
+		Select("t.event_id, t.group_name, t.unread_count, t.latest_content, t.latest_time").
 		Order("t.latest_time DESC")
 
 	// 计算总数

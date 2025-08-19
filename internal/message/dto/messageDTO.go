@@ -46,6 +46,7 @@ type MessageGroupDTO struct {
 	UnreadCount   int64     `json:"unread_count"`
 	LatestContent string    `json:"latest_content"`
 	LatestTime    time.Time `json:"latest_time"`
+	EventID       int       `json:"event_id,omitempty"` // 活动ID，可能为0
 }
 
 type ListMessageDTO struct {
