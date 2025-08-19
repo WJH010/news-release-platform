@@ -19,6 +19,20 @@ type EventRegistrationRequest struct {
 	EventID int `json:"event_id" binding:"required,numeric"` // 活动ID
 }
 
+// CreateEventRequest 创建活动请求参数
+type CreateEventRequest struct {
+	Title                 string  `json:"title" binding:"required,max=255"`                       // 活动标题
+	Detail                string  `json:"detail" binding:"required"`                              // 活动内容
+	EventStartTime        string  `json:"event_start_time" binding:"required,time_format"`        // 活动开始时间
+	EventEndTime          string  `json:"event_end_time" binding:"required,time_format"`          // 活动结束时间
+	RegistrationStartTime string  `json:"registration_start_time" binding:"required,time_format"` // 活动报名开始时间
+	RegistrationEndTime   string  `json:"registration_end_time" binding:"required,time_format"`   // 活动报名截止时间
+	EventAddress          string  `json:"event_address" binding:"required,max=255"`               // 活动地址
+	RegistrationFee       float64 `json:"registration_fee" binding:"gte=0"`                       // 报名费用，必须大于或等于 0
+	CoverImageURL         string  `json:"cover_image_url" binding:"url"`                          // 封面图片URL
+	ImageIDList           []int   `json:"image_id_list" binding:"omitempty,dive,min=1"`           // 图片ID列表
+}
+
 // EventListResponse 活动列表响应结构体
 type EventListResponse struct {
 	ID                    int       `json:"id"`                      // 活动ID

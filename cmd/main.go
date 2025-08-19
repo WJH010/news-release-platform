@@ -1,16 +1,15 @@
 package main
 
 import (
+	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"news-release/internal/config"
 	"news-release/internal/routes"
 	"news-release/internal/utils"
 	"strconv"
-
-	"github.com/gin-gonic/gin"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
-	"github.com/sirupsen/logrus"
 )
 
 func main() {

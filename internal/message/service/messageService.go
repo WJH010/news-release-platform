@@ -61,7 +61,7 @@ func (svc *MessageServiceImpl) ListMessageByEventGroups(ctx context.Context, pag
 
 // ListMsgByGroups 分页查询分组内消息列表
 func (svc *MessageServiceImpl) ListMsgByGroups(ctx context.Context, page, pageSize int, userID int, eventID int, messageType string) ([]*dto.ListMessageDTO, int64, error) {
-	if messageType == model.MessageTypeEvent && eventID < 1 {
+	if messageType == utils.TypeEvent && eventID < 1 {
 		// 如果是活动消息类型，但未指定活动ID，返回错误
 		return nil, 0, utils.NewBusinessError(utils.ErrCodeParamInvalid, "活动消息类型必须指定活动ID")
 	}

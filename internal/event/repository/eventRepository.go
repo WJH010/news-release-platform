@@ -29,6 +29,8 @@ type EventRepository interface {
 	IsUserRegistered(ctx context.Context, eventID int, userID int) (bool, error)
 	// ListUserRegisteredEvents 获取用户已报名活动列表
 	ListUserRegisteredEvents(ctx context.Context, page, pageSize int, userID int, eventStatus string) ([]*model.Event, int, error)
+	// CreateEvent 创建活动
+	CreateEvent(ctx context.Context, tx *gorm.DB, event *model.Event) error
 }
 
 // EventRepositoryImpl 实现接口的具体结构体
@@ -238,4 +240,14 @@ func (repo *EventRepositoryImpl) ListUserRegisteredEvents(ctx context.Context, p
 	}
 
 	return events, int(total), nil
+}
+
+// CreateEvent 创建活动
+func (repo *EventRepositoryImpl) CreateEvent(ctx context.Context, tx *gorm.DB, event *model.Event) error {
+	// 插入新活动
+	if err := tx.WithContext(ctx).Create(event).Error; err != nil {
+		return utils.NewSystemError(fmt.Errorf("创建活动失败: %w", err))
+	}
+
+	return nil
 }

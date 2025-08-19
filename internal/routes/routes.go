@@ -87,7 +87,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	industryService := usersvc.NewIndustryService(industryRepo)
 	msgService := msgsvc.NewMessageService(msgRepo)
 	msgTypeService := msgsvc.NewMessageTypeService(msgType)
-	eventService := eventsvc.NewEventService(eventRepo, userRepo)
+	eventService := eventsvc.NewEventService(eventRepo, userRepo, fileRepo)
 
 	// 初始化控制器
 	articleController := articlectr.NewArticleController(articleService)
@@ -163,6 +163,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			event.GET("/isUserRegistered/:id", middleware.AuthMiddleware(cfg), eventController.IsUserRegistered)
 			event.DELETE("/cancelRegistration/:id", middleware.AuthMiddleware(cfg), eventController.CancelRegistrationEvent)
 			event.GET("/userRegisteredEvents", middleware.AuthMiddleware(cfg), eventController.ListUserRegisteredEvents)
+			event.POST("/create", middleware.AuthMiddleware(cfg), eventController.CreateEvent)
 		}
 	}
 }

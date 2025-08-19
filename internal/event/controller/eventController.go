@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"news-release/internal/event/dto"
+	"news-release/internal/event/model"
 	"news-release/internal/event/service"
 	"news-release/internal/utils"
 )
@@ -256,5 +257,50 @@ func (ctr *EventController) ListUserRegisteredEvents(ctx *gin.Context) {
 		"page":      page,
 		"page_size": pageSize,
 		"data":      result,
+	})
+}
+
+// CreateEvent 处理创建活动的请求
+func (ctr *EventController) CreateEvent(ctx *gin.Context) {
+	// 初始化参数结构体并绑定请求体
+	var req dto.CreateEventRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 转换时间格式
+	eventStartTime, err := utils.StringToTime(req.EventStartTime)
+	eventEndTime, err := utils.StringToTime(req.EventEndTime)
+	registrationStartTime, err := utils.StringToTime(req.RegistrationStartTime)
+	registrationEndTime, err := utils.StringToTime(req.RegistrationEndTime)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 构造活动模型
+	event := &model.Event{
+		Title:                 req.Title,
+		Detail:                req.Detail,
+		EventStartTime:        eventStartTime,
+		EventEndTime:          eventEndTime,
+		RegistrationStartTime: registrationStartTime,
+		RegistrationEndTime:   registrationEndTime,
+		EventAddress:          req.EventAddress,
+		RegistrationFee:       req.RegistrationFee,
+		CoverImageURL:         req.CoverImageURL,
+	}
+
+	// 调用服务层创建活动
+	err = ctr.eventService.CreateEvent(ctx, event, req.ImageIDList)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "活动创建成功",
 	})
 }

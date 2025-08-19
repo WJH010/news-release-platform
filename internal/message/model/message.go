@@ -4,11 +4,6 @@ import (
 	"time"
 )
 
-// 消息相关常量定义
-const (
-	MessageTypeEvent = "EVENT" // 活动消息类型
-)
-
 // Message 对应messages表的数据模型
 type Message struct {
 	ID         int       `json:"id" gorm:"primaryKey;column:id"`

@@ -2,8 +2,12 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"github.com/sirupsen/logrus"
+	db "news-release/internal/database"
 	"news-release/internal/event/model"
 	"news-release/internal/event/repository"
+	filerepo "news-release/internal/file/repository"
 	userrepo "news-release/internal/user/repository"
 	"news-release/internal/utils"
 	"time"
@@ -23,22 +27,27 @@ type EventService interface {
 	IsUserRegistered(ctx context.Context, eventID int, userID int) (bool, error)
 	// ListUserRegisteredEvents 获取用户已报名的活动列表
 	ListUserRegisteredEvents(ctx context.Context, page, pageSize int, userID int, eventStatus string) ([]*model.Event, int, error)
+	// CreateEvent 创建活动
+	CreateEvent(ctx context.Context, event *model.Event, imageIDList []int) error
 }
 
 // EventServiceImpl 实现 EventService 接口，提供事件相关的业务逻辑
 type EventServiceImpl struct {
 	eventRepo repository.EventRepository // 事件数据访问接口
 	userRepo  userrepo.UserRepository    // 用户数据访问接口
+	fileRepo  filerepo.FileRepository    // 文件数据访问接口
 }
 
 // NewEventService 创建服务实例
 func NewEventService(
 	eventRepo repository.EventRepository,
 	userRepo userrepo.UserRepository,
+	fileRepo filerepo.FileRepository,
 ) EventService {
 	return &EventServiceImpl{
 		eventRepo: eventRepo,
 		userRepo:  userRepo,
+		fileRepo:  fileRepo,
 	}
 }
 
@@ -150,4 +159,48 @@ func (svc *EventServiceImpl) IsUserRegistered(ctx context.Context, eventID int, 
 // ListUserRegisteredEvents 获取用户已报名的活动列表
 func (svc *EventServiceImpl) ListUserRegisteredEvents(ctx context.Context, page, pageSize int, userID int, eventStatus string) ([]*model.Event, int, error) {
 	return svc.eventRepo.ListUserRegisteredEvents(ctx, page, pageSize, userID, eventStatus)
+}
+
+// CreateEvent 创建活动
+func (svc *EventServiceImpl) CreateEvent(ctx context.Context, event *model.Event, imageIDList []int) error {
+	// 检查活动时间是否合理
+	if event.EventStartTime.After(event.EventEndTime) {
+		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "活动开始时间不能晚于结束时间")
+	}
+	if event.RegistrationStartTime.After(event.RegistrationEndTime) {
+		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "报名开始时间不能晚于结束时间")
+	}
+
+	// 开启事务
+	tx := db.GetDB().Begin()
+	if tx.Error != nil {
+		return utils.NewSystemError(fmt.Errorf("开启事务失败: %w", tx.Error))
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			logrus.Panic("事务回滚，发生异常: ", r)
+		}
+	}()
+
+	// 创建活动
+	if err := svc.eventRepo.CreateEvent(ctx, tx, event); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 如果有图片，更新images表的biz_id和biz_type
+	if len(imageIDList) > 0 {
+		if err := svc.fileRepo.BatchUpdateImageBizID(ctx, tx, imageIDList, event.ID, utils.TypeEvent); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// 提交事务
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return utils.NewSystemError(fmt.Errorf("提交事务失败: %w", err))
+	}
+	return nil
 }

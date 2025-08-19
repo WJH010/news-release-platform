@@ -253,7 +253,7 @@ func (repo *MessageRepositoryImpl) ListMsgByGroups(ctx context.Context, page, pa
 		Where("mum.is_deleted = ?", "N") // 只查询未删除的用户消息
 
 	// 如果是活动消息，添加活动ID筛选
-	if messageType == model.MessageTypeEvent && eventID > 0 {
+	if messageType == utils.TypeEvent && eventID > 0 {
 		query = query.Joins("JOIN message_event_mappings mem ON mem.message_id = m.id").
 			Where("mem.event_id = ?", eventID).
 			Where("mem.is_deleted = ?", "N") // 只查询未删除的活动消息映射
@@ -292,7 +292,7 @@ func (repo *MessageRepositoryImpl) MarkAsReadByGroup(ctx context.Context, userID
 		Where("m.is_deleted = ?", "N") // 只更新未删除的消息
 
 	// 如果是活动消息，添加活动ID筛选
-	if messageType == model.MessageTypeEvent && eventID > 0 {
+	if messageType == utils.TypeEvent && eventID > 0 {
 		query = query.Joins("JOIN message_event_mappings mem ON mem.message_id = m.id").
 			Where("mem.event_id = ?", eventID).
 			Where("mem.is_deleted = ?", "N") // 只更新未删除的活动消息映射

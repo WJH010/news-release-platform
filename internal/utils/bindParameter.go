@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"strconv"
@@ -50,7 +51,8 @@ func BindJSON(ctx *gin.Context, req interface{}) bool {
 			err = NewBusinessError(ErrCodeParamInvalid, msg.String())
 			WrapErrorHandler(ctx, err)
 		} else {
-			err = NewBusinessError(ErrCodeParamBind, "参数绑定失败")
+			//err = NewBusinessError(ErrCodeParamBind, "参数绑定失败")
+			err = NewSystemError(fmt.Errorf("参数绑定失败: " + err.Error()))
 			WrapErrorHandler(ctx, err)
 		}
 		return false
