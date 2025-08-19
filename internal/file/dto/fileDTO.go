@@ -9,6 +9,11 @@ type FileUploadRequest struct {
 	File    *multipart.FileHeader `form:"file" binding:"required"` // 文件字段，必填
 }
 
+// FileDeleteRequest 文件删除请求参数
+type FileDeleteRequest struct {
+	ID int `uri:"id" binding:"required,numeric"` // 图片ID，必填
+}
+
 type FileUploadResponse struct {
 	ID       int    `json:"id"`
 	FileName string `json:"file_name"`

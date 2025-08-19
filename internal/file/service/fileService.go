@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"news-release/internal/file/dto"
+	"news-release/internal/utils"
 	"path/filepath"
 	"strings"
 	"time"
@@ -15,6 +16,8 @@ import (
 // FileService 文件服务接口
 type FileService interface {
 	UploadFile(ctx context.Context, fileHeader *FileHeader, bizType string, bizID int, userID int) (dto.FileUploadResponse, error)
+	// DeleteImage 删除图片
+	DeleteImage(ctx context.Context, imageID int, userID int) error
 }
 
 // FileHeader 文件头信息
@@ -115,4 +118,33 @@ func getObjectPrefixByType(fileType string) string {
 	default:
 		return fmt.Sprintf("others/%s", yearMonth)
 	}
+}
+
+// DeleteImage 删除图片
+func (svc *FileServiceImpl) DeleteImage(ctx context.Context, imageID int, userID int) error {
+	// 查询图片信息
+	image, err := svc.fileRepo.GetImageByID(ctx, imageID)
+	if err != nil {
+		return err
+	}
+	if image == nil {
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "图片不存在")
+	}
+
+	// 权限校验（仅上传者可删除）
+	if image.UploadUserID != userID {
+		return utils.NewBusinessError(utils.ErrCodePermissionDenied, "没有权限删除该图片")
+	}
+
+	// 删除MinIO中的文件
+	if err := svc.minioRepo.DeleteFile(ctx, image.ObjectName); err != nil {
+		return err
+	}
+
+	// 删除数据库记录
+	if err := svc.fileRepo.DeleteImage(ctx, imageID); err != nil {
+		return err
+	}
+
+	return nil
 }
