@@ -137,7 +137,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		file.Use(middleware.AuthMiddleware(cfg))
 		{
 			file.POST("/upload", fileController.UploadFile)
-			file.DELETE("/:id", fileController.DeleteImage)
+			file.DELETE("/deleteImage/:id", fileController.DeleteImage)
 
 		}
 		// 消息相关路由
@@ -165,6 +165,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			event.DELETE("/cancelRegistration/:id", middleware.AuthMiddleware(cfg), eventController.CancelRegistrationEvent)
 			event.GET("/userRegisteredEvents", middleware.AuthMiddleware(cfg), eventController.ListUserRegisteredEvents)
 			event.POST("/create", middleware.AuthMiddleware(cfg), eventController.CreateEvent)
+			event.PUT("/update/:id", middleware.AuthMiddleware(cfg), eventController.UpdateEvent)
 		}
 	}
 }

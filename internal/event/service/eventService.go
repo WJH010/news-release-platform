@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	db "news-release/internal/database"
+	"news-release/internal/event/dto"
 	"news-release/internal/event/model"
 	"news-release/internal/event/repository"
 	filerepo "news-release/internal/file/repository"
@@ -29,6 +30,8 @@ type EventService interface {
 	ListUserRegisteredEvents(ctx context.Context, page, pageSize int, userID int, eventStatus string) ([]*model.Event, int, error)
 	// CreateEvent 创建活动
 	CreateEvent(ctx context.Context, event *model.Event, imageIDList []int) error
+	// UpdateEvent 更新活动
+	UpdateEvent(ctx context.Context, eventID int, req dto.UpdateEventRequest) error
 }
 
 // EventServiceImpl 实现 EventService 接口，提供事件相关的业务逻辑
@@ -203,4 +206,129 @@ func (svc *EventServiceImpl) CreateEvent(ctx context.Context, event *model.Event
 		return utils.NewSystemError(fmt.Errorf("提交事务失败: %w", err))
 	}
 	return nil
+}
+
+// UpdateEvent 更新活动
+func (svc *EventServiceImpl) UpdateEvent(ctx context.Context, eventID int, req dto.UpdateEventRequest) error {
+	// 检查活动是否存在
+	event, err := svc.eventRepo.GetEventDetail(ctx, eventID)
+	if err != nil {
+		return err
+	}
+
+	// 构建更新字段映射
+	updateFields, err := makeUpdateFields(event, req)
+	if err != nil {
+		return err
+	}
+
+	var imageIDList []int
+	if req.ImageIDList != nil {
+		imageIDList = *req.ImageIDList
+	}
+
+	// 开启事务
+	tx := db.GetDB().Begin()
+	if tx.Error != nil {
+		return utils.NewSystemError(fmt.Errorf("开启事务失败: %w", tx.Error))
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			logrus.Panic("事务回滚，发生异常: ", r)
+		}
+	}()
+
+	// 更新活动
+	if err := svc.eventRepo.UpdateEvent(ctx, tx, eventID, updateFields); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// 如果有图片，更新images表的biz_id和biz_type
+	if len(imageIDList) > 0 {
+		if err := svc.fileRepo.BatchUpdateImageBizID(ctx, tx, imageIDList, eventID, utils.TypeEvent); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	// 提交事务
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return utils.NewSystemError(fmt.Errorf("提交事务失败: %w", err))
+	}
+	return nil
+}
+
+// makeUpdateFields 构建更新字段映射
+func makeUpdateFields(event *model.Event, req dto.UpdateEventRequest) (map[string]interface{}, error) {
+	updateFields := make(map[string]interface{})
+
+	// 先处理时间字段，然后校验时间是否合理
+	var eventStartTime, eventEndTime, registrationStartTime, registrationEndTime time.Time
+	var err error
+	if req.EventStartTime != nil {
+		eventStartTime, err = utils.StringToTime(*req.EventStartTime)
+		if err != nil {
+			return nil, err
+		}
+		updateFields["event_start_time"] = eventStartTime
+	} else {
+		eventStartTime = event.EventStartTime
+	}
+	if req.EventEndTime != nil {
+		eventEndTime, err = utils.StringToTime(*req.EventEndTime)
+		if err != nil {
+			return nil, err
+		}
+		updateFields["event_end_time"] = eventEndTime
+	} else {
+		eventEndTime = event.EventEndTime
+	}
+	// 检查活动时间是否合理
+	if eventStartTime.After(eventEndTime) {
+		return nil, utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "活动开始时间不能晚于结束时间")
+	}
+	if req.RegistrationStartTime != nil {
+		registrationStartTime, err = utils.StringToTime(*req.RegistrationStartTime)
+		if err != nil {
+			return nil, err
+		}
+		updateFields["registration_start_time"] = registrationStartTime
+
+	} else {
+		registrationStartTime = event.RegistrationStartTime
+	}
+	if req.RegistrationEndTime != nil {
+		registrationEndTime, err = utils.StringToTime(*req.RegistrationEndTime)
+		if err != nil {
+			return nil, err
+		}
+		updateFields["registration_end_time"] = registrationEndTime
+	} else {
+		registrationEndTime = event.RegistrationEndTime
+	}
+	// 检查报名时间是否合理
+	if registrationStartTime.After(registrationEndTime) {
+		return nil, utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "报名开始时间不能晚于结束时间")
+	}
+
+	if req.Title != nil {
+		updateFields["title"] = *req.Title
+	}
+	if req.Detail != nil {
+		updateFields["detail"] = *req.Detail
+	}
+	if req.EventAddress != nil {
+		updateFields["event_address"] = *req.EventAddress
+	}
+	if req.RegistrationFee != nil {
+		updateFields["registration_fee"] = *req.RegistrationFee
+	}
+	if req.CoverImageURL != nil {
+		updateFields["cover_image_url"] = *req.CoverImageURL
+	}
+
+	return updateFields, nil
 }

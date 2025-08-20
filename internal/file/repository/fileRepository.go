@@ -41,7 +41,7 @@ func (repo *FileRepositoryImpl) CreateImageFile(ctx context.Context, image *mode
 	return err
 }
 
-// BatchUpdateImageBizID 批量更新图片的biz_id和biz_type（新增）
+// BatchUpdateImageBizID 批量更新图片的biz_id和biz_type
 func (repo *FileRepositoryImpl) BatchUpdateImageBizID(ctx context.Context, tx *gorm.DB, imageIDs []int, bizID int, bizType string) error {
 	if len(imageIDs) == 0 {
 		return nil
@@ -50,6 +50,7 @@ func (repo *FileRepositoryImpl) BatchUpdateImageBizID(ctx context.Context, tx *g
 	// 更新images表中指定ID的记录，设置biz_id和biz_type
 	result := tx.WithContext(ctx).
 		Table("images").
+		Where("(biz_id IS NULL OR biz_id = 0) "). // 确保只更新未关联的图片
 		Where("id IN (?)", imageIDs).
 		Updates(map[string]interface{}{
 			"biz_id":   bizID,

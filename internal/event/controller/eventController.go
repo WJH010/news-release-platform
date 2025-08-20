@@ -302,5 +302,35 @@ func (ctr *EventController) CreateEvent(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":    200,
 		"message": "活动创建成功",
+		"data": gin.H{
+			"event_id": event.ID,
+		},
+	})
+}
+
+// UpdateEvent 处理更新活动的请求
+func (ctr *EventController) UpdateEvent(ctx *gin.Context) {
+	// 获取活动ID
+	var urlReq dto.EventDetailRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+	// 初始化参数结构体并绑定请求体
+	var req dto.UpdateEventRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 调用服务层更新活动
+	err := ctr.eventService.UpdateEvent(ctx, urlReq.EventID, req)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "活动更新成功",
 	})
 }

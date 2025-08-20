@@ -31,6 +31,8 @@ type EventRepository interface {
 	ListUserRegisteredEvents(ctx context.Context, page, pageSize int, userID int, eventStatus string) ([]*model.Event, int, error)
 	// CreateEvent 创建活动
 	CreateEvent(ctx context.Context, tx *gorm.DB, event *model.Event) error
+	// UpdateEvent 更新活动
+	UpdateEvent(ctx context.Context, tx *gorm.DB, eventID int, updateFields map[string]interface{}) error
 }
 
 // EventRepositoryImpl 实现接口的具体结构体
@@ -249,5 +251,21 @@ func (repo *EventRepositoryImpl) CreateEvent(ctx context.Context, tx *gorm.DB, e
 		return utils.NewSystemError(fmt.Errorf("创建活动失败: %w", err))
 	}
 
+	return nil
+}
+
+// UpdateEvent 更新活动
+func (repo *EventRepositoryImpl) UpdateEvent(ctx context.Context, tx *gorm.DB, eventID int, updateFields map[string]interface{}) error {
+	// 更新活动信息
+	result := tx.WithContext(ctx).Model(&model.Event{}).
+		Where("id = ?", eventID).
+		Updates(updateFields)
+
+	if result.Error != nil {
+		return utils.NewSystemError(fmt.Errorf("更新活动信息失败: %w", result.Error))
+	}
+	if result.RowsAffected == 0 {
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "更新活动信息失败，活动数据异常，请刷新页面后重试")
+	}
 	return nil
 }

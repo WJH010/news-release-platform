@@ -194,9 +194,6 @@ func (svc *UserServiceImpl) UpdateUserInfo(ctx context.Context, userID int, req 
 		updateFields["industry"] = *req.Industry
 	}
 
-	// 添加更新时间
-	updateFields["update_time"] = time.Now()
-
 	// 执行更新
 	if len(updateFields) > 0 {
 		if err := svc.userRepo.Update(ctx, userID, updateFields); err != nil {

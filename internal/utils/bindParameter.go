@@ -125,6 +125,8 @@ func GetValidationErrorMsg(err validator.FieldError) string {
 		return err.Field() + "手机号格式错误"
 	case "email":
 		return err.Field() + "邮箱格式错误"
+	case "non_empty_string":
+		return err.Field() + "不能为空字符串"
 	default:
 		return err.Field() + "参数格式错误"
 	}
