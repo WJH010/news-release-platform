@@ -268,6 +268,13 @@ func (ctr *EventController) CreateEvent(ctx *gin.Context) {
 		return
 	}
 
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
 	// 转换时间格式
 	eventStartTime, err := utils.StringToTime(req.EventStartTime)
 	eventEndTime, err := utils.StringToTime(req.EventEndTime)
@@ -289,6 +296,8 @@ func (ctr *EventController) CreateEvent(ctx *gin.Context) {
 		EventAddress:          req.EventAddress,
 		RegistrationFee:       req.RegistrationFee,
 		CoverImageURL:         req.CoverImageURL,
+		CreateUser:            userID,
+		UpdateUser:            userID,
 	}
 
 	// 调用服务层创建活动
@@ -321,8 +330,15 @@ func (ctr *EventController) UpdateEvent(ctx *gin.Context) {
 		return
 	}
 
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
 	// 调用服务层更新活动
-	err := ctr.eventService.UpdateEvent(ctx, urlReq.EventID, req)
+	err = ctr.eventService.UpdateEvent(ctx, urlReq.EventID, req, userID)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
@@ -343,8 +359,15 @@ func (ctr *EventController) DeleteEvent(ctx *gin.Context) {
 		return
 	}
 
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
 	// 调用服务层删除活动
-	err := ctr.eventService.DeleteEvent(ctx, req.EventID)
+	err = ctr.eventService.DeleteEvent(ctx, req.EventID, userID)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)

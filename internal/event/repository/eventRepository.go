@@ -34,7 +34,7 @@ type EventRepository interface {
 	// UpdateEvent 更新活动
 	UpdateEvent(ctx context.Context, tx *gorm.DB, eventID int, updateFields map[string]interface{}) error
 	// DeleteEvent 删除活动
-	DeleteEvent(ctx context.Context, eventID int) error
+	DeleteEvent(ctx context.Context, eventID int, userID int) error
 }
 
 // EventRepositoryImpl 实现接口的具体结构体
@@ -273,11 +273,12 @@ func (repo *EventRepositoryImpl) UpdateEvent(ctx context.Context, tx *gorm.DB, e
 }
 
 // DeleteEvent 删除活动
-func (repo *EventRepositoryImpl) DeleteEvent(ctx context.Context, eventID int) error {
+func (repo *EventRepositoryImpl) DeleteEvent(ctx context.Context, eventID int, userID int) error {
 	// 软删除活动
 	result := repo.db.WithContext(ctx).Model(&model.Event{}).
 		Where("id = ?", eventID).
-		Update("is_deleted", utils.DeletedFlagYes) // 采用软删除方式标记活动为已删除
+		Update("is_deleted", utils.DeletedFlagYes). // 采用软删除方式标记活动为已删除
+		Update("update_user", userID)
 
 	if result.Error != nil {
 		return utils.NewSystemError(fmt.Errorf("软删除活动失败: %w", result.Error))

@@ -31,9 +31,9 @@ type EventService interface {
 	// CreateEvent 创建活动
 	CreateEvent(ctx context.Context, event *model.Event, imageIDList []int) error
 	// UpdateEvent 更新活动
-	UpdateEvent(ctx context.Context, eventID int, req dto.UpdateEventRequest) error
+	UpdateEvent(ctx context.Context, eventID int, req dto.UpdateEventRequest, userID int) error
 	// DeleteEvent 删除活动
-	DeleteEvent(ctx context.Context, eventID int) error
+	DeleteEvent(ctx context.Context, eventID int, userID int) error
 }
 
 // EventServiceImpl 实现 EventService 接口，提供事件相关的业务逻辑
@@ -211,7 +211,7 @@ func (svc *EventServiceImpl) CreateEvent(ctx context.Context, event *model.Event
 }
 
 // UpdateEvent 更新活动
-func (svc *EventServiceImpl) UpdateEvent(ctx context.Context, eventID int, req dto.UpdateEventRequest) error {
+func (svc *EventServiceImpl) UpdateEvent(ctx context.Context, eventID int, req dto.UpdateEventRequest, userID int) error {
 	// 检查活动是否存在
 	event, err := svc.eventRepo.GetEventDetail(ctx, eventID)
 	if err != nil {
@@ -228,6 +228,9 @@ func (svc *EventServiceImpl) UpdateEvent(ctx context.Context, eventID int, req d
 	if req.ImageIDList != nil {
 		imageIDList = *req.ImageIDList
 	}
+
+	// 设置更新人
+	updateFields["update_user"] = userID
 
 	// 开启事务
 	tx := db.GetDB().Begin()
@@ -336,7 +339,7 @@ func makeUpdateFields(event *model.Event, req dto.UpdateEventRequest) (map[strin
 }
 
 // DeleteEvent 删除活动
-func (svc *EventServiceImpl) DeleteEvent(ctx context.Context, eventID int) error {
+func (svc *EventServiceImpl) DeleteEvent(ctx context.Context, eventID int, userID int) error {
 	// 检查活动是否存在
 	event, err := svc.eventRepo.GetEventDetail(ctx, eventID)
 	if err != nil {
@@ -348,7 +351,7 @@ func (svc *EventServiceImpl) DeleteEvent(ctx context.Context, eventID int) error
 	}
 
 	// 执行软删除逻辑
-	err = svc.eventRepo.DeleteEvent(ctx, eventID)
+	err = svc.eventRepo.DeleteEvent(ctx, eventID, userID)
 	if err != nil {
 		return err
 	}
