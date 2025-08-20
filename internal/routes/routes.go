@@ -158,15 +158,28 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		// 活动相关路由
 		event := api.Group("/event")
 		{
+			// 公开接口 - 无需认证
 			event.GET("", eventController.ListEvent)
 			event.GET("/:id", eventController.GetEventDetail)
-			event.POST("/registration", middleware.AuthMiddleware(cfg), eventController.RegistrationEvent)
-			event.GET("/isUserRegistered/:id", middleware.AuthMiddleware(cfg), eventController.IsUserRegistered)
-			event.DELETE("/cancelRegistration/:id", middleware.AuthMiddleware(cfg), eventController.CancelRegistrationEvent)
-			event.GET("/userRegisteredEvents", middleware.AuthMiddleware(cfg), eventController.ListUserRegisteredEvents)
-			event.POST("/create", middleware.AuthMiddleware(cfg), eventController.CreateEvent)
-			event.PUT("/update/:id", middleware.AuthMiddleware(cfg), eventController.UpdateEvent)
-			event.DELETE("/delete/:id", middleware.AuthMiddleware(cfg), eventController.DeleteEvent)
+
+			// 需要认证的用户接口
+			authEvent := event.Group("")
+			authEvent.Use(middleware.AuthMiddleware(cfg))
+			{
+				authEvent.POST("/registration", eventController.RegistrationEvent)
+				authEvent.GET("/isUserRegistered/:id", eventController.IsUserRegistered)
+				authEvent.DELETE("/cancelRegistration/:id", eventController.CancelRegistrationEvent)
+				authEvent.GET("/userRegisteredEvents", eventController.ListUserRegisteredEvents)
+
+				// 管理员接口 - 在认证基础上增加角色校验
+				adminEvent := authEvent.Group("")
+				adminEvent.Use(middleware.RoleMiddleware(middleware.RoleAdmin))
+				{
+					adminEvent.POST("/create", eventController.CreateEvent)
+					adminEvent.PUT("/update/:id", eventController.UpdateEvent)
+					adminEvent.DELETE("/delete/:id", eventController.DeleteEvent)
+				}
+			}
 		}
 	}
 }

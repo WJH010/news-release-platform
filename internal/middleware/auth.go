@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"news-release/internal/config"
+	"news-release/internal/utils"
 	"strings"
 
 	"github.com/dgrijalva/jwt-go"
@@ -11,11 +12,40 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// 定义角色代码常量
+const (
+	RoleUser  = 1 // 普通用户角色
+	RoleAdmin = 2 // 管理员角色
+)
+
 // CustomClaims 自定义Claims结构体，明确指定字段类型
 type CustomClaims struct {
 	OpenID             string `json:"openid"`
 	UserID             int    `json:"userid"`
+	UserRole           int    `json:"user_role"`
 	jwt.StandardClaims        // 嵌入标准声明
+}
+
+// RoleMiddleware 角色权限认证中间件
+func RoleMiddleware(requiredRole int) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		// 从上下文获取用户角色
+		role, exists := ctx.Get("user_role")
+		if !exists {
+			utils.WrapErrorHandler(ctx, utils.NewBusinessError(utils.ErrCodeResourceNotFound, "未获取到用户角色信息"))
+			ctx.Abort()
+			return
+		}
+
+		// 检查角色是否匹配
+		if role != requiredRole {
+			utils.WrapErrorHandler(ctx, utils.NewBusinessError(utils.ErrCodePermissionDenied, "没有访问权限"))
+			ctx.Abort()
+			return
+		}
+
+		ctx.Next()
+	}
 }
 
 // AuthMiddleware JWT认证中间件
@@ -45,9 +75,10 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		// 将openID和userID存入上下文（此时已是正确类型）
+		// 将openID和userID存入上下文
 		c.Set("openid", claims.OpenID)
 		c.Set("userid", claims.UserID)
+		c.Set("user_role", claims.UserRole)
 
 		c.Next()
 	}

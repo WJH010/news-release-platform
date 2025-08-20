@@ -51,13 +51,13 @@ func (svc *UserServiceImpl) Login(ctx context.Context, code string) (string, err
 	}
 
 	// 查找或创建用户
-	userID, err := svc.findOrCreateUser(ctx, wxResp.OpenID, wxResp.SessionKey, wxResp.UnionID)
+	userID, userRole, err := svc.findOrCreateUser(ctx, wxResp.OpenID, wxResp.SessionKey, wxResp.UnionID)
 	if err != nil {
 		return "", fmt.Errorf("处理用户信息失败: %v", err)
 	}
 
 	// 生成登录状态 Token
-	token, err := svc.generateToken(wxResp.OpenID, userID)
+	token, err := svc.generateToken(wxResp.OpenID, userID, userRole)
 	if err != nil {
 		return "", fmt.Errorf("生成Token失败: %v", err)
 	}
@@ -97,11 +97,11 @@ func (svc *UserServiceImpl) getFromWechat(code string) (WxLoginResponse, error) 
 }
 
 // 查找或创建用户
-func (svc *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessionKey, unionID string) (int, error) {
+func (svc *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessionKey, unionID string) (int, int, error) {
 	// 查找用户
 	user, err := svc.userRepo.GetUserByOpenID(ctx, openID)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
 	now := time.Now()
@@ -121,26 +121,27 @@ func (svc *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessio
 		}
 
 		if err := svc.userRepo.Create(ctx, user); err != nil {
-			return user.UserID, err
+			return user.UserID, user.Role, err
 		}
 	} else {
 		// 如果用户存在，更新session_key和登录时间
 		if err := svc.userRepo.UpdateSessionAndLoginTime(ctx, user.UserID, sessionKey); err != nil {
-			return 0, err
+			return 0, 0, err
 		}
 	}
 
-	return user.UserID, nil
+	return user.UserID, user.Role, nil
 }
 
 // 生成JWT Token
-func (svc *UserServiceImpl) generateToken(openID string, userID int) (string, error) {
+func (svc *UserServiceImpl) generateToken(openID string, userID int, userRole int) (string, error) {
 	// 创建令牌声明
 	claims := jwt.MapClaims{
-		"openid": openID,
-		"userid": userID,
-		"exp":    time.Now().Add(time.Hour * 24).Unix(), // 令牌有效期24小时
-		"iat":    time.Now().Unix(),
+		"openid":    openID,
+		"userid":    userID,
+		"user_role": userRole,
+		"exp":       time.Now().Add(time.Hour * 24).Unix(), // 令牌有效期24小时
+		"iat":       time.Now().Unix(),
 	}
 
 	// 创建令牌
