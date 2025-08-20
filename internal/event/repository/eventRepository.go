@@ -33,6 +33,8 @@ type EventRepository interface {
 	CreateEvent(ctx context.Context, tx *gorm.DB, event *model.Event) error
 	// UpdateEvent 更新活动
 	UpdateEvent(ctx context.Context, tx *gorm.DB, eventID int, updateFields map[string]interface{}) error
+	// DeleteEvent 删除活动
+	DeleteEvent(ctx context.Context, eventID int) error
 }
 
 // EventRepositoryImpl 实现接口的具体结构体
@@ -267,5 +269,22 @@ func (repo *EventRepositoryImpl) UpdateEvent(ctx context.Context, tx *gorm.DB, e
 	if result.RowsAffected == 0 {
 		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "更新活动信息失败，活动数据异常，请刷新页面后重试")
 	}
+	return nil
+}
+
+// DeleteEvent 删除活动
+func (repo *EventRepositoryImpl) DeleteEvent(ctx context.Context, eventID int) error {
+	// 软删除活动
+	result := repo.db.WithContext(ctx).Model(&model.Event{}).
+		Where("id = ?", eventID).
+		Update("is_deleted", utils.DeletedFlagYes) // 采用软删除方式标记活动为已删除
+
+	if result.Error != nil {
+		return utils.NewSystemError(fmt.Errorf("软删除活动失败: %w", result.Error))
+	}
+	if result.RowsAffected == 0 {
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "删除活动失败，活动数据异常，请刷新页面后重试")
+	}
+
 	return nil
 }

@@ -334,3 +334,25 @@ func (ctr *EventController) UpdateEvent(ctx *gin.Context) {
 		"message": "活动更新成功",
 	})
 }
+
+// DeleteEvent 处理删除活动的请求
+func (ctr *EventController) DeleteEvent(ctx *gin.Context) {
+	// 获取活动ID
+	var req dto.EventDetailRequest
+	if !utils.BindUrl(ctx, &req) {
+		return
+	}
+
+	// 调用服务层删除活动
+	err := ctr.eventService.DeleteEvent(ctx, req.EventID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "活动删除成功",
+	})
+}

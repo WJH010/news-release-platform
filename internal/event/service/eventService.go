@@ -32,6 +32,8 @@ type EventService interface {
 	CreateEvent(ctx context.Context, event *model.Event, imageIDList []int) error
 	// UpdateEvent 更新活动
 	UpdateEvent(ctx context.Context, eventID int, req dto.UpdateEventRequest) error
+	// DeleteEvent 删除活动
+	DeleteEvent(ctx context.Context, eventID int) error
 }
 
 // EventServiceImpl 实现 EventService 接口，提供事件相关的业务逻辑
@@ -331,4 +333,25 @@ func makeUpdateFields(event *model.Event, req dto.UpdateEventRequest) (map[strin
 	}
 
 	return updateFields, nil
+}
+
+// DeleteEvent 删除活动
+func (svc *EventServiceImpl) DeleteEvent(ctx context.Context, eventID int) error {
+	// 检查活动是否存在
+	event, err := svc.eventRepo.GetEventDetail(ctx, eventID)
+	if err != nil {
+		return err
+	}
+	// 检查活动是否已删除
+	if event.IsDeleted == utils.DeletedFlagYes {
+		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "活动已失效")
+	}
+
+	// 执行软删除逻辑
+	err = svc.eventRepo.DeleteEvent(ctx, eventID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
