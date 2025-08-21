@@ -3,8 +3,11 @@ package utils
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/go-sql-driver/mysql"
 	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"net/http"
+	"strings"
 )
 
 type ErrorResponse struct {
@@ -55,4 +58,44 @@ func WrapErrorHandler(ctx *gin.Context, err error) {
 
 	// 处理未知错误
 	HandleError(ctx, err, http.StatusInternalServerError, ErrCodeServerInternalError, "未知服务器错误")
+}
+
+// IsUniqueConstraintError 判断是否为唯一索引冲突错误
+// 返回值：(是否为唯一冲突, 冲突字段名或索引名)
+func IsUniqueConstraintError(err error) (bool, string) {
+	// 先判断是否是GORM的错误（如记录未找到等，但唯一冲突通常是底层错误）
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return false, ""
+	}
+
+	// 提取底层错误（可能被多次包装）
+	var underlyingErr error
+	if errors.As(err, &underlyingErr) {
+		err = underlyingErr
+	}
+
+	// 适配MySQL
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) {
+		if mysqlErr.Number == 1062 { // MySQL唯一索引冲突错误码
+			return true, parseMySQLUniqueField(mysqlErr.Message)
+		}
+	}
+
+	return false, ""
+}
+
+// 解析MySQL错误信息中的冲突字段
+func parseMySQLUniqueField(msg string) string {
+	// 错误信息格式示例："Duplicate entry 'test' for key 'users.username'"
+	// 提取 "users.username" 中的 "username" 部分
+	start := strings.LastIndex(msg, ".")
+	if start == -1 {
+		return "unknown"
+	}
+	end := strings.LastIndex(msg, "'")
+	if end == -1 || end <= start {
+		return "unknown"
+	}
+	return msg[start+1 : end]
 }
