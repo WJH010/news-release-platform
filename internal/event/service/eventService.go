@@ -230,6 +230,17 @@ func (svc *EventServiceImpl) UpdateEvent(ctx context.Context, eventID int, req d
 		return err
 	}
 
+	// 当标题修改时，检查是否有重复的活动标题
+	if req.Title != nil && *req.Title != event.Title {
+		existingEvent, err := svc.eventRepo.GetEventByTitle(ctx, *req.Title)
+		if err != nil {
+			return err
+		}
+		if existingEvent != nil {
+			return utils.NewBusinessError(utils.ErrCodeResourceExists, "已存在同名活动，请修改标题后重试")
+		}
+	}
+
 	// 构建更新字段映射
 	updateFields, err := makeUpdateFields(event, req)
 	if err != nil {
@@ -239,6 +250,10 @@ func (svc *EventServiceImpl) UpdateEvent(ctx context.Context, eventID int, req d
 	var imageIDList []int
 	if req.ImageIDList != nil {
 		imageIDList = *req.ImageIDList
+	}
+
+	if len(updateFields) == 0 && len(imageIDList) == 0 {
+		return nil // 无更新内容
 	}
 
 	// 设置更新人
@@ -362,12 +377,33 @@ func (svc *EventServiceImpl) DeleteEvent(ctx context.Context, eventID int, userI
 		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "活动已失效")
 	}
 
-	// 执行软删除逻辑
-	err = svc.eventRepo.DeleteEvent(ctx, eventID, userID)
-	if err != nil {
+	// 开启事务
+	tx := db.GetDB().Begin()
+	if tx.Error != nil {
+		return utils.NewSystemError(fmt.Errorf("开启事务失败: %w", tx.Error))
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+			logrus.Panic("事务回滚，发生异常: ", r)
+		}
+	}()
+
+	// 软删除（更新is_deleted为Y，记录更新人）
+	updateFields := map[string]interface{}{
+		"is_deleted":  "Y",
+		"update_user": userID,
+	}
+	if err := svc.eventRepo.UpdateEvent(ctx, tx, eventID, updateFields); err != nil {
+		tx.Rollback()
 		return err
 	}
 
+	// 4. 提交事务
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		return utils.NewSystemError(fmt.Errorf("提交事务失败: %w", err))
+	}
 	return nil
 }
 
