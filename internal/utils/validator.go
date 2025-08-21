@@ -34,6 +34,11 @@ func RegisterCustomValidators(v *validator.Validate) {
 	if err := v.RegisterValidation("non_empty_string", validateNonEmptyString); err != nil {
 		panic("注册非空字符串验证失败: " + err.Error())
 	}
+
+	// 查询范围验证
+	if err := v.RegisterValidation("query_scope", validateQueryScope); err != nil {
+		panic("注册查询范围验证失败: " + err.Error())
+	}
 	// 其他自定义规则...
 }
 
@@ -108,4 +113,20 @@ func validateNonEmptyString(fl validator.FieldLevel) bool {
 		return false // 非空字符串验证失败
 	}
 	return true // 非空字符串验证成功
+}
+
+// 查询范围验证实现
+func validateQueryScope(fl validator.FieldLevel) bool {
+	fieldValue := fl.Field().String()
+	if fieldValue == "" {
+		return true // 空值通过（配合omitempty使用）
+	}
+	// 允许的查询范围
+	allowedScopes := QueryScopeList
+	for _, scope := range allowedScopes {
+		if strings.EqualFold(fieldValue, scope) {
+			return true
+		}
+	}
+	return false
 }

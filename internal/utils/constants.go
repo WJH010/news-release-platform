@@ -9,3 +9,8 @@ const (
 	QueryScopeAll     = "ALL"     // 查询范围常量，表示查询全部
 	QueryScopeDeleted = "DELETED" // 查询范围常量，表示查询
 )
+
+var QueryScopeList = []string{
+	QueryScopeAll,
+	QueryScopeDeleted,
+}
