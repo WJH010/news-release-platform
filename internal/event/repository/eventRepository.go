@@ -15,7 +15,7 @@ import (
 // EventRepository 数据访问接口，定义数据访问的方法集
 type EventRepository interface {
 	// List 分页查询
-	List(ctx context.Context, page, pageSize int, eventStatus string, isDeleted string) ([]*model.Event, int, error)
+	List(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error)
 	// GetEventDetail 获取活动详情
 	GetEventDetail(ctx context.Context, eventID int) (*model.Event, error)
 	// ListEventImage 获取活动图片列表
@@ -59,7 +59,7 @@ type EventImage struct {
 }
 
 // List 分页查询数据
-func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, eventStatus string, isDeleted string) ([]*model.Event, int, error) {
+func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -75,8 +75,18 @@ func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, e
 	// 构建基础查询
 	query = query.Table("events e")
 
-	if isDeleted != "" {
-		query = query.Where("e.is_deleted = ?", isDeleted)
+	if queryScope != "" {
+		// 如果传入了查询范围，则添加查询条件
+		// 如果传入了查询范围为DELETED，则查询已删除的活动
+		if queryScope == utils.QueryScopeDeleted {
+			query = query.Where("e.is_deleted = ?", utils.DeletedFlagYes) // 查询已删除的活动
+		}
+		if queryScope == utils.QueryScopeAll {
+			// 如果传入了查询范围为ALL，则查询所有活动
+		}
+	} else {
+		// 默认查询未删除的活动
+		query = query.Where("e.is_deleted = ?", utils.DeletedFlagNo)
 	}
 
 	// 根据活动状态拼接查询条件

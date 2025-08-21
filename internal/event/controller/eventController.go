@@ -40,7 +40,7 @@ func (ctr *EventController) ListEvent(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	event, total, err := ctr.eventService.ListEvent(ctx, page, pageSize, req.EventStatus, req.IsDeleted)
+	event, total, err := ctr.eventService.ListEvent(ctx, page, pageSize, req.EventStatus, req.QueryScope)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)

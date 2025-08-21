@@ -18,7 +18,7 @@ import (
 // EventService 定义事件服务接口，提供事件相关的业务逻辑方法
 type EventService interface {
 	// ListEvent 分页查询活动列表
-	ListEvent(ctx context.Context, page, pageSize int, eventStatus string, isDeleted string) ([]*model.Event, int, error)
+	ListEvent(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error)
 	// GetEventDetail 获取活动详情
 	GetEventDetail(ctx context.Context, eventID int) (*model.Event, error)
 	// RegistrationEvent 活动报名
@@ -60,8 +60,8 @@ func NewEventService(
 }
 
 // ListEvent 分页查询活动列表
-func (svc *EventServiceImpl) ListEvent(ctx context.Context, page, pageSize int, eventStatus string, isDeleted string) ([]*model.Event, int, error) {
-	return svc.eventRepo.List(ctx, page, pageSize, eventStatus, isDeleted)
+func (svc *EventServiceImpl) ListEvent(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error) {
+	return svc.eventRepo.List(ctx, page, pageSize, eventStatus, queryScope)
 }
 
 // GetEventDetail 获取活动详情
