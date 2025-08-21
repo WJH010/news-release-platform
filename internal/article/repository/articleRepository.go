@@ -4,10 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"news-release/internal/article/model"
 	"news-release/internal/utils"
-
-	"gorm.io/gorm"
 )
 
 // ArticleRepository 数据访问接口，定义数据访问的方法集
@@ -20,6 +19,8 @@ type ArticleRepository interface {
 	GetArticleByTitle(ctx context.Context, title string) (*model.Article, error)
 	// CreateArticle 创建文章
 	CreateArticle(ctx context.Context, tx *gorm.DB, article *model.Article) error
+	// UpdateArticle 更新文章
+	UpdateArticle(ctx context.Context, tx *gorm.DB, articleID int, updateFields map[string]interface{}) error
 }
 
 // ArticleRepositoryImpl 实现接口的具体结构体
@@ -128,4 +129,22 @@ func (repo *ArticleRepositoryImpl) GetArticleByTitle(ctx context.Context, title 
 	}
 
 	return &article, nil
+}
+
+// UpdateArticle 更新文章字段
+func (repo *ArticleRepositoryImpl) UpdateArticle(ctx context.Context, tx *gorm.DB, articleID int, updateFields map[string]interface{}) error {
+	// 执行更新（仅更新未删除的文章）
+	result := tx.WithContext(ctx).
+		Model(&model.Article{}).
+		Where("article_id = ? AND is_deleted = ?", articleID, "N").
+		Updates(updateFields)
+
+	if result.Error != nil {
+		return utils.NewSystemError(fmt.Errorf("更新文章失败: %w", result.Error))
+	}
+	if result.RowsAffected == 0 {
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "文章不存在或已被删除，请刷新页面后重试")
+	}
+
+	return nil
 }

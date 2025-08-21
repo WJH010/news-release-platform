@@ -118,6 +118,8 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 				adminArticles.Use(middleware.RoleMiddleware(middleware.RoleAdmin))
 				{
 					adminArticles.POST("/create", articleController.CreateArticle)
+					adminArticles.PUT("/update/:id", articleController.UpdateArticle)
+					adminArticles.DELETE("/delete/:id", articleController.DeleteArticle)
 				}
 			}
 		}

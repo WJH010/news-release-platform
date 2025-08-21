@@ -24,11 +24,25 @@ type CreateArticleRequest struct {
 	ArticleType    string `json:"article_type" binding:"required"`          // 文章
 	BriefContent   string `json:"brief_content"`
 	ArticleContent string `json:"article_content" binding:"required"`
-	IsSelection    int    `json:"is_selection"` // 默认=2，1：精选，2：非精选
+	IsSelection    int    `json:"is_selection" binding:"oneof=0 1"` // 默认=2，1：精选，2：非精选
 	FieldType      string `json:"field_type"`
 	CoverImageURL  string `json:"cover_image_url"` // 封面图片URL
 	ArticleSource  string `json:"article_source"`  // 文章来源
 	ImageIDList    []int  `json:"image_id_list"`   // 关联图片ID列表
+}
+
+// UpdateArticleRequest 更新文章请求参数
+type UpdateArticleRequest struct {
+	ArticleTitle   *string `json:"article_title" binding:"omitempty,non_empty_string,max=255"`
+	ArticleType    *string `json:"article_type" binding:"omitempty,non_empty_string"`    // 文章类型
+	BriefContent   *string `json:"brief_content" binding:"omitempty"`                    // 摘要
+	ArticleContent *string `json:"article_content" binding:"omitempty,non_empty_string"` // 文章内容
+	IsSelection    *int    `json:"is_selection" binding:"omitempty,numeric,oneof=0 1"`   // 是否精选
+	FieldType      *string `json:"field_type" binding:"omitempty"`                       // 领域类型
+	CoverImageURL  *string `json:"cover_image_url" binding:"omitempty,url"`              // 封面图URL
+	ArticleSource  *string `json:"article_source" binding:"omitempty"`                   // 文章来源
+	ReleaseTime    *string `json:"release_time" binding:"omitempty,time_format"`         // 发布时间
+	ImageIDList    *[]int  `json:"image_id_list" binding:"omitempty,dive,min=1"`         // 图片ID列表
 }
 
 // ArticleListResponse 文章列表响应结构体
