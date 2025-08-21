@@ -11,6 +11,10 @@ import (
 type IndustryRepository interface {
 	// ListIndustries 查询行业列表
 	ListIndustries(ctx context.Context) ([]*model.Industries, error)
+	// CreateIndustry 创建行业
+	CreateIndustry(ctx context.Context, industry *model.Industries) error
+	// UpdateIndustry 更新行业信息
+	UpdateIndustry(ctx context.Context, industryID int, updateFields map[string]interface{}) error
 }
 
 type IndustryRepositoryImpl struct {
@@ -33,4 +37,34 @@ func (repo *IndustryRepositoryImpl) ListIndustries(ctx context.Context) ([]*mode
 	}
 
 	return industries, nil
+}
+
+// CreateIndustry 创建行业
+func (repo *IndustryRepositoryImpl) CreateIndustry(ctx context.Context, industry *model.Industries) error {
+	// 插入行业数据
+	if err := repo.db.WithContext(ctx).Create(industry).Error; err != nil {
+		ok, _ := utils.IsUniqueConstraintError(err)
+		if ok {
+			return utils.NewBusinessError(utils.ErrCodeResourceExists, "行业已存在")
+		}
+		return utils.NewSystemError(fmt.Errorf("创建行业失败: %w", err))
+	}
+	return nil
+}
+
+// UpdateIndustry 更新行业信息
+func (repo *IndustryRepositoryImpl) UpdateIndustry(ctx context.Context, industryID int, updateFields map[string]interface{}) error {
+	// 更新行业数据
+	result := repo.db.WithContext(ctx).Model(&model.Industries{}).
+		Where("id = ?", industryID).Updates(updateFields)
+
+	err := result.Error
+	if err != nil {
+		ok, _ := utils.IsUniqueConstraintError(err)
+		if ok {
+			return utils.NewBusinessError(utils.ErrCodeResourceExists, "行业已存在")
+		}
+		return utils.NewSystemError(fmt.Errorf("更新行业失败: %w", err))
+	}
+	return nil
 }

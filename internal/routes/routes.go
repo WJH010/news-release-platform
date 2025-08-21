@@ -156,7 +156,20 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		// 行业路由
 		industry := api.Group("/industry")
 		{
+			// 公开接口 - 无需认证
 			industry.GET("", industryController.ListIndustries)
+			// 需要认证的用户接口
+			authIndustry := industry.Group("")
+			authIndustry.Use(middleware.AuthMiddleware(cfg))
+			{
+				// 管理员接口 - 在认证基础上增加角色校验
+				adminIndustry := authIndustry.Group("")
+				adminIndustry.Use(middleware.RoleMiddleware(middleware.RoleAdmin))
+				{
+					adminIndustry.POST("/create", industryController.CreateIndustry)
+					adminIndustry.PUT("/update/:id", industryController.UpdateIndustry)
+				}
+			}
 		}
 		// 文件上传路由
 		file := api.Group("/file")
