@@ -42,7 +42,7 @@ func (ctr *ArticleController) ListArticle(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	article, total, err := ctr.articleService.ListArticle(ctx, page, pageSize, req.ArticleTitle, req.ArticleType, req.ReleaseTime, req.FieldType, req.IsSelection)
+	article, total, err := ctr.articleService.ListArticle(ctx, page, pageSize, req.ArticleTitle, req.ArticleType, req.ReleaseTime, req.FieldType, req.IsSelection, req.QueryScope)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)

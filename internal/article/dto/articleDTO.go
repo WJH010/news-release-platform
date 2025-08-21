@@ -11,6 +11,7 @@ type ArticleListRequest struct {
 	IsSelection  int    `form:"is_selection" binding:"omitempty,numeric"`     // 是否精选，必须为数字
 	ArticleType  string `form:"article_type"`                                 // 文章类型
 	ReleaseTime  string `form:"release_time" binding:"omitempty,time_format"` // 发布时间
+	QueryScope   string `form:"query_scope" binding:"omitempty,query_scope"`  // 查询范围
 }
 
 // ArticleContentRequest 文章内容查询请求参数

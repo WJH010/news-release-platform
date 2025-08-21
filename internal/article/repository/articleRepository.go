@@ -12,7 +12,7 @@ import (
 // ArticleRepository 数据访问接口，定义数据访问的方法集
 type ArticleRepository interface {
 	// List 分页查询
-	List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int) ([]*model.Article, int64, error)
+	List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int, queryScope string) ([]*model.Article, int64, error)
 	// GetArticleContent 内容查询
 	GetArticleContent(ctx context.Context, articleID int) (*model.Article, error)
 	// GetArticleByTitle 根据标题查询文章
@@ -34,7 +34,7 @@ func NewArticleRepository(db *gorm.DB) ArticleRepository {
 }
 
 // List 分页查询数据
-func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int) ([]*model.Article, int64, error) {
+func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int, queryScope string) ([]*model.Article, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -50,8 +50,21 @@ func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int,
 	query = query.Table("articles a").
 		Select("a.article_id, a.article_title, a.article_type, a.release_time, a.brief_content, a.is_selection, f.field_name, a.cover_image_url,a.article_source,at.type_name").
 		Joins("LEFT JOIN field_types f ON a.field_type = f.field_code").
-		Joins("LEFT JOIN article_types at ON a.article_type = at.type_code").
-		Where("a.is_deleted = ?", "N")
+		Joins("LEFT JOIN article_types at ON a.article_type = at.type_code")
+
+	if queryScope != "" {
+		// 如果传入了查询范围，则添加查询条件
+		// 如果传入了查询范围为DELETED，则查询已删除的文章
+		if queryScope == utils.QueryScopeDeleted {
+			query = query.Where("a.is_deleted = ?", utils.DeletedFlagYes) // 查询已删除的文章
+		}
+		if queryScope == utils.QueryScopeAll {
+			// 如果传入了查询范围为ALL，则查询所有文章（包括已删除和未删除的）
+		}
+	} else {
+		// 默认查询未删除的活动
+		query = query.Where("a.is_deleted = ?", utils.DeletedFlagNo)
+	}
 
 	// 添加条件查询
 	if releaseTime != "" {
