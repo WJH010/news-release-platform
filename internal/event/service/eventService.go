@@ -171,6 +171,15 @@ func (svc *EventServiceImpl) ListUserRegisteredEvents(ctx context.Context, page,
 
 // CreateEvent 创建活动
 func (svc *EventServiceImpl) CreateEvent(ctx context.Context, event *model.Event, imageIDList []int) error {
+	// 检查是否有重复的活动标题
+	existingEvent, err := svc.eventRepo.GetEventByTitle(ctx, event.Title)
+	if err != nil {
+		return err
+	}
+	if existingEvent != nil {
+		return utils.NewBusinessError(utils.ErrCodeResourceExists, "已存在同名活动，请修改标题后重试")
+	}
+
 	// 检查活动时间是否合理
 	if event.EventStartTime.After(event.EventEndTime) {
 		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "活动开始时间不能晚于结束时间")

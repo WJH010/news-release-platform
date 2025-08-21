@@ -38,6 +38,8 @@ type EventRepository interface {
 	DeleteEvent(ctx context.Context, eventID int, userID int) error
 	// ListEventRegisteredUser 查询已报名活动的用户列表
 	ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*usermodel.User, int, error)
+	// GetEventByTitle 根据活动标题查询活动
+	GetEventByTitle(ctx context.Context, title string) (*model.Event, error)
 }
 
 // EventRepositoryImpl 实现接口的具体结构体
@@ -327,4 +329,21 @@ func (repo *EventRepositoryImpl) ListEventRegisteredUser(ctx context.Context, pa
 	}
 
 	return users, int(total), nil
+}
+
+// GetEventByTitle 根据活动标题查询活动
+func (repo *EventRepositoryImpl) GetEventByTitle(ctx context.Context, title string) (*model.Event, error) {
+	var event model.Event
+
+	result := repo.db.WithContext(ctx).Where("title = ? AND is_deleted = ?", title, utils.DeletedFlagNo).First(&event)
+	err := result.Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
+	}
+
+	return &event, nil
 }
