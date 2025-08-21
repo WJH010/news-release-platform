@@ -15,7 +15,7 @@ import (
 // EventRepository 数据访问接口，定义数据访问的方法集
 type EventRepository interface {
 	// List 分页查询
-	List(ctx context.Context, page, pageSize int, eventStatus string) ([]*model.Event, int, error)
+	List(ctx context.Context, page, pageSize int, eventStatus string, isDeleted string) ([]*model.Event, int, error)
 	// GetEventDetail 获取活动详情
 	GetEventDetail(ctx context.Context, eventID int) (*model.Event, error)
 	// ListEventImage 获取活动图片列表
@@ -57,7 +57,7 @@ type EventImage struct {
 }
 
 // List 分页查询数据
-func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, eventStatus string) ([]*model.Event, int, error) {
+func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, eventStatus string, isDeleted string) ([]*model.Event, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -71,8 +71,11 @@ func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, e
 
 	query := repo.db.WithContext(ctx)
 	// 构建基础查询
-	query = query.Table("events e").
-		Where("is_deleted = ?", "N") // 软删除标志，查询未被删除的活动
+	query = query.Table("events e")
+
+	if isDeleted != "" {
+		query = query.Where("e.is_deleted = ?", isDeleted)
+	}
 
 	// 根据活动状态拼接查询条件
 	if eventStatus == model.EventStatusInProgress {

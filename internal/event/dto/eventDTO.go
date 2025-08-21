@@ -7,6 +7,7 @@ type EventListRequest struct {
 	Page        int    `form:"page" binding:"omitempty,min=1"`              // 页码，最小为1
 	PageSize    int    `form:"page_size" binding:"omitempty,min=1,max=100"` // 页大小，1-100
 	EventStatus string `form:"event_status"`                                // 活动状态
+	IsDeleted   string `form:"is_deleted"`
 }
 
 // EventDetailRequest 活动详情查询请求参数
