@@ -16,6 +16,10 @@ type ArticleRepository interface {
 	List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int) ([]*model.Article, int64, error)
 	// GetArticleContent 内容查询
 	GetArticleContent(ctx context.Context, articleID int) (*model.Article, error)
+	// GetArticleByTitle 根据标题查询文章
+	GetArticleByTitle(ctx context.Context, title string) (*model.Article, error)
+	// CreateArticle 创建文章
+	CreateArticle(ctx context.Context, tx *gorm.DB, article *model.Article) error
 }
 
 // ArticleRepositoryImpl 实现接口的具体结构体
@@ -94,6 +98,31 @@ func (repo *ArticleRepositoryImpl) GetArticleContent(ctx context.Context, articl
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, utils.NewBusinessError(utils.ErrCodeResourceNotFound, "文章不存在或已被删除，请刷新页面后重试")
+		}
+		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
+	}
+
+	return &article, nil
+}
+
+// CreateArticle 创建文章
+func (repo *ArticleRepositoryImpl) CreateArticle(ctx context.Context, tx *gorm.DB, article *model.Article) error {
+	// 插入文章数据
+	if err := tx.WithContext(ctx).Create(article).Error; err != nil {
+		return utils.NewSystemError(fmt.Errorf("创建文章失败: %w", err))
+	}
+
+	return nil
+}
+
+// GetArticleByTitle 根据标题查询文章
+func (repo *ArticleRepositoryImpl) GetArticleByTitle(ctx context.Context, title string) (*model.Article, error) {
+	var article model.Article
+
+	// 查询文章
+	if err := repo.db.WithContext(ctx).Where("article_title = ? AND is_deleted = ?", title, "N").First(&article).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
 		}
 		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}

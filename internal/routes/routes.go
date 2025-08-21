@@ -79,7 +79,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	eventRepo := eventrepo.NewEventRepository(db)
 
 	// 初始化服务
-	articleService := articlesvc.NewArticleService(articleRepo)
+	articleService := articlesvc.NewArticleService(articleRepo, fileRepo)
 	fieldService := articlesvc.NewFieldTypeService(fieldTypeRepo)
 	noticeService := noticesvc.NewNoticeService(noticeRepo)
 	fileService := filesvc.NewFileService(minioRepo, fileRepo)
@@ -106,8 +106,20 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		// articles
 		articles := api.Group("/articles")
 		{
+			// 公开接口 - 无需认证
 			articles.GET("", articleController.ListArticle)
 			articles.GET("/:id", articleController.GetArticleContent)
+			// 需要认证的用户接口
+			authArticles := articles.Group("")
+			authArticles.Use(middleware.AuthMiddleware(cfg))
+			{
+				// 管理员接口 - 在认证基础上增加角色校验
+				adminArticles := authArticles.Group("")
+				adminArticles.Use(middleware.RoleMiddleware(middleware.RoleAdmin))
+				{
+					adminArticles.POST("/create", articleController.CreateArticle)
+				}
+			}
 		}
 		// 领域类型相关路由
 		policyFieldType := api.Group("/fieldType")

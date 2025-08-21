@@ -3,8 +3,10 @@ package controller
 import (
 	"net/http"
 	"news-release/internal/article/dto"
+	"news-release/internal/article/model"
 	"news-release/internal/article/service"
 	"news-release/internal/utils"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -101,4 +103,50 @@ func (ctr *ArticleController) GetArticleContent(ctx *gin.Context) {
 
 	// 返回成功响应
 	ctx.JSON(http.StatusOK, gin.H{"data": result})
+}
+
+// CreateArticle 创建文章
+func (ctr *ArticleController) CreateArticle(ctx *gin.Context) {
+	// 初始化参数结构体并绑定请求体
+	var req dto.CreateArticleRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 构造文章对象
+	article := &model.Article{
+		ArticleTitle:   req.ArticleTitle,
+		ArticleType:    req.ArticleType,
+		BriefContent:   req.BriefContent,
+		ArticleContent: req.ArticleContent,
+		IsSelection:    req.IsSelection,
+		FieldType:      req.FieldType,
+		CoverImageURL:  req.CoverImageURL,
+		ArticleSource:  req.ArticleSource,
+		ReleaseTime:    time.Now(),
+		CreateUser:     userID,
+		UpdateUser:     userID,
+	}
+
+	// 调用服务层
+	if err := ctr.articleService.CreateArticle(ctx, article, req.ImageIDList); err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "文章创建成功",
+		"data": gin.H{
+			"article_id": article.ArticleID,
+		},
+	})
 }
