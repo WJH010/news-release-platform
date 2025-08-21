@@ -379,3 +379,51 @@ func (ctr *EventController) DeleteEvent(ctx *gin.Context) {
 		"message": "活动删除成功",
 	})
 }
+
+// ListEventRegisteredUsers 获取活动报名用户列表
+func (ctr *EventController) ListEventRegisteredUsers(ctx *gin.Context) {
+	// 获取活动ID
+	var req dto.EventDetailRequest
+	if !utils.BindUrl(ctx, &req) {
+		return
+	}
+
+	// page 默认1
+	page := 1
+
+	// pageSize 默认10
+	pageSize := 10
+
+	// 调用服务层获取活动报名用户列表
+	users, total, err := ctr.eventService.ListEventRegisteredUser(ctx, page, pageSize, req.EventID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	var list []dto.ListEventRegUserResponse
+
+	for _, user := range users {
+		list = append(list, dto.ListEventRegUserResponse{
+			Nickname:     user.Nickname,
+			Name:         user.Name,
+			GenderCode:   user.Gender,
+			Gender:       map[string]string{"M": "男", "F": "女", "U": "未知"}[user.Gender],
+			PhoneNumber:  user.PhoneNumber,
+			Email:        user.Email,
+			Unit:         user.Unit,
+			Department:   user.Department,
+			Position:     user.Position,
+			Industry:     user.Industry,
+			IndustryName: user.IndustryName,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+		"data":      list,
+	})
+}

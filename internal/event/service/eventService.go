@@ -9,6 +9,7 @@ import (
 	"news-release/internal/event/model"
 	"news-release/internal/event/repository"
 	filerepo "news-release/internal/file/repository"
+	usermodel "news-release/internal/user/model"
 	userrepo "news-release/internal/user/repository"
 	"news-release/internal/utils"
 	"time"
@@ -34,6 +35,8 @@ type EventService interface {
 	UpdateEvent(ctx context.Context, eventID int, req dto.UpdateEventRequest, userID int) error
 	// DeleteEvent 删除活动
 	DeleteEvent(ctx context.Context, eventID int, userID int) error
+	// ListEventRegisteredUser 获取活动报名用户列表
+	ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*usermodel.User, int, error)
 }
 
 // EventServiceImpl 实现 EventService 接口，提供事件相关的业务逻辑
@@ -357,4 +360,9 @@ func (svc *EventServiceImpl) DeleteEvent(ctx context.Context, eventID int, userI
 	}
 
 	return nil
+}
+
+// ListEventRegisteredUser 获取活动报名用户列表
+func (svc *EventServiceImpl) ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*usermodel.User, int, error) {
+	return svc.eventRepo.ListEventRegisteredUser(ctx, page, pageSize, eventID)
 }

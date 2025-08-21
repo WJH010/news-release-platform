@@ -72,3 +72,18 @@ type EventDetailResponse struct {
 	RegistrationFee       float64   `json:"registration_fee"`        // 报名费用
 	Images                []string  `json:"images"`                  // 图片列表
 }
+
+// ListEventRegUserResponse 活动报名列表查询请求参数
+type ListEventRegUserResponse struct {
+	Nickname     string `json:"nickname"`
+	Name         string `json:"name"`
+	GenderCode   string `json:"gender_code"`
+	Gender       string `json:"gender"`
+	PhoneNumber  string `json:"phone_number"`
+	Email        string `json:"email"`
+	Unit         string `json:"unit"`
+	Department   string `json:"department"`
+	Position     string `json:"position"`
+	Industry     string `json:"industry"`
+	IndustryName string `json:"industry_name"`
+}

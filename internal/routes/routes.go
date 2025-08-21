@@ -123,9 +123,21 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		// 用户相关路由
 		user := api.Group("/user")
 		{
+			// 公开接口 - 无需认证
 			user.POST("/login", userController.Login)
-			user.PUT("/update", middleware.AuthMiddleware(cfg), userController.UpdateUserInfo)
-			user.GET("/info", middleware.AuthMiddleware(cfg), userController.GetUserInfo)
+			// 需要认证的用户接口
+			authUser := user.Group("")
+			authUser.Use(middleware.AuthMiddleware(cfg))
+			{
+				authUser.PUT("/update", middleware.AuthMiddleware(cfg), userController.UpdateUserInfo)
+				authUser.GET("/info", middleware.AuthMiddleware(cfg), userController.GetUserInfo)
+				// 管理员接口 - 在认证基础上增加角色校验
+				adminUser := authUser.Group("")
+				adminUser.Use(middleware.RoleMiddleware(middleware.RoleAdmin))
+				{
+
+				}
+			}
 		}
 		// 行业路由
 		industry := api.Group("/industry")
@@ -178,6 +190,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 					adminEvent.POST("/create", eventController.CreateEvent)
 					adminEvent.PUT("/update/:id", eventController.UpdateEvent)
 					adminEvent.DELETE("/delete/:id", eventController.DeleteEvent)
+					adminEvent.GET("/regUsers/:id", eventController.ListEventRegisteredUsers)
 				}
 			}
 		}

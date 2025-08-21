@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"news-release/internal/event/model"
+	usermodel "news-release/internal/user/model"
 	"news-release/internal/utils"
 	"time"
 )
@@ -35,6 +36,8 @@ type EventRepository interface {
 	UpdateEvent(ctx context.Context, tx *gorm.DB, eventID int, updateFields map[string]interface{}) error
 	// DeleteEvent 删除活动
 	DeleteEvent(ctx context.Context, eventID int, userID int) error
+	// ListEventRegisteredUser 查询已报名活动的用户列表
+	ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*usermodel.User, int, error)
 }
 
 // EventRepositoryImpl 实现接口的具体结构体
@@ -288,4 +291,37 @@ func (repo *EventRepositoryImpl) DeleteEvent(ctx context.Context, eventID int, u
 	}
 
 	return nil
+}
+
+// ListEventRegisteredUser 查询已报名活动的用户列表
+func (repo *EventRepositoryImpl) ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*usermodel.User, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	offset := (page - 1) * pageSize
+	var users []*usermodel.User
+	var total int64
+
+	query := repo.db.WithContext(ctx).
+		Table("users u").
+		Select("u.nickname, u.name, u.gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name").
+		Joins("JOIN event_user_mappings eum ON u.user_id = eum.user_id").
+		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
+		Where("eum.event_id = ? AND eum.is_deleted = ?", eventID, utils.DeletedFlagNo)
+
+	// 计算总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
+	}
+
+	// 分页查询数据
+	if err := query.Offset(offset).Limit(pageSize).Find(&users).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
+	}
+
+	return users, int(total), nil
 }
