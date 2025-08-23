@@ -79,29 +79,29 @@ func (ctr *MessageController) GetUnreadMessageCount(ctx *gin.Context) {
 }
 
 // MarkAllMessagesAsRead 一键已读
-func (ctr *MessageController) MarkAllMessagesAsRead(ctx *gin.Context) {
-	// 获取userID
-	userID, err := utils.GetUserID(ctx)
-	// 处理异常
-	if err != nil {
-		utils.WrapErrorHandler(ctx, err)
-		return
-	}
-
-	// 调用服务层
-	err = ctr.messageService.MarkAllMessagesAsRead(ctx, userID)
-	// 处理异常
-	if err != nil {
-		utils.WrapErrorHandler(ctx, err)
-		return
-	}
-
-	// 返回成功响应
-	ctx.JSON(http.StatusOK, gin.H{
-		"code":    200,
-		"message": "所有消息已标记为已读",
-	})
-}
+//func (ctr *MessageController) MarkAllMessagesAsRead(ctx *gin.Context) {
+//	// 获取userID
+//	userID, err := utils.GetUserID(ctx)
+//	// 处理异常
+//	if err != nil {
+//		utils.WrapErrorHandler(ctx, err)
+//		return
+//	}
+//
+//	// 调用服务层
+//	err = ctr.messageService.MarkAllMessagesAsRead(ctx, userID)
+//	// 处理异常
+//	if err != nil {
+//		utils.WrapErrorHandler(ctx, err)
+//		return
+//	}
+//
+//	// 返回成功响应
+//	ctx.JSON(http.StatusOK, gin.H{
+//		"code":    200,
+//		"message": "所有消息已标记为已读",
+//	})
+//}
 
 // ListUserMessageGroups 分页查询用户消息群组列表
 func (ctr *MessageController) ListUserMessageGroups(ctx *gin.Context) {
@@ -149,6 +149,11 @@ func (ctr *MessageController) ListUserMessageGroups(ctx *gin.Context) {
 
 // ListMsgByGroups 分页查询分组内消息列表
 func (ctr *MessageController) ListMsgByGroups(ctx *gin.Context) {
+	// 获取并绑定路径参数
+	var urlReq dto.GroupIDRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
 	// 初始化参数结构体并绑定查询参数
 	var req dto.ListMessageByGroupsRequest
 	if !utils.BindQuery(ctx, &req) {
@@ -176,7 +181,7 @@ func (ctr *MessageController) ListMsgByGroups(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	list, total, err := ctr.messageService.ListMsgByGroups(ctx, page, pageSize, userID, req.EventID, req.MessageType)
+	list, total, err := ctr.messageService.ListMsgByGroups(ctx, page, pageSize, userID, urlReq.GroupID)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)

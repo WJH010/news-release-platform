@@ -5,6 +5,7 @@ import (
 	"news-release/internal/config"
 	"news-release/internal/database"
 	"news-release/internal/middleware"
+	"news-release/internal/utils"
 
 	articlectr "news-release/internal/article/controller"
 	articlerepo "news-release/internal/article/repository"
@@ -75,7 +76,6 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	userRepo := userrepo.NewUserRepository(db)
 	industryRepo := userrepo.NewIndustryRepository(db)
 	msgRepo := msgrepo.NewMessageRepository(db)
-	msgType := msgrepo.NewMessageTypeRepository(db)
 	eventRepo := eventrepo.NewEventRepository(db)
 
 	// 初始化服务
@@ -86,7 +86,6 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	userService := usersvc.NewUserService(userRepo, cfg)
 	industryService := usersvc.NewIndustryService(industryRepo)
 	msgService := msgsvc.NewMessageService(msgRepo)
-	msgTypeService := msgsvc.NewMessageTypeService(msgType)
 	eventService := eventsvc.NewEventService(eventRepo, userRepo, fileRepo)
 
 	// 初始化控制器
@@ -97,7 +96,6 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	userController := userctr.NewUserController(userService)
 	industryController := userctr.NewIndustryController(industryService)
 	msgController := msgctr.NewMessageController(msgService)
-	msgTypeController := msgctr.NewMessageTypeController(msgTypeService)
 	eventController := eventctr.NewEventController(eventService)
 
 	// API分组
@@ -115,7 +113,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			{
 				// 管理员接口 - 在认证基础上增加角色校验
 				adminArticles := authArticles.Group("")
-				adminArticles.Use(middleware.RoleMiddleware(middleware.RoleAdmin))
+				adminArticles.Use(middleware.RoleMiddleware(utils.RoleAdmin))
 				{
 					adminArticles.POST("/create", articleController.CreateArticle)
 					adminArticles.PUT("/update/:id", articleController.UpdateArticle)
@@ -147,7 +145,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 				authUser.GET("/info", middleware.AuthMiddleware(cfg), userController.GetUserInfo)
 				// 管理员接口 - 在认证基础上增加角色校验
 				adminUser := authUser.Group("")
-				adminUser.Use(middleware.RoleMiddleware(middleware.RoleAdmin))
+				adminUser.Use(middleware.RoleMiddleware(utils.RoleAdmin))
 				{
 
 				}
@@ -164,7 +162,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			{
 				// 管理员接口 - 在认证基础上增加角色校验
 				adminIndustry := authIndustry.Group("")
-				adminIndustry.Use(middleware.RoleMiddleware(middleware.RoleAdmin))
+				adminIndustry.Use(middleware.RoleMiddleware(utils.RoleAdmin))
 				{
 					adminIndustry.POST("/create", industryController.CreateIndustry)
 					adminIndustry.PUT("/update/:id", industryController.UpdateIndustry)
@@ -185,13 +183,9 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		{
 			message.GET("/:id", msgController.GetMessageContent)
 			message.GET("/unreadMessageCount", msgController.GetUnreadMessageCount)
-			message.PUT("/markAllAsRead", msgController.MarkAllMessagesAsRead)
+			//message.PUT("/markAllAsRead", msgController.MarkAllMessagesAsRead)
 			message.GET("/userMessageGroups", msgController.ListUserMessageGroups)
 			message.GET("/byGroups", msgController.ListMsgByGroups)
-		}
-		messageType := api.Group("/messageType")
-		{
-			messageType.GET("", msgTypeController.ListMessageType)
 		}
 		// 活动相关路由
 		event := api.Group("/event")
@@ -211,7 +205,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 
 				// 管理员接口 - 在认证基础上增加角色校验
 				adminEvent := authEvent.Group("")
-				adminEvent.Use(middleware.RoleMiddleware(middleware.RoleAdmin))
+				adminEvent.Use(middleware.RoleMiddleware(utils.RoleAdmin))
 				{
 					adminEvent.POST("/create", eventController.CreateEvent)
 					adminEvent.PUT("/update/:id", eventController.UpdateEvent)

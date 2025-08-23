@@ -12,12 +12,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// 定义角色代码常量
-const (
-	RoleUser  = 1 // 普通用户角色
-	RoleAdmin = 2 // 管理员角色
-)
-
 // CustomClaims 自定义Claims结构体，明确指定字段类型
 type CustomClaims struct {
 	OpenID             string `json:"openid"`
