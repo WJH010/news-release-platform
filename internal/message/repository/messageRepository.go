@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 	"news-release/internal/message/dto"
 	"news-release/internal/message/model"
 	"news-release/internal/utils"
@@ -18,15 +19,20 @@ type MessageRepository interface {
 	// GetUnreadMessageCount 获取未读消息数
 	GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error)
 	// MarkAllMessagesAsRead 一键已读，更新所有未读消息为已读
-	// MarkAllMessagesAsRead(ctx context.Context, userID int) error
+	MarkAllMessagesAsRead(ctx context.Context, userID int) error
 	// ListMessageGroupsByUserID 查询用户消息群组列表
 	ListMessageGroupsByUserID(ctx context.Context, page, pageSize int, userID int, typeCode string) ([]*dto.MessageGroupDTO, int64, error)
 	// ListMsgByGroups 分页查询分组内消息列表
 	ListMsgByGroups(ctx context.Context, page, pageSize int, groupID int) ([]*dto.ListMessageDTO, int64, error)
 	// MarkAsReadByGroup 按分组更新消息为已读
 	MarkAsReadByGroup(ctx context.Context, userID int, groupID int)
-	// 权限校验查询，确保普通用户只能查看自己的消息
+	// CheckUserMsgPermission 权限校验查询，确保普通用户只能查看自己的消息
 	CheckUserMsgPermission(ctx context.Context, userID int, groupID int) error
+}
+
+type GroupLatestMsg struct {
+	MsgGroupID  int `gorm:"column:msg_group_id"`
+	LatestMsgID int `gorm:"column:latest_msg_id"`
 }
 
 // MessageRepositoryImpl 实现接口的具体结构体
@@ -84,22 +90,57 @@ func (repo *MessageRepositoryImpl) GetUnreadMessageCount(ctx context.Context, us
 	return int(count), nil
 }
 
-// MarkAllMessagesAsRead 一键已读，更新所有未读消息为已读
-//func (repo *MessageRepositoryImpl) MarkAllMessagesAsRead(ctx context.Context, userID int) error {
-//	result := repo.db.WithContext(ctx).
-//		Model(&model.MessageUserMapping{}).
-//		Where("user_id = ? AND is_read = ? AND is_deleted = ?", userID, "N", "N").
-//		Updates(map[string]interface{}{
-//			"is_read":   "Y",
-//			"read_time": time.Now(),
-//		})
-//
-//	if result.Error != nil {
-//		return utils.NewSystemError(fmt.Errorf("一键已读操作失败: %w", result.Error))
-//	}
-//
-//	return nil
-//}
+// MarkAllMessagesAsRead 一键已读，更新指定用户所有未读消息为已读
+func (repo *MessageRepositoryImpl) MarkAllMessagesAsRead(ctx context.Context, userID int) error {
+	// 更新用户在该组内的最后已读消息ID
+	var groupList []GroupLatestMsg
+	// 构建第一个查询：查询用户加入的消息组
+	subQuery1 := repo.db.WithContext(ctx).Table("user_msg_group_mappings umgm").
+		Select("umgm.msg_group_id, max(mgm.message_id)").
+		Joins("JOIN message_group_mappings mgm ON mgm.msg_group_id = umgm.msg_group_id").
+		Where("umgm.user_id = ?", userID).
+		Where("umgm.is_deleted = ?", "N").
+		Group("umgm.msg_group_id")
+
+	// 构建第二个查询：查询包含所有用户的消息组
+	subQuery2 := repo.db.WithContext(ctx).Table("user_message_groups umg").
+		Select("umg.id AS msg_group_id, max(mgm.message_id)").
+		Joins("JOIN message_group_mappings mgm ON mgm.msg_group_id = umg.id").
+		Where("umg.include_all_user = ?", "Y").
+		Where("umg.is_deleted = ?", "N").
+		Group("umg.id")
+
+	// 组合两个查询，使用UNION ALL
+	err := repo.db.WithContext(ctx).Table("(?) UNION ALL (?)", subQuery1, subQuery2).
+		Scan(&groupList).Error
+	if err != nil {
+		return utils.NewSystemError(fmt.Errorf("查询用户消息组失败: %w", err))
+	}
+
+	// 构建更新数据
+	var marks []model.UserUnreadMark
+	for _, group := range groupList {
+		marks = append(marks, model.UserUnreadMark{
+			UserID:        userID,
+			MsgGroupID:    group.MsgGroupID,
+			LastReadMsgID: group.LatestMsgID,
+			CreateUser:    userID,
+			UpdateUser:    userID,
+		})
+	}
+
+	// 批量插入或更新，以(user_id, msg_group_id)作为唯一索引，当记录不存在时插入，存在时更新
+	err = repo.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}, {Name: "msg_group_id"}},                                                                   // 唯一索引字段
+		DoUpdates: clause.Assignments(map[string]interface{}{"last_read_msg_id": gorm.Expr("VALUES(last_read_msg_id)"), "update_user": userID}), // 冲突时更新的字段
+	}).Create(&marks).Error
+
+	if err != nil {
+		return utils.NewSystemError(fmt.Errorf("一键已读操作失败: %w", err))
+	}
+
+	return nil
+}
 
 // ListMessageGroupsByUserID 查询用户消息群组列表
 func (repo *MessageRepositoryImpl) ListMessageGroupsByUserID(ctx context.Context, page, pageSize int, userID int, typeCode string) ([]*dto.MessageGroupDTO, int64, error) {
@@ -209,16 +250,23 @@ func (repo *MessageRepositoryImpl) MarkAsReadByGroup(ctx context.Context, userID
 		logrus.Errorf("获取组内最新消息ID失败: %v", err)
 		return
 	}
+
 	// 更新用户在该组内的最后已读消息ID
-	result := repo.db.WithContext(ctx).Model(&model.UserUnreadMark{}).
-		Where("user_id = ? AND msg_group_id = ?", userID, groupID).
-		Updates(map[string]interface{}{
+	err = repo.db.Where("user_id = ? AND msg_group_id = ?", userID, groupID).
+		Attrs(model.UserUnreadMark{ // 不存在时创建
+			LastReadMsgID: latestMsgID,
+			CreateUser:    userID,
+			UpdateUser:    userID,
+		}).
+		Assign(map[string]interface{}{ // 存在时更新
 			"last_read_msg_id": latestMsgID,
 			"update_user":      userID,
-		})
-	if result.Error != nil {
+		}).
+		FirstOrCreate(&model.UserUnreadMark{}).Error
+
+	if err != nil {
 		// 只记录日志，更新已读状态失败不影响消息加载
-		logrus.Errorf("更新消息状态失败: %v", result.Error)
+		logrus.Errorf("更新消息状态失败: %v", err)
 	}
 }
 

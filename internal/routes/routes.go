@@ -183,7 +183,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		{
 			message.GET("/:id", msgController.GetMessageContent)
 			message.GET("/unreadMessageCount", msgController.GetUnreadMessageCount)
-			//message.PUT("/markAllAsRead", msgController.MarkAllMessagesAsRead)
+			message.PUT("/markAllAsRead", msgController.MarkAllMessagesAsRead)
 			message.GET("/userMessageGroups", msgController.ListUserMessageGroups)
 			message.GET("/byGroups", msgController.ListMsgByGroups)
 		}

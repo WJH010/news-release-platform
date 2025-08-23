@@ -13,10 +13,8 @@ type MessageService interface {
 	GetMessageContent(ctx context.Context, messageID int) (*model.Message, error)
 	// GetUnreadMessageCount 获取未读消息数
 	GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error)
-	// MarkAsRead 标记消息为已读
-	//MarkAsRead(ctx context.Context, userID, messageID int) error
 	// MarkAllMessagesAsRead 一键已读，更新所有未读消息为已读
-	//MarkAllMessagesAsRead(ctx context.Context, userID int) error
+	MarkAllMessagesAsRead(ctx context.Context, userID int) error
 	// ListMessageGroupsByUserID 分页查询用户消息群组列表
 	ListMessageGroupsByUserID(ctx context.Context, page, pageSize int, userID int, typeCode string) ([]*dto.MessageGroupDTO, int64, error)
 	// ListMsgByGroups 分页查询分组内消息列表
@@ -43,15 +41,10 @@ func (svc *MessageServiceImpl) GetUnreadMessageCount(ctx context.Context, userID
 	return svc.messageRepo.GetUnreadMessageCount(ctx, userID, messageType)
 }
 
-// MarkAsRead 标记消息为已读
-//func (svc *MessageServiceImpl) MarkAsRead(ctx context.Context, userID, messageID int) error {
-//	return svc.messageRepo.MarkAsRead(ctx, userID, messageID)
-//}
-
 // MarkAllMessagesAsRead 一键已读，更新所有未读消息为已读
-//func (svc *MessageServiceImpl) MarkAllMessagesAsRead(ctx context.Context, userID int) error {
-//	return svc.messageRepo.MarkAllMessagesAsRead(ctx, userID)
-//}
+func (svc *MessageServiceImpl) MarkAllMessagesAsRead(ctx context.Context, userID int) error {
+	return svc.messageRepo.MarkAllMessagesAsRead(ctx, userID)
+}
 
 // ListMessageGroupsByUserID 分页查询用户消息群组列表
 func (svc *MessageServiceImpl) ListMessageGroupsByUserID(ctx context.Context, page, pageSize int, userID int, typeCode string) ([]*dto.MessageGroupDTO, int64, error) {
