@@ -46,10 +46,10 @@ func (ctr *MessageController) GetMessageContent(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"data": result})
 }
 
-// GetUnreadMessageCount 获取未读消息数
-func (ctr *MessageController) GetUnreadMessageCount(ctx *gin.Context) {
+// HasUnreadMessages 检查用户是否有未读消息
+func (ctr *MessageController) HasUnreadMessages(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
-	var req dto.UnreadMessageCountRequest
+	var req dto.HasUnreadMessagesRequest
 	if !utils.BindQuery(ctx, &req) {
 		return
 	}
@@ -63,17 +63,19 @@ func (ctr *MessageController) GetUnreadMessageCount(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	count, err := ctr.messageService.GetUnreadMessageCount(ctx, userID, req.MessageType)
+	hasUnread, err := ctr.messageService.HasUnreadMessages(ctx, userID, req.TypeCode)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
 		return
 	}
 
-	// 返回结果
+	// 返回成功响应
 	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "查询成功",
 		"data": gin.H{
-			"count": count,
+			"hasUnread": hasUnread,
 		},
 	})
 }

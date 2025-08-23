@@ -11,14 +11,14 @@ import (
 type MessageService interface {
 	// GetMessageContent 获取消息内容
 	GetMessageContent(ctx context.Context, messageID int) (*model.Message, error)
-	// GetUnreadMessageCount 获取未读消息数
-	GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error)
 	// MarkAllMessagesAsRead 一键已读，更新所有未读消息为已读
 	MarkAllMessagesAsRead(ctx context.Context, userID int) error
 	// ListMessageGroupsByUserID 分页查询用户消息群组列表
 	ListMessageGroupsByUserID(ctx context.Context, page, pageSize int, userID int, typeCode string) ([]*dto.MessageGroupDTO, int64, error)
 	// ListMsgByGroups 分页查询分组内消息列表
 	ListMsgByGroups(ctx context.Context, page, pageSize int, userID int, groupID int) ([]*dto.ListMessageDTO, int64, error)
+	// HasUnreadMessages 检查用户是否有未读消息
+	HasUnreadMessages(ctx context.Context, userID int, typeCode string) (string, error)
 }
 
 // MessageServiceImpl 实现接口的具体结构体，持有数据访问层接口 Repository 的实例
@@ -36,9 +36,9 @@ func (svc *MessageServiceImpl) GetMessageContent(ctx context.Context, messageID 
 	return svc.messageRepo.GetMessageContent(ctx, messageID)
 }
 
-// GetUnreadMessageCount 获取未读消息数
-func (svc *MessageServiceImpl) GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error) {
-	return svc.messageRepo.GetUnreadMessageCount(ctx, userID, messageType)
+// HasUnreadMessages 检查用户是否有未读消息
+func (svc *MessageServiceImpl) HasUnreadMessages(ctx context.Context, userID int, typeCode string) (string, error) {
+	return svc.messageRepo.HasUnreadMessages(ctx, userID, typeCode)
 }
 
 // MarkAllMessagesAsRead 一键已读，更新所有未读消息为已读

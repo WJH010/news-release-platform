@@ -7,9 +7,9 @@ type MessageContentRequest struct {
 	MessageID int `uri:"id" binding:"required,numeric"` // 消息ID，必须为数字
 }
 
-// UnreadMessageCountRequest 获取未读消息数请求参数
-type UnreadMessageCountRequest struct {
-	MessageType string `form:"message_type"` // 消息类型
+// HasUnreadMessagesRequest 获取用户是否有未读消息请求参数
+type HasUnreadMessagesRequest struct {
+	TypeCode string `form:"type_code" binding:"omitempty, user_group_message_type"` // 消息类型代码
 }
 
 // ListUserGroupMessageRequest 消息群组列表请求参数

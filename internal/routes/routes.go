@@ -182,7 +182,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		message.Use(middleware.AuthMiddleware(cfg))
 		{
 			message.GET("/:id", msgController.GetMessageContent)
-			message.GET("/unreadMessageCount", msgController.GetUnreadMessageCount)
+			message.GET("/hasUnreadMessages", msgController.HasUnreadMessages)
 			message.PUT("/markAllAsRead", msgController.MarkAllMessagesAsRead)
 			message.GET("/userMessageGroups", msgController.ListUserMessageGroups)
 			message.GET("/byGroups", msgController.ListMsgByGroups)
