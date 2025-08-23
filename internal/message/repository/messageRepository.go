@@ -23,10 +23,8 @@ type MessageRepository interface {
 	MarkAsRead(ctx context.Context, userID, messageID int) error
 	// MarkAllMessagesAsRead 一键已读，更新所有未读消息为已读
 	MarkAllMessagesAsRead(ctx context.Context, userID int) error
-	// ListMessageByTypeGroups 按消息类型分组统计消息列表
-	ListMessageByTypeGroups(ctx context.Context, page, pageSize int, userID int, typeCodes []string) ([]*dto.MessageGroupDTO, int64, error)
-	// ListMessageByEventGroups 按活动分组统计消息列表
-	ListMessageByEventGroups(ctx context.Context, page, pageSize int, userID int) ([]*dto.MessageGroupDTO, int64, error)
+	// ListMessageGroupsByUserID 查询用户消息群组列表
+	ListMessageGroupsByUserID(ctx context.Context, page, pageSize int, userID int, typeCode string) ([]*dto.MessageGroupDTO, int64, error)
 	// ListMsgByGroups 分页查询分组内消息列表
 	ListMsgByGroups(ctx context.Context, page, pageSize int, userID int, eventID int, messageType string) ([]*dto.ListMessageDTO, int64, error)
 	// MarkAsReadByGroup 按分组更新消息为已读
@@ -124,9 +122,8 @@ func (repo *MessageRepositoryImpl) MarkAllMessagesAsRead(ctx context.Context, us
 	return nil
 }
 
-// ListMessageByTypeGroups 按消息类型分组统计消息列表
-// 该方法查询每个消息类型的最新一条消息，并统计未读消息数
-func (repo *MessageRepositoryImpl) ListMessageByTypeGroups(ctx context.Context, page, pageSize int, userID int, typeCodes []string) ([]*dto.MessageGroupDTO, int64, error) {
+// ListMessageGroupsByUserID 查询用户消息群组列表
+func (repo *MessageRepositoryImpl) ListMessageGroupsByUserID(ctx context.Context, page, pageSize int, userID int, typeCode string) ([]*dto.MessageGroupDTO, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -137,83 +134,34 @@ func (repo *MessageRepositoryImpl) ListMessageByTypeGroups(ctx context.Context, 
 	offset := (page - 1) * pageSize
 	var results []*dto.MessageGroupDTO
 
-	// 构建子查询
-	subQuery := repo.db.Table("messages m").
+	// 构建查询
+	query := repo.db.WithContext(ctx).Table("user_message_groups umg").
 		Select(`
-			mt.type_name AS group_name,
-			COUNT(CASE WHEN mum.is_read = 'N' THEN 1 END) OVER (PARTITION BY mt.id) AS unread_count,
-			m.content AS latest_content,
-			m.send_time AS latest_time,
-			ROW_NUMBER() OVER (PARTITION BY mt.id ORDER BY m.send_time DESC) AS rn
+				umg.id AS msg_group_id,
+			  	umg.group_name,
+			  	m.title AS latest_title,
+			  	m.content AS latest_content,
+			  	m.send_time AS latest_send_time,
+				CASE
+					WHEN umg.latest_msg_id > COALESCE(uum.last_read_msg_id, 0) THEN 'Y'
+					ELSE 'N'
+			  	END AS has_unread
 		`).
-		Joins("JOIN message_user_mappings mum ON m.id = mum.message_id").
-		Joins("JOIN message_types mt ON m.type = mt.type_code").
-		Where("mum.user_id = ?", userID).
-		Where("m.type IN (?)", typeCodes).
-		Where("m.is_deleted = ?", "N").
-		Where("mum.is_deleted = ?", "N")
+		Joins("JOIN messages m ON m.id = umg.latest_msg_id").
+		Joins("LEFT JOIN user_unread_marks uum ON uum.msg_group_id = umg.id AND uum.user_id = ?", userID).
+		Order("m.send_time DESC")
 
-	// 主查询：筛选每组最新的一条消息
-	query := repo.db.WithContext(ctx).
-		Table("(?) AS t", subQuery).
-		Where("t.rn = 1").
-		Select("t.group_name, t.unread_count, t.latest_content, t.latest_time").
-		Order("t.latest_time DESC")
-
-	// 计算总数
-	var total int64
-	countQuery := query.Session(&gorm.Session{})
-	if err := countQuery.Count(&total).Error; err != nil {
-		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
+	if typeCode == utils.TypeGroup {
+		// 如果是群组消息类型，添加群组消息的筛选
+		query = query.Joins("JOIN user_msg_group_mappings umgm ON umgm.msg_group_id = umg.id").
+			Where("umgm.user_id = ?", userID)
+	} else if typeCode == utils.TypeSystem {
+		// 如果是系统消息类型，添加系统消息的筛选
+		query = query.Where("umg.include_all_user = ?", "Y") // 只查询包含所有用户的系统消息分组
+	} else {
+		// 否则返回参数不合法
+		return nil, 0, utils.NewBusinessError(utils.ErrCodeParamInvalid, "消息类型参数不合法")
 	}
-
-	// 查询数据
-	if err := query.Offset(offset).Limit(pageSize).Find(&results).Error; err != nil {
-		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
-	}
-
-	return results, total, nil
-}
-
-// ListMessageByEventGroups 按活动分组统计消息列表
-// 该方法查询每个活动的最新一条消息，并统计未读消息数
-func (repo *MessageRepositoryImpl) ListMessageByEventGroups(ctx context.Context, page, pageSize int, userID int) ([]*dto.MessageGroupDTO, int64, error) {
-	if page < 1 {
-		page = 1
-	}
-	if pageSize < 1 {
-		pageSize = 10
-	}
-
-	offset := (page - 1) * pageSize
-	var results []*dto.MessageGroupDTO
-
-	// 构建子查询
-	subQuery := repo.db.Table("messages m").
-		Select(`
-			e.id AS event_id,
-			e.title AS group_name,
-			COUNT(CASE WHEN mum.is_read = 'N' THEN 1 END) OVER (PARTITION BY e.id) AS unread_count,
-			m.content AS latest_content,
-			m.send_time AS latest_time,
-			ROW_NUMBER() OVER (PARTITION BY e.id ORDER BY m.send_time DESC) AS rn
-		`).
-		Joins("JOIN message_user_mappings mum ON m.id = mum.message_id").
-		Joins("JOIN message_event_mappings mem ON m.id = mem.message_id").
-		Joins("JOIN events e ON mem.event_id = e.id").
-		Where("mum.user_id = ?", userID).
-		Where("m.type = ?", "EVENT").
-		Where("m.is_deleted = ?", "N").
-		Where("mum.is_deleted = ?", "N").
-		Where("e.is_deleted = ?", "N").
-		Where("mem.is_deleted = ?", "N")
-
-	// 主查询：筛选每组最新的一条消息
-	query := repo.db.WithContext(ctx).
-		Table("(?) AS t", subQuery).
-		Where("t.rn = 1").
-		Select("t.event_id, t.group_name, t.unread_count, t.latest_content, t.latest_time").
-		Order("t.latest_time DESC")
 
 	// 计算总数
 	var total int64

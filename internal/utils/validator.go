@@ -39,6 +39,11 @@ func RegisterCustomValidators(v *validator.Validate) {
 	if err := v.RegisterValidation("query_scope", validateQueryScope); err != nil {
 		panic("注册查询范围验证失败: " + err.Error())
 	}
+	// 用户群组消息类型验证
+	if err := v.RegisterValidation("user_group_message_type", validateUserGroupMessageType); err != nil {
+		panic("注册用户群组消息类型验证失败: " + err.Error())
+	}
+
 	// 其他自定义规则...
 }
 
@@ -125,6 +130,20 @@ func validateQueryScope(fl validator.FieldLevel) bool {
 	allowedScopes := QueryScopeList
 	for _, scope := range allowedScopes {
 		if strings.EqualFold(fieldValue, scope) {
+			return true
+		}
+	}
+	return false
+}
+
+// 用户群组消息类型验证实现
+func validateUserGroupMessageType(fl validator.FieldLevel) bool {
+	fieldValue := fl.Field().String()
+
+	// 允许的消息类型
+	allowedTypes := UserGroupMessageTypeList
+	for _, t := range allowedTypes {
+		if strings.EqualFold(fieldValue, t) {
 			return true
 		}
 	}

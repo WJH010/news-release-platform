@@ -10,12 +10,17 @@ import (
 
 // MessageService 服务接口，定义方法，接收 context.Context 和数据模型。
 type MessageService interface {
+	// GetMessageContent 获取消息内容
 	GetMessageContent(ctx context.Context, messageID int) (*model.Message, error)
+	// GetUnreadMessageCount 获取未读消息数
 	GetUnreadMessageCount(ctx context.Context, userID int, messageType string) (int, error)
+	// MarkAsRead 标记消息为已读
 	MarkAsRead(ctx context.Context, userID, messageID int) error
+	// MarkAllMessagesAsRead 一键已读，更新所有未读消息为已读
 	MarkAllMessagesAsRead(ctx context.Context, userID int) error
-	ListMessageByTypeGroups(ctx context.Context, page, pageSize int, userID int, typeCodes []string) ([]*dto.MessageGroupDTO, int64, error)
-	ListMessageByEventGroups(ctx context.Context, page, pageSize int, userID int) ([]*dto.MessageGroupDTO, int64, error)
+	// ListMessageGroupsByUserID 分页查询用户消息群组列表
+	ListMessageGroupsByUserID(ctx context.Context, page, pageSize int, userID int, typeCode string) ([]*dto.MessageGroupDTO, int64, error)
+	// ListMsgByGroups 分页查询分组内消息列表
 	ListMsgByGroups(ctx context.Context, page, pageSize int, userID int, eventID int, messageType string) ([]*dto.ListMessageDTO, int64, error)
 }
 
@@ -49,14 +54,9 @@ func (svc *MessageServiceImpl) MarkAllMessagesAsRead(ctx context.Context, userID
 	return svc.messageRepo.MarkAllMessagesAsRead(ctx, userID)
 }
 
-// ListMessageByTypeGroups 按类型分组查询消息
-func (svc *MessageServiceImpl) ListMessageByTypeGroups(ctx context.Context, page, pageSize int, userID int, typeCodes []string) ([]*dto.MessageGroupDTO, int64, error) {
-	return svc.messageRepo.ListMessageByTypeGroups(ctx, page, pageSize, userID, typeCodes)
-}
-
-// ListMessageByEventGroups 按活动分组查询消息
-func (svc *MessageServiceImpl) ListMessageByEventGroups(ctx context.Context, page, pageSize int, userID int) ([]*dto.MessageGroupDTO, int64, error) {
-	return svc.messageRepo.ListMessageByEventGroups(ctx, page, pageSize, userID)
+// ListMessageGroupsByUserID 分页查询用户消息群组列表
+func (svc *MessageServiceImpl) ListMessageGroupsByUserID(ctx context.Context, page, pageSize int, userID int, typeCode string) ([]*dto.MessageGroupDTO, int64, error) {
+	return svc.messageRepo.ListMessageGroupsByUserID(ctx, page, pageSize, userID, typeCode)
 }
 
 // ListMsgByGroups 分页查询分组内消息列表
