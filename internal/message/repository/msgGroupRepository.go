@@ -32,6 +32,8 @@ type MsgGroupRepository interface {
 	ListMsgGroups(ctx context.Context, page int, pageSize int, groupName string, eventID int, queryScope string) ([]model.UserMessageGroup, int64, error)
 	// ListGroupsUsers 查询指定群组的用户列表
 	ListGroupsUsers(ctx context.Context, page int, pageSize int, msgGroupID int) ([]dto.ListGroupsUsersResponse, int64, error)
+	// ListNotInGroupUsers 查询不在指定组内的用户
+	ListNotInGroupUsers(ctx context.Context, page int, pageSize int, msgGroupID int, req dto.ListNotInGroupUsersRequest) ([]dto.ListGroupsUsersResponse, int64, error)
 }
 
 // MsgGroupRepositoryImpl 实现消息群组数据访问接口的具体结构体
@@ -223,10 +225,74 @@ func (repo *MsgGroupRepositoryImpl) ListGroupsUsers(ctx context.Context, page in
 					ELSE '未知'
 				END AS gender,
 				u.phone_number, u.email, u.unit, u.department, u.position, 
-				u.industry, i.industry_name, m.is_deleted"`).
+				u.industry, i.industry_name"`).
 		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
 		Joins("JOIN user_msg_group_mappings m ON u.user_id = m.user_id").
 		Where("m.msg_group_id = ? AND m.is_deleted = ?", msgGroupID, "N")
+
+	// 计算总数
+	var total int64
+	countQuery := query.Session(&gorm.Session{})
+	if err := countQuery.Count(&total).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
+	}
+
+	// 查询数据
+	if err := query.Offset(offset).Limit(pageSize).Find(&users).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
+	}
+	return users, total, nil
+}
+
+// ListNotInGroupUsers 查询不在指定组内的用户
+func (repo *MsgGroupRepositoryImpl) ListNotInGroupUsers(ctx context.Context, page int, pageSize int, msgGroupID int, req dto.ListNotInGroupUsersRequest) ([]dto.ListGroupsUsersResponse, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+	offset := (page - 1) * pageSize
+	var users []dto.ListGroupsUsersResponse
+	query := repo.db.WithContext(ctx)
+
+	query = query.Table("users u").
+		Select(`u.user_id, u.nickname, u.name, u.gender AS gender_code, 
+				CASE 
+					WHEN u.gender = 'M' THEN '男' 
+					WHEN gender = 'F' THEN '女' 
+					ELSE '未知'
+				END AS gender,
+				u.phone_number, u.email, u.unit, u.department, u.position, 
+				u.industry, i.industry_name"`).
+		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
+		Where("m.msg_group_id = ? AND m.is_deleted = ?", msgGroupID, "N").
+		Where(`NOT EXISTS (
+						SELECT 1  
+						FROM user_msg_group_mappings m  
+						WHERE m.user_id = u.user_id 
+						AND m.msg_group_id = ?
+						AND m.is_deleted = ?)`, msgGroupID, "N")
+
+	// 拼接查询条件
+	if req.Name != "" {
+		query = query.Where("u.name LIKE ?", "%"+req.Name+"%")
+	}
+	if req.GenderCode != "" {
+		query = query.Where("u.gender = ?", req.GenderCode)
+	}
+	if req.Unit != "" {
+		query = query.Where("u.unit LIKE ?", "%"+req.Unit+"%")
+	}
+	if req.Department != "" {
+		query = query.Where("u.department LIKE ?", "%"+req.Department+"%")
+	}
+	if req.Position != "" {
+		query = query.Where("u.position LIKE ?", "%"+req.Position+"%")
+	}
+	if req.Industry != 0 {
+		query = query.Where("u.industry = ?", req.Industry)
+	}
 
 	// 计算总数
 	var total int64

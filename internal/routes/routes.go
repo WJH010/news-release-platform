@@ -200,6 +200,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 				adminMessage.DELETE("/deleteGroup/:id", msgGroupController.DeleteMsgGroup)
 				adminMessage.GET("/messageGroups", msgGroupController.ListMsgGroups)
 				adminMessage.GET("/groupUsers/:id", msgGroupController.ListGroupsUsers)
+				adminMessage.GET("/notIngroupUsers/:id", msgGroupController.ListNotInGroupUsers)
 				adminMessage.POST("/sendMessage/:id", msgController.SendMessage)
 				adminMessage.GET("/byGroupID/:id", msgController.ListMessagesByGroupID)
 				adminMessage.DELETE("/revokeMessage/:id", msgController.RevokeGroupMessage)

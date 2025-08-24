@@ -25,6 +25,8 @@ type MsgGroupService interface {
 	ListMsgGroups(ctx context.Context, page int, pageSize int, groupName string, eventID int, queryScope string) ([]model.UserMessageGroup, int64, error)
 	// ListGroupsUsers 获取指定群组内用户
 	ListGroupsUsers(ctx context.Context, page int, pageSize int, msgGroupID int) ([]dto.ListGroupsUsersResponse, int64, error)
+	// ListNotInGroupUsers 查询不在指定组内的用户
+	ListNotInGroupUsers(ctx context.Context, page int, pageSize int, msgGroupID int, req dto.ListNotInGroupUsersRequest) ([]dto.ListGroupsUsersResponse, int64, error)
 }
 
 // MsgGroupServiceImpl 实现接口的具体结构体，持有数据访问层接口 Repository 的实例
@@ -225,4 +227,9 @@ func (svc *MsgGroupServiceImpl) ListMsgGroups(ctx context.Context, page int, pag
 // ListGroupsUsers 获取指定群组内用户
 func (svc *MsgGroupServiceImpl) ListGroupsUsers(ctx context.Context, page int, pageSize int, msgGroupID int) ([]dto.ListGroupsUsersResponse, int64, error) {
 	return svc.msgGroupRepo.ListGroupsUsers(ctx, page, pageSize, msgGroupID)
+}
+
+// ListNotInGroupUsers 查询不在指定组内的用户
+func (svc *MsgGroupServiceImpl) ListNotInGroupUsers(ctx context.Context, page int, pageSize int, msgGroupID int, req dto.ListNotInGroupUsersRequest) ([]dto.ListGroupsUsersResponse, int64, error) {
+	return svc.msgGroupRepo.ListNotInGroupUsers(ctx, page, pageSize, msgGroupID, req)
 }

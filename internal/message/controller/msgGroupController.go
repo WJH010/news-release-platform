@@ -191,7 +191,7 @@ func (ctr *MsgGroupController) ListMsgGroups(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	groups, total, err := ctr.msgGroupService.ListMsgGroups(ctx, req.Page, req.PageSize, req.GroupName, req.EventID, req.QueryScope)
+	groups, total, err := ctr.msgGroupService.ListMsgGroups(ctx, page, pageSize, req.GroupName, req.EventID, req.QueryScope)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
@@ -245,7 +245,48 @@ func (ctr *MsgGroupController) ListGroupsUsers(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	users, total, err := ctr.msgGroupService.ListGroupsUsers(ctx, req.Page, req.PageSize, urlReq.MsgGroupID)
+	users, total, err := ctr.msgGroupService.ListGroupsUsers(ctx, page, pageSize, urlReq.MsgGroupID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+	// 返回分页结果
+	ctx.JSON(http.StatusOK, gin.H{
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+		"data":      users,
+	})
+}
+
+// ListNotInGroupUsers 获取不在指定组内的用户
+func (ctr *MsgGroupController) ListNotInGroupUsers(ctx *gin.Context) {
+	// 初始化参数结构体并绑定URL路径参数
+	var urlReq dto.MsgGroupIDRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+	// 初始化参数结构体并绑定查询参数
+	var req dto.ListNotInGroupUsersRequest
+	if !utils.BindQuery(ctx, &req) {
+		return
+	}
+
+	// page 默认1
+	page := req.Page
+	if page == 0 {
+		page = 1
+	}
+
+	// pageSize 默认10
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 10
+	}
+
+	// 调用服务层
+	users, total, err := ctr.msgGroupService.ListNotInGroupUsers(ctx, page, pageSize, urlReq.MsgGroupID, req)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)

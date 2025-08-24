@@ -38,6 +38,18 @@ type DeleteMsgGroupMapRequest struct {
 	MapID int `uri:"map_id" binding:"required,numeric"`
 }
 
+// ListNotInGroupUsersRequest 查询不在指定组内的用户请求参数
+type ListNotInGroupUsersRequest struct {
+	Page       int    `form:"page" binding:"omitempty,min=1"`
+	PageSize   int    `form:"page_size" binding:"omitempty,min=1,max=100"`
+	Name       string `form:"name" binding:"omitempty,max=255"`
+	GenderCode string `form:"gender_code" binding:"omitempty,oneof=M F U"`
+	Unit       string `form:"unit" binding:"omitempty,max=255"`
+	Department string `form:"department" binding:"omitempty,max=255"`
+	Position   string `form:"position" binding:"omitempty,max=255"`
+	Industry   int    `form:"industry" binding:"omitempty,numeric"`
+}
+
 // ListMsgGroupResponse 消息群组列表响应
 type ListMsgGroupResponse struct {
 	ID             int    `json:"id"`
@@ -63,5 +75,4 @@ type ListGroupsUsersResponse struct {
 	Position     string `json:"position"`
 	Industry     int    `json:"industry"`
 	IndustryName string `json:"industry_name"`
-	IsDeleted    string `json:"is_deleted"`
 }
