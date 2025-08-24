@@ -258,7 +258,7 @@ func (svc *EventServiceImpl) CreateEvent(ctx context.Context, event *model.Event
 		UpdateUser:     event.UpdateUser,
 	}
 	if err = svc.msgSvc.CreateMsgGroup(ctx, msgGroup, []int{}); err != nil {
-		return err
+		return utils.NewBusinessError(utils.ErrCodeServerInternalError, "自动创建活动消息群组失败"+err.Error())
 	}
 
 	return nil
@@ -428,6 +428,18 @@ func (svc *EventServiceImpl) DeleteEvent(ctx context.Context, eventID int, userI
 	// 处理事务执行结果
 	if err != nil {
 		return utils.NewSystemError(fmt.Errorf("事务执行失败: %w", err))
+	}
+	// 删除活动成功后，删除活动对应的消息群组，消息群组删除失败不影响活动删除成功
+	// 查询活动对应的消息群组
+	group, count, err := svc.msgSvc.ListMsgGroups(ctx, 0, 0, "", eventID, "")
+	if err != nil || count == 0 {
+		// 不存在对应的消息群组，直接返回成功
+		return nil
+	}
+	// 删除消息群组
+	err = svc.msgSvc.DeleteMsgGroup(ctx, group[0].ID, userID)
+	if err != nil {
+		return utils.NewBusinessError(utils.ErrCodeServerInternalError, "删除活动消息群组失败"+err.Error())
 	}
 	return nil
 }
