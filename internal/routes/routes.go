@@ -77,7 +77,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	industryRepo := userrepo.NewIndustryRepository(db)
 	msgRepo := msgrepo.NewMessageRepository(db)
 	eventRepo := eventrepo.NewEventRepository(db)
-	msgGroup := msgrepo.NewMsgGroupRepository(db)
+	msgGroupRepo := msgrepo.NewMsgGroupRepository(db, msgRepo)
 
 	// 初始化服务
 	articleService := articlesvc.NewArticleService(articleRepo, fileRepo)
@@ -88,7 +88,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	industryService := usersvc.NewIndustryService(industryRepo)
 	msgService := msgsvc.NewMessageService(msgRepo)
 	eventService := eventsvc.NewEventService(eventRepo, userRepo, fileRepo)
-	msgGroupService := msgsvc.NewMsgGroupService(msgGroup)
+	msgGroupService := msgsvc.NewMsgGroupService(msgGroupRepo, msgRepo)
 
 	// 初始化控制器
 	articleController := articlectr.NewArticleController(articleService)
@@ -195,6 +195,11 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			{
 				adminMessage.POST("/createGroup", msgGroupController.CreateMsgGroup)
 				adminMessage.POST("/addUserToGroup", msgGroupController.AddUserToGroup)
+				adminMessage.POST("/removeUserFromGroup", msgGroupController.DeleteUserFromGroup)
+				adminMessage.PUT("/updateGroup/:id", msgGroupController.UpdateMsgGroup)
+				adminMessage.DELETE("/deleteGroup/:id", msgGroupController.DeleteMsgGroup)
+				adminMessage.GET("/messageGroups", msgGroupController.ListMsgGroups)
+				adminMessage.GET("/groupUsers/:id", msgGroupController.ListGroupsUsers)
 			}
 		}
 		// 活动相关路由

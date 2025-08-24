@@ -17,6 +17,8 @@ type UserMessageGroup struct {
 	UpdateTime     time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 	CreateUser     int       `json:"create_user" gorm:"column:create_user"`
 	UpdateUser     int       `json:"update_user" gorm:"column:update_user"`
+	// 关联字段
+	EventTitle string `json:"event_title" gorm:"column:event_title"`
 }
 
 // TableName 指定模型对应的数据表名为 user_message_groups

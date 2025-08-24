@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"gorm.io/gorm"
+	"news-release/internal/message/dto"
 	"news-release/internal/message/model"
 	"news-release/internal/message/repository"
 	"news-release/internal/utils"
@@ -14,6 +15,16 @@ type MsgGroupService interface {
 	AddUserToGroup(ctx context.Context, msgGroupID int, userIDs []int, operateUser int) error
 	// CreateMsgGroup 创建消息群组
 	CreateMsgGroup(ctx context.Context, msgGroup *model.UserMessageGroup, userIDs []int) error
+	// DeleteUserFromGroup 用户退群
+	DeleteUserFromGroup(ctx context.Context, msgGroupID int, userIDs []int, operateUser int) error
+	// UpdateMsgGroup 更新消息群组
+	UpdateMsgGroup(ctx context.Context, msgGroupID int, request dto.UpdateMsgGroupRequest, userID int) error
+	// DeleteMsgGroup 删除消息群组
+	DeleteMsgGroup(ctx context.Context, msgGroupID int, userID int) error
+	// ListMsgGroups 列表查询消息群组
+	ListMsgGroups(ctx context.Context, page int, pageSize int, groupName string, eventID int, queryScope string) ([]model.UserMessageGroup, int64, error)
+	// ListGroupsUsers 获取指定群组内用户
+	ListGroupsUsers(ctx context.Context, page int, pageSize int, msgGroupID int) ([]dto.ListGroupsUsersResponse, int64, error)
 }
 
 // MsgGroupServiceImpl 实现接口的具体结构体，持有数据访问层接口 Repository 的实例
@@ -134,4 +145,84 @@ func (svc *MsgGroupServiceImpl) CreateMsgGroup(ctx context.Context, msgGroup *mo
 		}
 	}
 	return nil
+}
+
+// DeleteUserFromGroup 用户退群
+func (svc *MsgGroupServiceImpl) DeleteUserFromGroup(ctx context.Context, msgGroupID int, userIDs []int, operateUser int) error {
+	// 检查群组是否存在
+	group, err := svc.msgGroupRepo.GetMsgGroupByID(ctx, msgGroupID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "数据异常，消息群组不存在")
+	}
+	// 删除用户-群组关联记录（软删除）
+	err = svc.msgGroupRepo.DeleteUserMsgGroupMappings(ctx, msgGroupID, userIDs, operateUser)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// UpdateMsgGroup 更新消息群组
+func (svc *MsgGroupServiceImpl) UpdateMsgGroup(ctx context.Context, msgGroupID int, request dto.UpdateMsgGroupRequest, userID int) error {
+	// 检查群组是否存在
+	group, err := svc.msgGroupRepo.GetMsgGroupByID(ctx, msgGroupID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "数据异常，消息群组不存在")
+	}
+	// 构建更新字段
+	updateField := make(map[string]interface{})
+	if request.GroupName != nil {
+		updateField["group_name"] = request.GroupName
+	}
+	if request.Desc != nil {
+		updateField["desc"] = request.Desc
+	}
+
+	updateField["update_user"] = userID
+
+	// 更新消息群组信息
+	err = svc.msgGroupRepo.UpdateMsgGroup(ctx, msgGroupID, updateField)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeleteMsgGroup 删除消息群组
+func (svc *MsgGroupServiceImpl) DeleteMsgGroup(ctx context.Context, msgGroupID int, userID int) error {
+	// 检查群组是否存在
+	group, err := svc.msgGroupRepo.GetMsgGroupByID(ctx, msgGroupID)
+	if err != nil {
+		return err
+	}
+	if group == nil {
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "数据异常，消息群组不存在")
+	}
+
+	// 软删除消息群组，复用 UpdateMsgGroup 方法
+	updateField := map[string]interface{}{
+		"is_deleted":  "Y",
+		"update_user": userID,
+	}
+	if err = svc.msgGroupRepo.UpdateMsgGroup(ctx, msgGroupID, updateField); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// ListMsgGroups 列表查询消息群组
+func (svc *MsgGroupServiceImpl) ListMsgGroups(ctx context.Context, page int, pageSize int, groupName string, eventID int, queryScope string) ([]model.UserMessageGroup, int64, error) {
+	return svc.msgGroupRepo.ListMsgGroups(ctx, page, pageSize, groupName, eventID, queryScope)
+}
+
+// ListGroupsUsers 获取指定群组内用户
+func (svc *MsgGroupServiceImpl) ListGroupsUsers(ctx context.Context, page int, pageSize int, msgGroupID int) ([]dto.ListGroupsUsersResponse, int64, error) {
+	return svc.msgGroupRepo.ListGroupsUsers(ctx, page, pageSize, msgGroupID)
 }

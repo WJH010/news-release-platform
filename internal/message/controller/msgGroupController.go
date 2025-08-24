@@ -2,6 +2,7 @@ package controller
 
 import (
 	"github.com/gin-gonic/gin"
+	"net/http"
 	"news-release/internal/message/dto"
 	"news-release/internal/message/model"
 	"news-release/internal/message/service"
@@ -24,7 +25,7 @@ func (ctr *MsgGroupController) AddUserToGroup(ctx *gin.Context) {
 		return
 	}
 	// 初始化参数结构体并绑定查询参数
-	var req dto.AddUserToGroupRequest
+	var req dto.UserListForGroupRequest
 	if !utils.BindJSON(ctx, &req) {
 		return
 	}
@@ -81,5 +82,180 @@ func (ctr *MsgGroupController) CreateMsgGroup(ctx *gin.Context) {
 		"data": gin.H{
 			"group_id": msgGroup.ID,
 		},
+	})
+}
+
+// DeleteUserFromGroup 用户退群
+func (ctr *MsgGroupController) DeleteUserFromGroup(ctx *gin.Context) {
+	// 初始化参数结构体并绑定URL路径参数
+	var urlReq dto.MsgGroupIDRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+	// 初始化参数结构体并绑定查询参数
+	var req dto.UserListForGroupRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+	// 获取当前登录userID
+	userID, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+	// 调用服务层
+	err = ctr.msgGroupService.DeleteUserFromGroup(ctx, urlReq.MsgGroupID, req.UserIDs, userID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+	// 返回成功响应
+	ctx.JSON(200, gin.H{"message": "用户退群成功"})
+}
+
+// UpdateMsgGroup 更新消息群组
+func (ctr *MsgGroupController) UpdateMsgGroup(ctx *gin.Context) {
+	// 初始化参数结构体并绑定URL路径参数
+	var urlReq dto.MsgGroupIDRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+	// 初始化参数结构体并绑定查询参数
+	var req dto.UpdateMsgGroupRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+	// 获取当前登录userID
+	userID, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+	// 调用服务层
+	err = ctr.msgGroupService.UpdateMsgGroup(ctx, urlReq.MsgGroupID, req, userID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+	// 返回成功响应
+	ctx.JSON(200, gin.H{"message": "消息群组更新成功"})
+}
+
+// DeleteMsgGroup 删除消息群组
+func (ctr *MsgGroupController) DeleteMsgGroup(ctx *gin.Context) {
+	// 初始化参数结构体并绑定URL路径参数
+	var urlReq dto.MsgGroupIDRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+	// 获取当前登录userID
+	userID, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+	// 调用服务层
+	err = ctr.msgGroupService.DeleteMsgGroup(ctx, urlReq.MsgGroupID, userID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+	// 返回成功响应
+	ctx.JSON(200, gin.H{"message": "消息群组删除成功"})
+}
+
+// ListMsgGroups 获取消息群组列表
+func (ctr *MsgGroupController) ListMsgGroups(ctx *gin.Context) {
+	// 初始化参数结构体并绑定查询参数
+	var req dto.ListMsgGroupRequest
+	if !utils.BindQuery(ctx, &req) {
+		return
+	}
+
+	// page 默认1
+	page := req.Page
+	if page == 0 {
+		page = 1
+	}
+
+	// pageSize 默认10
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 10
+	}
+
+	// 调用服务层
+	groups, total, err := ctr.msgGroupService.ListMsgGroups(ctx, req.Page, req.PageSize, req.GroupName, req.EventID, req.QueryScope)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+	// 构建响应结果
+	var result []dto.ListMsgGroupResponse
+	for _, g := range groups {
+		result = append(result, dto.ListMsgGroupResponse{
+			ID:             g.ID,
+			GroupName:      g.GroupName,
+			Desc:           g.Desc,
+			EventID:        g.EventID,
+			EventTitle:     g.EventTitle,
+			IncludeAllUser: g.IncludeAllUser,
+			IsDeleted:      g.IsDeleted,
+		})
+	}
+	// 返回分页结果
+	ctx.JSON(http.StatusOK, gin.H{
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+		"data":      result,
+	})
+}
+
+// ListGroupsUsers 获取消息群组用户列表
+func (ctr *MsgGroupController) ListGroupsUsers(ctx *gin.Context) {
+	// 初始化参数结构体并绑定URL路径参数
+	var urlReq dto.MsgGroupIDRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+	// 初始化参数结构体并绑定查询参数
+	var req dto.ListPageRequest
+	if !utils.BindQuery(ctx, &req) {
+		return
+	}
+
+	// page 默认1
+	page := req.Page
+	if page == 0 {
+		page = 1
+	}
+
+	// pageSize 默认10
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 10
+	}
+
+	// 调用服务层
+	users, total, err := ctr.msgGroupService.ListGroupsUsers(ctx, req.Page, req.PageSize, urlReq.MsgGroupID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+	// 返回分页结果
+	ctx.JSON(http.StatusOK, gin.H{
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+		"data":      users,
 	})
 }
