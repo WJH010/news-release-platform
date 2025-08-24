@@ -14,6 +14,8 @@ import (
 
 // EventRepository 数据访问接口，定义数据访问的方法集
 type EventRepository interface {
+	// ExecTransaction 执行事务
+	ExecTransaction(ctx context.Context, fn func(tx *gorm.DB) error) error
 	// List 分页查询
 	List(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error)
 	// GetEventDetail 获取活动详情
@@ -54,6 +56,11 @@ func NewEventRepository(db *gorm.DB) EventRepository {
 type EventImage struct {
 	BizID int    `json:"biz_id" gorm:"column:biz_id"`
 	URL   string `json:"url" gorm:"column:url"`
+}
+
+// ExecTransaction 实现事务执行（使用 GORM 的 Transaction 方法）
+func (repo *EventRepositoryImpl) ExecTransaction(ctx context.Context, fn func(tx *gorm.DB) error) error {
+	return repo.db.WithContext(ctx).Transaction(fn)
 }
 
 // List 分页查询数据

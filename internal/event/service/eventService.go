@@ -3,8 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	db "news-release/internal/database"
+	"gorm.io/gorm"
 	"news-release/internal/event/dto"
 	"news-release/internal/event/model"
 	"news-release/internal/event/repository"
@@ -188,36 +187,26 @@ func (svc *EventServiceImpl) CreateEvent(ctx context.Context, event *model.Event
 		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "报名开始时间不能晚于结束时间")
 	}
 
-	// 开启事务
-	tx := db.GetDB().Begin()
-	if tx.Error != nil {
-		return utils.NewSystemError(fmt.Errorf("开启事务失败: %w", tx.Error))
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			logrus.Panic("事务回滚，发生异常: ", r)
-		}
-	}()
-
-	// 创建活动
-	if err := svc.eventRepo.CreateEvent(ctx, tx, event); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// 如果有图片，更新images表的biz_id和biz_type
-	if len(imageIDList) > 0 {
-		if err := svc.fileRepo.BatchUpdateImageBizID(ctx, tx, imageIDList, event.ID, utils.TypeEvent); err != nil {
-			tx.Rollback()
+	// 使用 GORM 函数式事务
+	err = svc.eventRepo.ExecTransaction(ctx, func(tx *gorm.DB) error {
+		// 创建活动
+		if err := svc.eventRepo.CreateEvent(ctx, tx, event); err != nil {
 			return err
 		}
-	}
 
-	// 提交事务
-	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
-		return utils.NewSystemError(fmt.Errorf("提交事务失败: %w", err))
+		// 如果有图片，更新images表的biz_id和biz_type
+		if len(imageIDList) > 0 {
+			if err := svc.fileRepo.BatchUpdateImageBizID(ctx, tx, imageIDList, event.ID, utils.TypeEvent); err != nil {
+				return err
+			}
+		}
+
+		return nil // 返回 nil，GORM 自动提交
+	})
+
+	// 处理事务执行结果
+	if err != nil {
+		return utils.NewSystemError(fmt.Errorf("事务执行失败: %w", err))
 	}
 	return nil
 }
@@ -259,37 +248,28 @@ func (svc *EventServiceImpl) UpdateEvent(ctx context.Context, eventID int, req d
 	// 设置更新人
 	updateFields["update_user"] = userID
 
-	// 开启事务
-	tx := db.GetDB().Begin()
-	if tx.Error != nil {
-		return utils.NewSystemError(fmt.Errorf("开启事务失败: %w", tx.Error))
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			logrus.Panic("事务回滚，发生异常: ", r)
-		}
-	}()
-
-	// 更新活动
-	if err := svc.eventRepo.UpdateEvent(ctx, tx, eventID, updateFields); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	// 如果有图片，更新images表的biz_id和biz_type
-	if len(imageIDList) > 0 {
-		if err := svc.fileRepo.BatchUpdateImageBizID(ctx, tx, imageIDList, eventID, utils.TypeEvent); err != nil {
-			tx.Rollback()
+	// 使用 GORM 函数式事务
+	err = svc.eventRepo.ExecTransaction(ctx, func(tx *gorm.DB) error {
+		// 更新活动
+		if err := svc.eventRepo.UpdateEvent(ctx, tx, eventID, updateFields); err != nil {
 			return err
 		}
+
+		// 如果有图片，更新images表的biz_id和biz_type
+		if len(imageIDList) > 0 {
+			if err := svc.fileRepo.BatchUpdateImageBizID(ctx, tx, imageIDList, eventID, utils.TypeEvent); err != nil {
+				return err
+			}
+		}
+
+		return nil // 返回 nil，GORM 自动提交
+	})
+
+	// 处理事务执行结果
+	if err != nil {
+		return utils.NewSystemError(fmt.Errorf("事务执行失败: %w", err))
 	}
 
-	// 提交事务
-	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
-		return utils.NewSystemError(fmt.Errorf("提交事务失败: %w", err))
-	}
 	return nil
 }
 
@@ -377,32 +357,24 @@ func (svc *EventServiceImpl) DeleteEvent(ctx context.Context, eventID int, userI
 		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "活动已失效")
 	}
 
-	// 开启事务
-	tx := db.GetDB().Begin()
-	if tx.Error != nil {
-		return utils.NewSystemError(fmt.Errorf("开启事务失败: %w", tx.Error))
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-			logrus.Panic("事务回滚，发生异常: ", r)
+	// 使用 GORM 函数式事务
+	err = svc.eventRepo.ExecTransaction(ctx, func(tx *gorm.DB) error {
+		// 软删除（更新is_deleted为Y，记录更新人）
+		updateFields := map[string]interface{}{
+			"is_deleted":  "Y",
+			"update_user": userID,
 		}
-	}()
+		if err := svc.eventRepo.UpdateEvent(ctx, tx, eventID, updateFields); err != nil {
+			tx.Rollback()
+			return err
+		}
 
-	// 软删除（更新is_deleted为Y，记录更新人）
-	updateFields := map[string]interface{}{
-		"is_deleted":  "Y",
-		"update_user": userID,
-	}
-	if err := svc.eventRepo.UpdateEvent(ctx, tx, eventID, updateFields); err != nil {
-		tx.Rollback()
-		return err
-	}
+		return nil // 返回 nil，GORM 自动提交
+	})
 
-	// 4. 提交事务
-	if err := tx.Commit().Error; err != nil {
-		tx.Rollback()
-		return utils.NewSystemError(fmt.Errorf("提交事务失败: %w", err))
+	// 处理事务执行结果
+	if err != nil {
+		return utils.NewSystemError(fmt.Errorf("事务执行失败: %w", err))
 	}
 	return nil
 }
