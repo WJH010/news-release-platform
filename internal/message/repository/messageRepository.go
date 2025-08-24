@@ -33,6 +33,10 @@ type MessageRepository interface {
 	CreateMessage(ctx context.Context, tx *gorm.DB, message *model.Message) error
 	// CreateMessageGroupMapping 创建消息-群组关联记录
 	CreateMessageGroupMapping(ctx context.Context, tx *gorm.DB, mapping *model.MessageGroupMapping) error
+	// ListMessagesByGroupID 查询指定消息组的所有消息
+	ListMessagesByGroupID(ctx context.Context, page, pageSize int, msgGroupID int, title string, queryScope string) ([]*dto.ListMessageDTO, int64, error)
+	// DeleteMessageGroupMapping 删除消息-群组关联记录
+	DeleteMessageGroupMapping(ctx context.Context, mapID int, userID int) error
 }
 
 type GroupLatestMsg struct {
@@ -352,6 +356,75 @@ func (repo *MessageRepositoryImpl) CreateMessage(ctx context.Context, tx *gorm.D
 func (repo *MessageRepositoryImpl) CreateMessageGroupMapping(ctx context.Context, tx *gorm.DB, mapping *model.MessageGroupMapping) error {
 	if err := tx.WithContext(ctx).Create(mapping).Error; err != nil {
 		return utils.NewSystemError(fmt.Errorf("创建消息-群组关联记录失败: %v", err))
+	}
+	return nil
+}
+
+// ListMessagesByGroupID 查询指定消息组的所有消息
+func (repo *MessageRepositoryImpl) ListMessagesByGroupID(ctx context.Context, page, pageSize int, msgGroupID int, title string, queryScope string) ([]*dto.ListMessageDTO, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	offset := (page - 1) * pageSize
+	var results []*dto.ListMessageDTO
+	query := repo.db.WithContext(ctx)
+
+	// 构建基础查询
+	query = query.Table("messages m").
+		Select("m.id, mgm.id AS map_id,m.title, m.content, m.send_time").
+		Joins("JOIN message_group_mappings mgm ON mgm.message_id = m.id").
+		Where("mgm.msg_group_id = ?", msgGroupID).
+		Where("m.is_deleted = ?", "N") // 只查询未删除的消息
+
+	if queryScope != "" {
+		// 如果传入了查询范围，则添加查询条件
+		// 如果传入了查询范围为DELETED，则查询已删除的
+		if queryScope == utils.QueryScopeDeleted {
+			query = query.Where("mgm.is_deleted = ?", utils.DeletedFlagYes)
+		}
+		if queryScope == utils.QueryScopeAll {
+			// 如果传入了查询范围为ALL，则查询所有
+		}
+	} else {
+		// 默认查询未删除的
+		query = query.Where("mgm.is_deleted = ?", utils.DeletedFlagNo)
+	}
+
+	if title != "" {
+		query = query.Where("m.title LIKE ?", "%"+title+"%")
+	}
+
+	// 按发送时间降序排列
+	query = query.Order("m.send_time DESC")
+
+	// 计算总数
+	var total int64
+	countQuery := query.Session(&gorm.Session{})
+	if err := countQuery.Select("count(distinct m.id)").Count(&total).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
+	}
+
+	// 查询数据
+	if err := query.Offset(offset).Limit(pageSize).Find(&results).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
+	}
+
+	return results, total, nil
+}
+
+// DeleteMessageGroupMapping 删除消息-群组关联记录
+func (repo *MessageRepositoryImpl) DeleteMessageGroupMapping(ctx context.Context, mapID int, userID int) error {
+	if err := repo.db.WithContext(ctx).Model(&model.MessageGroupMapping{}).
+		Where("id = ?", mapID).
+		Updates(map[string]interface{}{
+			"is_deleted":  utils.DeletedFlagYes,
+			"Update_user": userID,
+		}).Error; err != nil {
+		return utils.NewSystemError(fmt.Errorf("删除消息-群组关联记录失败: %v", err))
 	}
 	return nil
 }

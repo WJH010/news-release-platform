@@ -5,12 +5,6 @@ type MsgGroupIDRequest struct {
 	MsgGroupID int `uri:"msg_group_id" binding:"required,numeric"` // 消息组ID，必须为数字
 }
 
-// ListPageRequest 分页请求
-type ListPageRequest struct {
-	Page     int `form:"page" binding:"omitempty,min=1"`              // 页码，默认1
-	PageSize int `form:"page_size" binding:"omitempty,min=1,max=100"` // 每页数量，默认10，最大100
-}
-
 // UserListForGroupRequest 用户ID列表请求
 type UserListForGroupRequest struct {
 	UserIDs []int `json:"user_ids" binding:"required,dive,numeric"` // 用户ID列表，必须为数字
@@ -39,6 +33,11 @@ type ListMsgGroupRequest struct {
 	QueryScope string `form:"query_scope" binding:"omitempty,query_scope"` // 查询范围
 }
 
+// DeleteMsgGroupMapRequest 撤回组内消息请求
+type DeleteMsgGroupMapRequest struct {
+	MapID int `uri:"map_id" binding:"required,numeric"`
+}
+
 // ListMsgGroupResponse 消息群组列表响应
 type ListMsgGroupResponse struct {
 	ID             int    `json:"id"`
@@ -62,7 +61,7 @@ type ListGroupsUsersResponse struct {
 	Unit         string `json:"unit"`
 	Department   string `json:"department"`
 	Position     string `json:"position"`
-	Industry     string `json:"industry"`
+	Industry     int    `json:"industry"`
 	IndustryName string `json:"industry_name"`
 	IsDeleted    string `json:"is_deleted"`
 }

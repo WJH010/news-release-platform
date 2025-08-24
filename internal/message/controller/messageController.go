@@ -158,7 +158,7 @@ func (ctr *MessageController) ListMsgByGroups(ctx *gin.Context) {
 		return
 	}
 	// 初始化参数结构体并绑定查询参数
-	var req dto.ListMessageByGroupsRequest
+	var req dto.ListMessageByGroupRequest
 	if !utils.BindQuery(ctx, &req) {
 		return
 	}
@@ -239,5 +239,78 @@ func (ctr *MessageController) SendMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":    200,
 		"message": "消息发送成功",
+	})
+}
+
+// ListMessagesByGroupID 根据消息群组ID查询消息列表
+func (ctr *MessageController) ListMessagesByGroupID(ctx *gin.Context) {
+	// 获取并绑定路径参数
+	var urlReq dto.MsgGroupIDRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+
+	// 初始化参数结构体并绑定查询参数
+	var req dto.ListMessageByGroupIDRequest
+	if !utils.BindQuery(ctx, &req) {
+		return
+	}
+
+	// page 默认1
+	page := req.Page
+	if page == 0 {
+		page = 1
+	}
+
+	// pageSize 默认10
+	pageSize := req.PageSize
+	if pageSize == 0 {
+		pageSize = 10
+	}
+
+	// 调用服务层
+	list, total, err := ctr.messageService.ListMessagesByGroupID(ctx, page, pageSize, urlReq.MsgGroupID, req.Title, req.QueryScope)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+		"data":      list,
+	})
+}
+
+// RevokeGroupMessage 撤回群组消息
+func (ctr *MessageController) RevokeGroupMessage(ctx *gin.Context) {
+	// 获取并绑定路径参数
+	var urlReq dto.DeleteMsgGroupMapRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务层
+	err = ctr.messageService.RevokeGroupMessage(ctx, urlReq.MapID, userID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "消息撤回成功",
 	})
 }

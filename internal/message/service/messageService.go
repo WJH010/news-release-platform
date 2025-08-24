@@ -25,6 +25,10 @@ type MessageService interface {
 	HasUnreadMessages(ctx context.Context, userID int, typeCode string) (string, error)
 	// SendMessage 发送消息
 	SendMessage(ctx context.Context, msgGroupID int, msg *model.Message) error
+	// ListMessagesByGroupID 根据消息群组ID查询消息列表
+	ListMessagesByGroupID(ctx context.Context, page, pageSize int, groupID int, title string, queryScope string) ([]*dto.ListMessageDTO, int64, error)
+	// RevokeGroupMessage 撤回群组消息
+	RevokeGroupMessage(ctx context.Context, mapID int, userID int) error
 }
 
 // MessageServiceImpl 实现接口的具体结构体，持有数据访问层接口 Repository 的实例
@@ -102,4 +106,14 @@ func (svc *MessageServiceImpl) SendMessage(ctx context.Context, msgGroupID int, 
 	}
 
 	return nil
+}
+
+// ListMessagesByGroupID 根据消息群组ID查询消息列表
+func (svc *MessageServiceImpl) ListMessagesByGroupID(ctx context.Context, page, pageSize int, groupID int, title string, queryScope string) ([]*dto.ListMessageDTO, int64, error) {
+	return svc.messageRepo.ListMessagesByGroupID(ctx, page, pageSize, groupID, title, queryScope)
+}
+
+// RevokeGroupMessage 撤回群组消息
+func (svc *MessageServiceImpl) RevokeGroupMessage(ctx context.Context, mapID int, userID int) error {
+	return svc.messageRepo.DeleteMessageGroupMapping(ctx, mapID, userID)
 }
