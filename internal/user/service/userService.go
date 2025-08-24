@@ -221,5 +221,5 @@ func (svc *UserServiceImpl) GetUserByID(ctx context.Context, userID int) (*model
 
 // ListAllUsers 分页查询用户列表
 func (svc *UserServiceImpl) ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*model.User, int64, error) {
-	return svc.userRepo.ListAllUsers(ctx, page, pageSize)
+	return svc.userRepo.ListAllUsers(ctx, page, pageSize, req)
 }

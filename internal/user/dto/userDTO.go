@@ -59,4 +59,5 @@ type ListUsersResponse struct {
 	Position     string `json:"position"`
 	Industry     int    `json:"industry"`
 	IndustryName string `json:"industry_name"`
+	RoleName     string `json:"role_name"`
 }

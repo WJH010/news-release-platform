@@ -159,6 +159,7 @@ func (ctr *UserController) ListAllUsers(ctx *gin.Context) {
 			Position:     user.Position,
 			Industry:     user.Industry,
 			IndustryName: user.IndustryName,
+			RoleName:     user.RoleName,
 		})
 	}
 
