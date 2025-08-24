@@ -173,6 +173,20 @@ func (svc *EventServiceImpl) CancelRegistrationEvent(ctx context.Context, eventI
 		return err
 	}
 
+	// 取消报名成功后，将用户从活动对应的消息群组移除，消息群组移除失败不影响取消报名成功
+	// 查询活动对应的消息群组
+	group, count, err := svc.msgSvc.ListMsgGroups(ctx, 0, 0, "", eventID, "")
+	if err != nil || count == 0 {
+		// 不存在对应的消息群组，直接返回成功
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "退出活动消息群组失败，请联系管理员处理")
+	}
+	// 将用户从消息群组移除
+	err = svc.msgSvc.DeleteUserFromGroup(ctx, group[0].ID, []int{userID}, userID)
+	if err != nil {
+		// 消息群组移除失败，直接返回成功
+		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "退出活动消息群组失败，请联系管理员")
+	}
+
 	return nil
 }
 
@@ -229,6 +243,12 @@ func (svc *EventServiceImpl) CreateEvent(ctx context.Context, event *model.Event
 
 	// 活动创建成功后，创建活动消息群组，消息群组创建失败不影响活动创建成功
 	// 构建消息群组模型
+	// 检查是否已存在对应的消息群组，理论上不应该存在
+	_, count, _ := svc.msgSvc.ListMsgGroups(ctx, 0, 0, "", event.ID, "")
+	if count > 0 {
+		// 已存在对应的消息群组，直接返回成功，(在正确的业务流程下不应该出现这种情况)
+		return nil
+	}
 	msgGroup := &msgmodel.UserMessageGroup{
 		GroupName:      event.Title,
 		Desc:           "由活动" + event.Title + "自动创建",
