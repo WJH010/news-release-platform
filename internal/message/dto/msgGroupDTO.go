@@ -52,6 +52,7 @@ type ListMsgGroupResponse struct {
 
 // ListGroupsUsersResponse 消息群组用户列表响应
 type ListGroupsUsersResponse struct {
+	UserID       int    `json:"user_id"`
 	Nickname     string `json:"nickname"`
 	Name         string `json:"name"`
 	GenderCode   string `json:"gender_code"`

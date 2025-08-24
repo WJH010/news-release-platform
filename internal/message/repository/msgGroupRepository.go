@@ -216,7 +216,7 @@ func (repo *MsgGroupRepositoryImpl) ListGroupsUsers(ctx context.Context, page in
 
 	query = query.Table("users u").
 		Select(`
-				u.nickname, u.name, u.gender AS gender_code, 
+				u.user_id, u.nickname, u.name, u.gender AS gender_code, 
 				CASE 
 					WHEN u.gender = 'M' THEN '男' 
 					WHEN gender = 'F' THEN '女' 
