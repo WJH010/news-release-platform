@@ -85,6 +85,6 @@ type ListEventRegUserResponse struct {
 	Unit         string `json:"unit"`
 	Department   string `json:"department"`
 	Position     string `json:"position"`
-	Industry     string `json:"industry"`
+	Industry     int    `json:"industry"`
 	IndustryName string `json:"industry_name"`
 }

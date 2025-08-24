@@ -62,7 +62,7 @@ func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int,
 			// 如果传入了查询范围为ALL，则查询所有文章（包括已删除和未删除的）
 		}
 	} else {
-		// 默认查询未删除的活动
+		// 默认查询未删除的
 		query = query.Where("a.is_deleted = ?", utils.DeletedFlagNo)
 	}
 
