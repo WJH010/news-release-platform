@@ -139,6 +139,19 @@ func (svc *EventServiceImpl) RegistrationEvent(ctx context.Context, eventID int,
 		return utils.NewBusinessError(utils.ErrCodeResourceExists, "已报名该活动，请勿重复报名")
 	}
 
+	// 报名成功后，添加用户到活动对应的消息群组，消息群组添加失败不影响报名成功
+	// 查询活动对应的消息群组
+	group, count, err := svc.msgSvc.ListMsgGroups(ctx, 0, 0, "", eventID, "")
+	if err != nil || count == 0 {
+		// 不存在对应的消息群组，返回错误
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "进入活动消息群组失败，请联系管理员")
+	}
+	// 将用户添加到消息群组
+	err = svc.msgSvc.AddUserToGroup(ctx, group[0].ID, []int{userID}, userID)
+	if err != nil {
+		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "进入活动消息群组失败，请联系管理员")
+	}
+
 	return nil
 }
 
