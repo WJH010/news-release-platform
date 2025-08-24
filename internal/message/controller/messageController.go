@@ -152,7 +152,7 @@ func (ctr *MessageController) ListUserMessageGroups(ctx *gin.Context) {
 // ListMsgByGroups 分页查询分组内消息列表
 func (ctr *MessageController) ListMsgByGroups(ctx *gin.Context) {
 	// 获取并绑定路径参数
-	var urlReq dto.GroupIDRequest
+	var urlReq dto.MsgGroupIDRequest
 	if !utils.BindUrl(ctx, &urlReq) {
 		return
 	}
@@ -183,7 +183,7 @@ func (ctr *MessageController) ListMsgByGroups(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	list, total, err := ctr.messageService.ListMsgByGroups(ctx, page, pageSize, userID, urlReq.GroupID)
+	list, total, err := ctr.messageService.ListMsgByGroups(ctx, page, pageSize, userID, urlReq.MsgGroupID)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)

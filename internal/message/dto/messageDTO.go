@@ -19,10 +19,6 @@ type ListUserGroupMessageRequest struct {
 	TypeCode string `form:"type_code" binding:"required,user_group_message_type"` // 消息类型代码
 }
 
-type GroupIDRequest struct {
-	GroupID int `uri:"group_id" binding:"required,numeric"` // 消息组ID，必须为数字
-}
-
 // ListMessageByGroupsRequest 分页查询分组内消息列表请求参数
 type ListMessageByGroupsRequest struct {
 	Page     int `form:"page" binding:"omitempty,min=1"`              // 页码，最小为1

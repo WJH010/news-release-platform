@@ -77,6 +77,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	industryRepo := userrepo.NewIndustryRepository(db)
 	msgRepo := msgrepo.NewMessageRepository(db)
 	eventRepo := eventrepo.NewEventRepository(db)
+	msgGroup := msgrepo.NewMsgGroupRepository(db)
 
 	// 初始化服务
 	articleService := articlesvc.NewArticleService(articleRepo, fileRepo)
@@ -87,6 +88,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	industryService := usersvc.NewIndustryService(industryRepo)
 	msgService := msgsvc.NewMessageService(msgRepo)
 	eventService := eventsvc.NewEventService(eventRepo, userRepo, fileRepo)
+	msgGroupService := msgsvc.NewMsgGroupService(msgGroup)
 
 	// 初始化控制器
 	articleController := articlectr.NewArticleController(articleService)
@@ -97,6 +99,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	industryController := userctr.NewIndustryController(industryService)
 	msgController := msgctr.NewMessageController(msgService)
 	eventController := eventctr.NewEventController(eventService)
+	msgGroupController := msgctr.NewMsgGroupController(msgGroupService)
 
 	// API分组
 	api := router.Group("/api")
@@ -186,6 +189,13 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			message.PUT("/markAllAsRead", msgController.MarkAllMessagesAsRead)
 			message.GET("/userMessageGroups", msgController.ListUserMessageGroups)
 			message.GET("/byGroups", msgController.ListMsgByGroups)
+			// 消息群组管理，仅管理员可操作
+			adminMessage := message.Group("")
+			adminMessage.Use(middleware.RoleMiddleware(utils.RoleAdmin))
+			{
+				adminMessage.POST("/createGroup", msgGroupController.CreateMsgGroup)
+				adminMessage.POST("/addUserToGroup", msgGroupController.AddUserToGroup)
+			}
 		}
 		// 活动相关路由
 		event := api.Group("/event")

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 	"news-release/internal/message/dto"
 	"news-release/internal/message/model"
 	"news-release/internal/utils"
@@ -21,13 +20,15 @@ type MessageRepository interface {
 	// ListMessageGroupsByUserID 查询用户消息群组列表
 	ListMessageGroupsByUserID(ctx context.Context, page, pageSize int, userID int, typeCode string) ([]*dto.MessageGroupDTO, int64, error)
 	// ListMsgByGroups 分页查询分组内消息列表
-	ListMsgByGroups(ctx context.Context, page, pageSize int, groupID int) ([]*dto.ListMessageDTO, int64, error)
+	ListMsgByGroups(ctx context.Context, page, pageSize int, msgGroupID int) ([]*dto.ListMessageDTO, int64, error)
 	// MarkAsReadByGroup 按分组更新消息为已读
-	MarkAsReadByGroup(ctx context.Context, userID int, groupID int)
+	MarkAsReadByGroup(ctx context.Context, userID int, msgGroupID int)
 	// CheckUserMsgPermission 权限校验查询，确保普通用户只能查看自己的消息
-	CheckUserMsgPermission(ctx context.Context, userID int, groupID int) error
+	CheckUserMsgPermission(ctx context.Context, userID int, msgGroupID int) error
 	// HasUnreadMessages 获取是否有未读消息
 	HasUnreadMessages(ctx context.Context, userID int, typeCode string) (string, error)
+	// GetLatestMsgIDInGroup 获取组内最新消息ID
+	GetLatestMsgIDInGroup(ctx context.Context, msgGroupID int) (int, error)
 }
 
 type GroupLatestMsg struct {
@@ -71,23 +72,21 @@ func (repo *MessageRepositoryImpl) HasUnreadMessages(ctx context.Context, userID
 	// 构建查询
 	query := repo.db.WithContext(ctx).Table("user_message_groups umg").
 		// 关联用户加入的非全员群组映射（全员群组无此记录）
-		Joins("LEFT JOIN user_msg_group_mappings umgm ON "+
-			"umgm.msg_group_id = umg.id AND umgm.is_deleted = ? AND umgm.user_id = ?", "N", userID).
-		// 关联用户的未读标记
-		Joins("LEFT JOIN user_unread_marks uum ON uum.msg_group_id = umg.id AND uum.user_id = ?", userID).
-		Where("umg.is_deleted = ?", "N").                              // 只查询未删除的消息分组
-		Where("umg.latest_msg_id > COALESCE(uum.last_read_msg_id, 0)") // 只查询有未读消息的分组
+		Joins("JOIN user_msg_group_mappings umgm ON umgm.msg_group_id = umg.id").
+		Where("umg.is_deleted = ?", "N").                                // 只查询未删除的消息分组
+		Where("umgm.is_deleted = ?", "N").                               // 确保用户在该分组内
+		Where("umg.latest_msg_id > COALESCE(umgm.last_read_msg_id, 0)"). // 只查询有未读消息的分组
+		Where("umgm.user_id = ?", userID)                                // 指定用户ID
 
 	switch typeCode {
 	case utils.TypeGroup:
-		// 群组消息
-		query = query.Where("umgm.id IS NOT NULL")
+		// 群组消息(非全员消息)
+		query = query.Where("umg.include_all_user = ?", "N")
 	case utils.TypeSystem:
-		// 系统消息
+		// 系统消息(全员消息)
 		query = query.Where("umg.include_all_user = ?", "Y")
 	default:
-		// 否则查询所有类型的未读消息: 情况1：全员群组; 情况2：非全员群组，但用户已加入（有有效umgm记录）
-		query = query.Where("(umg.include_all_user = ? OR umgm.id IS NOT NULL)", "Y")
+		// 否则查询所有类型的未读消息
 	}
 
 	// 执行计数查询
@@ -105,41 +104,42 @@ func (repo *MessageRepositoryImpl) HasUnreadMessages(ctx context.Context, userID
 
 // MarkAllMessagesAsRead 一键已读，更新指定用户所有未读消息为已读
 func (repo *MessageRepositoryImpl) MarkAllMessagesAsRead(ctx context.Context, userID int) error {
-	// 更新用户在该组内的最后已读消息ID
 	var groupList []GroupLatestMsg
 	query := repo.db.WithContext(ctx).Table("user_message_groups umg").
 		Select("umg.id AS msg_group_id, MAX(mgm.message_id) AS latest_msg_id").
 		Joins("LEFT JOIN user_msg_group_mappings umgm ON umgm.msg_group_id = umg.id AND umgm.user_id = ? AND umgm.is_deleted = 'N'", userID).
 		Joins("JOIN message_group_mappings mgm ON mgm.msg_group_id = umg.id"). // 关联消息映射表获取消息ID
 		Where("umg.is_deleted = ?", "N").                                      // 仅处理未删除的群组
-		Where("(umg.include_all_user = ? OR umgm.id IS NOT NULL)", "Y").
-		Group("umg.id") // 按群组ID分组
+		Group("umg.id")                                                        // 按群组ID分组
 
 	// 执行查询，获取每个消息组的最新消息ID
 	if err := query.Scan(&groupList).Error; err != nil {
 		return utils.NewSystemError(fmt.Errorf("查询用户消息组失败: %w", err))
 	}
 
-	// 构建更新数据
-	var marks []model.UserUnreadMark
-	for _, group := range groupList {
-		marks = append(marks, model.UserUnreadMark{
-			UserID:        userID,
-			MsgGroupID:    group.MsgGroupID,
-			LastReadMsgID: group.LatestMsgID,
-			CreateUser:    userID,
-			UpdateUser:    userID,
-		})
-	}
+	// 批量更新：根据UserID和MsgGroupID更新LastReadMsgID
+	if len(groupList) > 0 {
+		// 构建case语句
+		caseStmt := "CASE"
+		var args []interface{}
 
-	// 批量插入或更新，以(user_id, msg_group_id)作为唯一索引，当记录不存在时插入，存在时更新
-	err := repo.db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "user_id"}, {Name: "msg_group_id"}},                                                                   // 唯一索引字段
-		DoUpdates: clause.Assignments(map[string]interface{}{"last_read_msg_id": gorm.Expr("VALUES(last_read_msg_id)"), "update_user": userID}), // 冲突时更新的字段
-	}).Create(&marks).Error
+		// 收集所有消息组ID用于WHERE条件
+		var msgGroupIDs []int
+		for _, group := range groupList {
+			caseStmt += "WHEN msg_group_id = ? THEN ?"
+			args = append(args, group.MsgGroupID, group.LatestMsgID)
+			msgGroupIDs = append(msgGroupIDs, group.MsgGroupID)
+		}
+		caseStmt += " END"
 
-	if err != nil {
-		return utils.NewSystemError(fmt.Errorf("一键已读操作失败: %w", err))
+		// 执行批量更新
+		err := repo.db.WithContext(ctx).Model(&model.UserMsgGroupMapping{}).
+			Where("user_id = ? AND msg_group_id IN (?) AND is_deleted = 'N'", userID, msgGroupIDs).
+			Update("last_read_msg_id", gorm.Expr(caseStmt, args...)).Error
+
+		if err != nil {
+			return utils.NewSystemError(fmt.Errorf("一键已读操作失败: %w", err))
+		}
 	}
 
 	return nil
@@ -166,22 +166,23 @@ func (repo *MessageRepositoryImpl) ListMessageGroupsByUserID(ctx context.Context
             m.content AS latest_content,
             m.send_time AS latest_send_time,
             CASE
-                WHEN umg.latest_msg_id > COALESCE(uum.last_read_msg_id, 0) THEN 'Y'
+                WHEN umg.latest_msg_id > COALESCE(umgm.last_read_msg_id, 0) THEN 'Y'
                 ELSE 'N'
             END AS has_unread
         `).
 		Joins("LEFT JOIN messages m ON m.id = umg.latest_msg_id AND m.is_deleted = ?", "N").
-		Joins("LEFT JOIN user_msg_group_mappings umgm ON umgm.msg_group_id = umg.id AND umgm.user_id = ? AND umgm.is_deleted = 'N'", userID).
-		Joins("LEFT JOIN user_unread_marks uum ON uum.msg_group_id = umg.id AND uum.user_id = ?", userID).
-		Where("umg.is_deleted = ?", "N") // 仅有效群组
+		Joins("JOIN user_msg_group_mappings umgm ON umgm.msg_group_id = umg.id").
+		Where("umg.is_deleted = ?", "N").  // 仅有效群组
+		Where("umgm.is_deleted = ?", "N"). // 仅有效用户-群组映射
+		Where("umgm.user_id = ?", userID)
 
 	// 根据typeCode动态拼接群组归属条件
 	switch typeCode {
 	case utils.TypeGroup:
-		// 群组消息
-		query = query.Where("umgm.id IS NOT NULL")
+		// 群组消息(非全员消息)
+		query = query.Where("umg.include_all_user = ?", "N")
 	case utils.TypeSystem:
-		// 系统消息
+		// 系统消息(全员消息)
 		query = query.Where("umg.include_all_user = ?", "Y")
 	default:
 		return nil, 0, utils.NewBusinessError(utils.ErrCodeParamInvalid, "消息类型参数不合法")
@@ -206,7 +207,7 @@ func (repo *MessageRepositoryImpl) ListMessageGroupsByUserID(ctx context.Context
 }
 
 // ListMsgByGroups 分页查询分组内消息列表
-func (repo *MessageRepositoryImpl) ListMsgByGroups(ctx context.Context, page, pageSize int, groupID int) ([]*dto.ListMessageDTO, int64, error) {
+func (repo *MessageRepositoryImpl) ListMsgByGroups(ctx context.Context, page, pageSize int, msgGroupID int) ([]*dto.ListMessageDTO, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -222,7 +223,7 @@ func (repo *MessageRepositoryImpl) ListMsgByGroups(ctx context.Context, page, pa
 	query = query.Table("messages m").
 		Select("m.id, m.title, m.content, m.send_time").
 		Joins("JOIN message_group_mappings mgm ON mgm.message_id = m.id").
-		Where("umgm.msg_group_id = ?", groupID).
+		Where("mgm.msg_group_id = ?", msgGroupID).
 		Where("m.is_deleted = ?", "N").  // 只查询未删除的消息
 		Where("mgm.is_deleted = ?", "N") // 只查询未删除的组内消息
 
@@ -246,9 +247,9 @@ func (repo *MessageRepositoryImpl) ListMsgByGroups(ctx context.Context, page, pa
 
 // MarkAsReadByGroup 更新组内消息为已读
 // 根据用户ID、群组ID、更新该用户在该群组内的最后已读消息ID
-func (repo *MessageRepositoryImpl) MarkAsReadByGroup(ctx context.Context, userID int, groupID int) {
+func (repo *MessageRepositoryImpl) MarkAsReadByGroup(ctx context.Context, userID int, msgGroupID int) {
 	// 获取组内最新消息ID
-	latestMsgID, err := repo.getLatestMsgIDInGroup(ctx, groupID)
+	latestMsgID, err := repo.GetLatestMsgIDInGroup(ctx, msgGroupID)
 	if err != nil {
 		// 只记录日志，更新已读状态失败不影响消息加载
 		logrus.Errorf("获取组内最新消息ID失败: %v", err)
@@ -256,17 +257,13 @@ func (repo *MessageRepositoryImpl) MarkAsReadByGroup(ctx context.Context, userID
 	}
 
 	// 更新用户在该组内的最后已读消息ID
-	err = repo.db.Where("user_id = ? AND msg_group_id = ?", userID, groupID).
-		Attrs(model.UserUnreadMark{ // 不存在时创建
-			LastReadMsgID: latestMsgID,
-			CreateUser:    userID,
-			UpdateUser:    userID,
-		}).
-		Assign(map[string]interface{}{ // 存在时更新
+	err = repo.db.WithContext(ctx).
+		Model(&model.UserMsgGroupMapping{}).
+		Where("msg_group_id = ? AND user_id = ?", msgGroupID, userID).
+		Updates(map[string]interface{}{
 			"last_read_msg_id": latestMsgID,
-			"update_user":      userID,
-		}).
-		FirstOrCreate(&model.UserUnreadMark{}).Error
+			"UpdateUser":       userID,
+		}).Error
 
 	if err != nil {
 		// 只记录日志，更新已读状态失败不影响消息加载
@@ -274,14 +271,14 @@ func (repo *MessageRepositoryImpl) MarkAsReadByGroup(ctx context.Context, userID
 	}
 }
 
-// 获取组内最新消息ID
-func (repo *MessageRepositoryImpl) getLatestMsgIDInGroup(ctx context.Context, groupID int) (int, error) {
+// GetLatestMsgIDInGroup 获取组内最新消息ID
+func (repo *MessageRepositoryImpl) GetLatestMsgIDInGroup(ctx context.Context, msgGroupID int) (int, error) {
 	var latestMsgID int
 
 	err := repo.db.WithContext(ctx).
 		Table("message_group_mappings").
 		Select("MAX(message_id)").
-		Where("msg_group_id = ? AND is_deleted = ?", groupID, "N").
+		Where("msg_group_id = ? AND is_deleted = ?", msgGroupID, "N").
 		Scan(&latestMsgID).Error
 
 	if err != nil {
@@ -292,12 +289,12 @@ func (repo *MessageRepositoryImpl) getLatestMsgIDInGroup(ctx context.Context, gr
 }
 
 // CheckUserMsgPermission 权限校验查询，确保普通用户只能查看自己的消息
-func (repo *MessageRepositoryImpl) CheckUserMsgPermission(ctx context.Context, userID int, groupID int) error {
+func (repo *MessageRepositoryImpl) CheckUserMsgPermission(ctx context.Context, userID int, msgGroupID int) error {
 	// 如果是全体用户消息组，直接返回true
 	var count int64
 	err := repo.db.WithContext(ctx).
 		Table("user_message_groups").
-		Where("id = ? AND include_all_user = ? AND is_deleted = ?", groupID, "Y", "N").
+		Where("id = ? AND include_all_user = ? AND is_deleted = ?", msgGroupID, "Y", "N").
 		Count(&count).Error
 	if err != nil {
 		return utils.NewSystemError(fmt.Errorf("权限校验时数据库查询失败: %w", err))
@@ -323,7 +320,7 @@ func (repo *MessageRepositoryImpl) CheckUserMsgPermission(ctx context.Context, u
 	// 检查普通用户是否属于该消息组
 	err = repo.db.WithContext(ctx).
 		Table("user_msg_group_mappings").
-		Where("user_id = ? AND msg_group_id = ? AND is_deleted = ?", userID, groupID, "N").
+		Where("user_id = ? AND msg_group_id = ? AND is_deleted = ?", userID, msgGroupID, "N").
 		Count(&count).Error
 
 	if err != nil {
