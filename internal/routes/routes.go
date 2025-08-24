@@ -86,7 +86,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fileService := filesvc.NewFileService(minioRepo, fileRepo)
 	userService := usersvc.NewUserService(userRepo, cfg)
 	industryService := usersvc.NewIndustryService(industryRepo)
-	msgService := msgsvc.NewMessageService(msgRepo)
+	msgService := msgsvc.NewMessageService(msgRepo, msgGroupRepo)
 	msgGroupService := msgsvc.NewMsgGroupService(msgGroupRepo, msgRepo)
 	eventService := eventsvc.NewEventService(eventRepo, userRepo, fileRepo, msgGroupService)
 
@@ -200,6 +200,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 				adminMessage.DELETE("/deleteGroup/:id", msgGroupController.DeleteMsgGroup)
 				adminMessage.GET("/messageGroups", msgGroupController.ListMsgGroups)
 				adminMessage.GET("/groupUsers/:id", msgGroupController.ListGroupsUsers)
+				adminMessage.POST("/sendMessage/:id", msgController.SendMessage)
 			}
 		}
 		// 活动相关路由

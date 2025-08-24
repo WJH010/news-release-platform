@@ -29,6 +29,10 @@ type MessageRepository interface {
 	HasUnreadMessages(ctx context.Context, userID int, typeCode string) (string, error)
 	// GetLatestMsgIDInGroup 获取组内最新消息ID
 	GetLatestMsgIDInGroup(ctx context.Context, msgGroupID int) (int, error)
+	// CreateMessage 创建消息记录
+	CreateMessage(ctx context.Context, tx *gorm.DB, message *model.Message) error
+	// CreateMessageGroupMapping 创建消息-群组关联记录
+	CreateMessageGroupMapping(ctx context.Context, tx *gorm.DB, mapping *model.MessageGroupMapping) error
 }
 
 type GroupLatestMsg struct {
@@ -333,5 +337,21 @@ func (repo *MessageRepositoryImpl) CheckUserMsgPermission(ctx context.Context, u
 		return utils.NewBusinessError(utils.ErrCodePermissionDenied, "无权访问该消息组")
 	}
 
+	return nil
+}
+
+// CreateMessage 创建消息记录
+func (repo *MessageRepositoryImpl) CreateMessage(ctx context.Context, tx *gorm.DB, message *model.Message) error {
+	if err := tx.WithContext(ctx).Create(message).Error; err != nil {
+		return utils.NewSystemError(fmt.Errorf("创建消息记录失败: %v", err))
+	}
+	return nil
+}
+
+// CreateMessageGroupMapping 创建消息-群组关联记录
+func (repo *MessageRepositoryImpl) CreateMessageGroupMapping(ctx context.Context, tx *gorm.DB, mapping *model.MessageGroupMapping) error {
+	if err := tx.WithContext(ctx).Create(mapping).Error; err != nil {
+		return utils.NewSystemError(fmt.Errorf("创建消息-群组关联记录失败: %v", err))
+	}
 	return nil
 }

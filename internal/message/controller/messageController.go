@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 	"news-release/internal/message/dto"
+	"news-release/internal/message/model"
 	"news-release/internal/message/service"
 	"news-release/internal/utils"
 
@@ -22,7 +23,7 @@ func NewMessageController(messageService service.MessageService) *MessageControl
 // GetMessageContent 获取消息内容
 func (ctr *MessageController) GetMessageContent(ctx *gin.Context) {
 	// 初始化参数结构体并绑定查询参数
-	var req dto.MessageContentRequest
+	var req dto.MessageIDRequest
 	if !utils.BindUrl(ctx, &req) {
 		return
 	}
@@ -183,7 +184,7 @@ func (ctr *MessageController) ListMsgByGroups(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	list, total, err := ctr.messageService.ListMsgByGroups(ctx, page, pageSize, userID, urlReq.MsgGroupID)
+	list, total, err := ctr.messageService.ListMsgByGroups(ctx, page, pageSize, urlReq.MsgGroupID, userID)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
@@ -195,5 +196,48 @@ func (ctr *MessageController) ListMsgByGroups(ctx *gin.Context) {
 		"page":      page,
 		"page_size": pageSize,
 		"data":      list,
+	})
+}
+
+// SendMessage 发送消息
+func (ctr *MessageController) SendMessage(ctx *gin.Context) {
+	// 获取并绑定路径参数
+	var urlReq dto.MsgGroupIDRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+	// 初始化参数结构体并绑定请求体参数
+	var req dto.SendMessageRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 构建消息对象
+	message := &model.Message{
+		Title:      req.Title,
+		Content:    req.Content,
+		CreateUser: userID,
+	}
+
+	// 调用服务层
+	err = ctr.messageService.SendMessage(ctx, urlReq.MsgGroupID, message)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "消息发送成功",
 	})
 }
