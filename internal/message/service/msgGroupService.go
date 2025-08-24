@@ -44,7 +44,7 @@ func classifyUsers(
 			needCreate = append(needCreate, model.UserMsgGroupMapping{
 				MsgGroupID:    groupID,
 				UserID:        userID,
-				JoinMsgID:     latestMsgID, // 入群时的最新消息ID（核心：用于过滤历史消息）
+				JoinMsgID:     latestMsgID, // 入群时的最新消息ID（用于过滤历史消息）
 				LastReadMsgID: latestMsgID,
 				CreateUser:    operateUser,
 				UpdateUser:    operateUser,

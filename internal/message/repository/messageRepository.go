@@ -20,7 +20,7 @@ type MessageRepository interface {
 	// ListMessageGroupsByUserID 查询用户消息群组列表
 	ListMessageGroupsByUserID(ctx context.Context, page, pageSize int, userID int, typeCode string) ([]*dto.MessageGroupDTO, int64, error)
 	// ListMsgByGroups 分页查询分组内消息列表
-	ListMsgByGroups(ctx context.Context, page, pageSize int, msgGroupID int) ([]*dto.ListMessageDTO, int64, error)
+	ListMsgByGroups(ctx context.Context, page, pageSize int, msgGroupID int, userID int) ([]*dto.ListMessageDTO, int64, error)
 	// MarkAsReadByGroup 按分组更新消息为已读
 	MarkAsReadByGroup(ctx context.Context, userID int, msgGroupID int)
 	// CheckUserMsgPermission 权限校验查询，确保普通用户只能查看自己的消息
@@ -170,8 +170,8 @@ func (repo *MessageRepositoryImpl) ListMessageGroupsByUserID(ctx context.Context
                 ELSE 'N'
             END AS has_unread
         `).
-		Joins("LEFT JOIN messages m ON m.id = umg.latest_msg_id AND m.is_deleted = ?", "N").
 		Joins("JOIN user_msg_group_mappings umgm ON umgm.msg_group_id = umg.id").
+		Joins("LEFT JOIN messages m ON m.id = umg.latest_msg_id AND m.id > umgm.join_msg_id AND m.is_deleted = ?", "N").
 		Where("umg.is_deleted = ?", "N").  // 仅有效群组
 		Where("umgm.is_deleted = ?", "N"). // 仅有效用户-群组映射
 		Where("umgm.user_id = ?", userID)
@@ -207,7 +207,7 @@ func (repo *MessageRepositoryImpl) ListMessageGroupsByUserID(ctx context.Context
 }
 
 // ListMsgByGroups 分页查询分组内消息列表
-func (repo *MessageRepositoryImpl) ListMsgByGroups(ctx context.Context, page, pageSize int, msgGroupID int) ([]*dto.ListMessageDTO, int64, error) {
+func (repo *MessageRepositoryImpl) ListMsgByGroups(ctx context.Context, page, pageSize int, msgGroupID int, userID int) ([]*dto.ListMessageDTO, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -223,7 +223,9 @@ func (repo *MessageRepositoryImpl) ListMsgByGroups(ctx context.Context, page, pa
 	query = query.Table("messages m").
 		Select("m.id, m.title, m.content, m.send_time").
 		Joins("JOIN message_group_mappings mgm ON mgm.message_id = m.id").
+		Joins("JOIN user_msg_group_mappings umgm ON umgm.msg_group_id = mgm.msg_group_id AND umgm.user_id = ?", userID).
 		Where("mgm.msg_group_id = ?", msgGroupID).
+		Where("m.id > umgm.join_msg_id").
 		Where("m.is_deleted = ?", "N").  // 只查询未删除的消息
 		Where("mgm.is_deleted = ?", "N") // 只查询未删除的组内消息
 
