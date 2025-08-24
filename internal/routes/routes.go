@@ -87,8 +87,8 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	userService := usersvc.NewUserService(userRepo, cfg)
 	industryService := usersvc.NewIndustryService(industryRepo)
 	msgService := msgsvc.NewMessageService(msgRepo)
-	eventService := eventsvc.NewEventService(eventRepo, userRepo, fileRepo)
 	msgGroupService := msgsvc.NewMsgGroupService(msgGroupRepo, msgRepo)
+	eventService := eventsvc.NewEventService(eventRepo, userRepo, fileRepo, msgGroupService)
 
 	// 初始化控制器
 	articleController := articlectr.NewArticleController(articleService)

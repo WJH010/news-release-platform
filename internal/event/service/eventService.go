@@ -8,6 +8,8 @@ import (
 	"news-release/internal/event/model"
 	"news-release/internal/event/repository"
 	filerepo "news-release/internal/file/repository"
+	msgmodel "news-release/internal/message/model"
+	msgsvc "news-release/internal/message/service"
 	usermodel "news-release/internal/user/model"
 	userrepo "news-release/internal/user/repository"
 	"news-release/internal/utils"
@@ -43,6 +45,7 @@ type EventServiceImpl struct {
 	eventRepo repository.EventRepository // 事件数据访问接口
 	userRepo  userrepo.UserRepository    // 用户数据访问接口
 	fileRepo  filerepo.FileRepository    // 文件数据访问接口
+	msgSvc    msgsvc.MsgGroupService     // 消息群组服务接口
 }
 
 // NewEventService 创建服务实例
@@ -50,11 +53,13 @@ func NewEventService(
 	eventRepo repository.EventRepository,
 	userRepo userrepo.UserRepository,
 	fileRepo filerepo.FileRepository,
+	msgSvc msgsvc.MsgGroupService,
 ) EventService {
 	return &EventServiceImpl{
 		eventRepo: eventRepo,
 		userRepo:  userRepo,
 		fileRepo:  fileRepo,
+		msgSvc:    msgSvc,
 	}
 }
 
@@ -208,6 +213,21 @@ func (svc *EventServiceImpl) CreateEvent(ctx context.Context, event *model.Event
 	if err != nil {
 		return utils.NewSystemError(fmt.Errorf("事务执行失败: %w", err))
 	}
+
+	// 活动创建成功后，创建活动消息群组，消息群组创建失败不影响活动创建成功
+	// 构建消息群组模型
+	msgGroup := &msgmodel.UserMessageGroup{
+		GroupName:      event.Title,
+		Desc:           "由活动" + event.Title + "自动创建",
+		EventID:        event.ID,
+		IncludeAllUser: "N",
+		CreateUser:     event.CreateUser,
+		UpdateUser:     event.UpdateUser,
+	}
+	if err = svc.msgSvc.CreateMsgGroup(ctx, msgGroup, []int{}); err != nil {
+		return err
+	}
+
 	return nil
 }
 
