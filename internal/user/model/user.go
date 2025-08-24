@@ -25,7 +25,7 @@ type User struct {
 	Unit          string    `json:"unit" gorm:"column:unit;default:NULL"`
 	Department    string    `json:"department" gorm:"column:department;default:NULL"`
 	Position      string    `json:"position" gorm:"column:position;default:NULL"`
-	Industry      string    `json:"industry" gorm:"column:industry;default:NULL"`
+	Industry      int       `json:"industry" gorm:"column:industry;default:NULL"`
 	CreateTime    time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime    time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 	// 关联字段

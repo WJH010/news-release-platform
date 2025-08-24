@@ -150,7 +150,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 				adminUser := authUser.Group("")
 				adminUser.Use(middleware.RoleMiddleware(utils.RoleAdmin))
 				{
-
+					adminUser.GET("/listAll", userController.ListAllUsers)
 				}
 			}
 		}
@@ -201,6 +201,8 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 				adminMessage.GET("/messageGroups", msgGroupController.ListMsgGroups)
 				adminMessage.GET("/groupUsers/:id", msgGroupController.ListGroupsUsers)
 				adminMessage.POST("/sendMessage/:id", msgController.SendMessage)
+				adminMessage.GET("/byGroupID/:id", msgController.ListMessagesByGroupID)
+				adminMessage.DELETE("/revokeMessage/:id", msgController.RevokeGroupMessage)
 			}
 		}
 		// 活动相关路由

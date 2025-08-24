@@ -29,6 +29,7 @@ type UserService interface {
 	Login(ctx context.Context, code string) (string, error)
 	UpdateUserInfo(ctx context.Context, userID int, req dto.UserUpdateRequest) error
 	GetUserByID(ctx context.Context, userID int) (*model.User, error)
+	ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*model.User, int64, error)
 }
 
 // UserServiceImpl 用户服务实现
@@ -216,4 +217,9 @@ func (svc *UserServiceImpl) GetUserByID(ctx context.Context, userID int) (*model
 	}
 
 	return user, nil
+}
+
+// ListAllUsers 分页查询用户列表
+func (svc *UserServiceImpl) ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*model.User, int64, error) {
+	return svc.userRepo.ListAllUsers(ctx, page, pageSize)
 }

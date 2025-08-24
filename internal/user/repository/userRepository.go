@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"news-release/internal/user/dto"
 	"news-release/internal/user/model"
 	"news-release/internal/utils"
 	"time"
@@ -18,6 +19,7 @@ type UserRepository interface {
 	Update(ctx context.Context, userID int, updateFields map[string]interface{}) error
 	UpdateSessionAndLoginTime(ctx context.Context, userID int, sessionKey string) error
 	GetUserByID(ctx context.Context, userID int) (*model.User, error)
+	ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*model.User, int64, error)
 }
 
 // UserRepositoryImpl 用户仓库实现
@@ -104,4 +106,47 @@ func (repo *UserRepositoryImpl) Update(ctx context.Context, userID int, updateFi
 		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "更新用户信息失败，用户数据异常，请刷新页面后重试")
 	}
 	return nil
+}
+
+// ListAllUsers 分页查询用户列表
+func (repo *UserRepositoryImpl) ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*model.User, int64, error) {
+	var users []*model.User
+	var total int64
+
+	query := repo.db.WithContext(ctx).Table("users u").
+		Select("u.id, u.nickname, u.avatar_url, u.name, u.gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name").
+		Joins("LEFT JOIN industries i ON u.industry = i.industry_code")
+
+	// 拼接查询条件
+	if req.Name != "" {
+		query = query.Where("u.name LIKE ?", "%"+req.Name+"%")
+	}
+	if req.GenderCode != "" {
+		query = query.Where("u.gender = ?", req.GenderCode)
+	}
+	if req.Unit != "" {
+		query = query.Where("u.unit LIKE ?", "%"+req.Unit+"%")
+	}
+	if req.Department != "" {
+		query = query.Where("u.department LIKE ?", "%"+req.Department+"%")
+	}
+	if req.Position != "" {
+		query = query.Where("u.position LIKE ?", "%"+req.Position+"%")
+	}
+	if req.Industry != 0 {
+		query = query.Where("u.industry = ?", req.Industry)
+	}
+
+	// 计算总记录数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算用户总数失败: %w", err))
+	}
+
+	// 分页查询
+	offset := (page - 1) * pageSize
+	if err := query.Offset(offset).Limit(pageSize).Find(&users).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("查询用户列表失败: %w", err))
+	}
+
+	return users, total, nil
 }
