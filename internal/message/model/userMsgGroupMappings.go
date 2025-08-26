@@ -10,8 +10,8 @@ type UserMsgGroupMapping struct {
 	ID            int       `json:"id" gorm:"primaryKey;column:id"`
 	MsgGroupID    int       `json:"msg_group_id" gorm:"not null;column:msg_group_id"`
 	UserID        int       `json:"user_id" gorm:"not null;column:user_id"`
-	LastReadMsgID int       `json:"last_read_msg_id" gorm:"column:last_read_msg_id,default:0"`     // 用户最后阅读的消息ID，默认值为0
-	JoinMsgID     int       `json:"join_msg_id" gorm:"column:join_msg_id,default:0"`               // 用户加入群组时的最新消息ID，默认值为0
+	LastReadMsgID int       `json:"last_read_msg_id" gorm:"column:last_read_msg_id;default:0"`     // 用户最后阅读的消息ID，默认值为0
+	JoinMsgID     int       `json:"join_msg_id" gorm:"column:join_msg_id;default:0"`               // 用户加入群组时的最新消息ID，默认值为0
 	IsDeleted     string    `json:"is_deleted" gorm:"default:N;column:is_deleted;type:varchar(5)"` // 软删除标记：默认 N
 	CreateTime    time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime    time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`

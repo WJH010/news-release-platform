@@ -191,25 +191,13 @@ func (ctr *MsgGroupController) ListMsgGroups(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	groups, total, err := ctr.msgGroupService.ListMsgGroups(ctx, page, pageSize, req.GroupName, req.EventID, req.QueryScope)
+	result, total, err := ctr.msgGroupService.ListMsgGroups(ctx, page, pageSize, req.GroupName, req.EventID, req.QueryScope)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
 		return
 	}
-	// 构建响应结果
-	var result []dto.ListMsgGroupResponse
-	for _, g := range groups {
-		result = append(result, dto.ListMsgGroupResponse{
-			ID:             g.ID,
-			GroupName:      g.GroupName,
-			Desc:           g.Desc,
-			EventID:        g.EventID,
-			EventTitle:     g.EventTitle,
-			IncludeAllUser: g.IncludeAllUser,
-			IsDeleted:      g.IsDeleted,
-		})
-	}
+
 	// 返回分页结果
 	ctx.JSON(http.StatusOK, gin.H{
 		"total":     total,

@@ -287,7 +287,7 @@ func (repo *MessageRepositoryImpl) GetLatestMsgIDInGroup(ctx context.Context, ms
 
 	err := repo.db.WithContext(ctx).
 		Table("message_group_mappings").
-		Select("MAX(message_id)").
+		Select("COALESCE(MAX(message_id), 0) AS max_message_id").
 		Where("msg_group_id = ? AND is_deleted = ?", msgGroupID, "N").
 		Scan(&latestMsgID).Error
 

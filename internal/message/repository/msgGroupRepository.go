@@ -29,7 +29,7 @@ type MsgGroupRepository interface {
 	// UpdateMsgGroup 更新消息群组信息
 	UpdateMsgGroup(ctx context.Context, msgGroupID int, updateField map[string]interface{}) error
 	// ListMsgGroups 分页查询消息群组
-	ListMsgGroups(ctx context.Context, page int, pageSize int, groupName string, eventID int, queryScope string) ([]model.UserMessageGroup, int64, error)
+	ListMsgGroups(ctx context.Context, page int, pageSize int, groupName string, eventID int, queryScope string) ([]dto.ListMsgGroupResponse, int64, error)
 	// ListGroupsUsers 查询指定群组的用户列表
 	ListGroupsUsers(ctx context.Context, page int, pageSize int, msgGroupID int) ([]dto.ListGroupsUsersResponse, int64, error)
 	// ListNotInGroupUsers 查询不在指定组内的用户
@@ -56,6 +56,10 @@ func (repo *MsgGroupRepositoryImpl) ExecTransaction(ctx context.Context, fn func
 func (repo *MsgGroupRepositoryImpl) CreateMsgGroup(ctx context.Context, group *model.UserMessageGroup) error {
 	err := repo.db.WithContext(ctx).Create(group).Error
 	if err != nil {
+		exist, _ := utils.IsUniqueConstraintError(err)
+		if exist {
+			return utils.NewBusinessError(utils.ErrCodeResourceExists, "已存在同名消息群组")
+		}
 		return utils.NewSystemError(fmt.Errorf("创建消息群组失败: %v", err))
 	}
 	return nil
@@ -155,7 +159,7 @@ func (repo *MsgGroupRepositoryImpl) UpdateMsgGroup(ctx context.Context, msgGroup
 }
 
 // ListMsgGroups 分页查询消息群组
-func (repo *MsgGroupRepositoryImpl) ListMsgGroups(ctx context.Context, page int, pageSize int, groupName string, eventID int, queryScope string) ([]model.UserMessageGroup, int64, error) {
+func (repo *MsgGroupRepositoryImpl) ListMsgGroups(ctx context.Context, page int, pageSize int, groupName string, eventID int, queryScope string) ([]dto.ListMsgGroupResponse, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -163,10 +167,10 @@ func (repo *MsgGroupRepositoryImpl) ListMsgGroups(ctx context.Context, page int,
 		pageSize = 10
 	}
 	offset := (page - 1) * pageSize
-	var groups []model.UserMessageGroup
+	var groups []dto.ListMsgGroupResponse
 
 	query := repo.db.WithContext(ctx).Table("user_message_groups umg").
-		Select("umg.id, umg.group_name, umg.desc, umg.event_id, e.event_title, umg.include_all_user, umg.is_deleted").
+		Select("umg.id, umg.group_name, umg.desc, umg.event_id, e.title AS event_title, umg.include_all_user, umg.is_deleted").
 		Joins("LEFT JOIN events e ON e.id = umg.event_id")
 	// 拼接查询条件
 	if groupName != "" {

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"news-release/internal/message/dto"
 	"news-release/internal/message/model"
@@ -22,7 +23,7 @@ type MsgGroupService interface {
 	// DeleteMsgGroup 删除消息群组
 	DeleteMsgGroup(ctx context.Context, msgGroupID int, userID int) error
 	// ListMsgGroups 列表查询消息群组
-	ListMsgGroups(ctx context.Context, page int, pageSize int, groupName string, eventID int, queryScope string) ([]model.UserMessageGroup, int64, error)
+	ListMsgGroups(ctx context.Context, page int, pageSize int, groupName string, eventID int, queryScope string) ([]dto.ListMsgGroupResponse, int64, error)
 	// ListGroupsUsers 获取指定群组内用户
 	ListGroupsUsers(ctx context.Context, page int, pageSize int, msgGroupID int) ([]dto.ListGroupsUsersResponse, int64, error)
 	// ListNotInGroupUsers 查询不在指定组内的用户
@@ -143,7 +144,8 @@ func (svc *MsgGroupServiceImpl) CreateMsgGroup(ctx context.Context, msgGroup *mo
 	if msgGroup.IncludeAllUser == "N" && len(userIDs) > 0 {
 		err = svc.AddUserToGroup(ctx, msgGroup.ID, userIDs, msgGroup.CreateUser)
 		if err != nil {
-			return err
+			logrus.Errorf("添加用户到群组失败" + err.Error())
+			return utils.NewBusinessError(utils.ErrCodeServerInternalError, "添加用户到群组失败，请手动添加")
 		}
 	}
 	return nil
@@ -220,7 +222,7 @@ func (svc *MsgGroupServiceImpl) DeleteMsgGroup(ctx context.Context, msgGroupID i
 }
 
 // ListMsgGroups 列表查询消息群组
-func (svc *MsgGroupServiceImpl) ListMsgGroups(ctx context.Context, page int, pageSize int, groupName string, eventID int, queryScope string) ([]model.UserMessageGroup, int64, error) {
+func (svc *MsgGroupServiceImpl) ListMsgGroups(ctx context.Context, page int, pageSize int, groupName string, eventID int, queryScope string) ([]dto.ListMsgGroupResponse, int64, error) {
 	return svc.msgGroupRepo.ListMsgGroups(ctx, page, pageSize, groupName, eventID, queryScope)
 }
 
