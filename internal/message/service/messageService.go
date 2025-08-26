@@ -87,7 +87,7 @@ func (svc *MessageServiceImpl) SendMessage(ctx context.Context, msgGroupID int, 
 
 		// 创建消息-群组关联
 		mapping := &model.MessageGroupMapping{
-			ID:         msg.ID,
+			MessageID:  msg.ID,
 			MsgGroupID: msgGroupID,
 			CreateUser: msg.CreateUser,
 			UpdateUser: msg.CreateUser,

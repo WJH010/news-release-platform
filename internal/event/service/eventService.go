@@ -109,7 +109,7 @@ func (svc *EventServiceImpl) RegistrationEvent(ctx context.Context, eventID int,
 	if err != nil || user == nil {
 		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "加载用户信息失败")
 	}
-	if user.Name == "" || user.PhoneNumber == "" || user.Email == "" || user.Unit == "" || user.Department == "" || user.Position == "" || user.Industry == 0 {
+	if user.Name == "" || user.PhoneNumber == "" || user.Email == "" || user.Unit == "" || user.Department == "" || user.Position == "" || user.Industry == "" {
 		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "用户信息不完整，请完善个人信息")
 	}
 

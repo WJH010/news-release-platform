@@ -15,8 +15,6 @@ type Message struct {
 	UpdateTime time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 	CreateUser int       `json:"create_user" gorm:"column:create_user"` // 数据创建用户ID
 	UpdateUser int       `json:"update_user" gorm:"column:update_user"` // 最后更新数据用户ID
-	// 关联字段
-	TypeName string `json:"type_name" gorm:"column:type_name"` // 关联message_types表
 }
 
 // TableName 设置表名

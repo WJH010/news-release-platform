@@ -6,6 +6,7 @@ import (
 	"news-release/internal/message/model"
 	"news-release/internal/message/service"
 	"news-release/internal/utils"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -224,7 +225,9 @@ func (ctr *MessageController) SendMessage(ctx *gin.Context) {
 	message := &model.Message{
 		Title:      req.Title,
 		Content:    req.Content,
+		SendTime:   time.Now(),
 		CreateUser: userID,
+		UpdateUser: userID,
 	}
 
 	// 调用服务层

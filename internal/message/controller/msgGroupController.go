@@ -44,7 +44,10 @@ func (ctr *MsgGroupController) AddUserToGroup(ctx *gin.Context) {
 		return
 	}
 	// 返回成功响应
-	ctx.JSON(200, gin.H{"message": "用户入群成功"})
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "用户入群成功",
+	})
 }
 
 // CreateMsgGroup 创建消息群组
@@ -77,7 +80,8 @@ func (ctr *MsgGroupController) CreateMsgGroup(ctx *gin.Context) {
 		return
 	}
 	// 返回成功响应
-	ctx.JSON(200, gin.H{
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
 		"message": "消息群组创建成功",
 		"data": gin.H{
 			"group_id": msgGroup.ID,
@@ -112,7 +116,10 @@ func (ctr *MsgGroupController) DeleteUserFromGroup(ctx *gin.Context) {
 		return
 	}
 	// 返回成功响应
-	ctx.JSON(200, gin.H{"message": "用户退群成功"})
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "用户退群成功",
+	})
 }
 
 // UpdateMsgGroup 更新消息群组
@@ -142,7 +149,10 @@ func (ctr *MsgGroupController) UpdateMsgGroup(ctx *gin.Context) {
 		return
 	}
 	// 返回成功响应
-	ctx.JSON(200, gin.H{"message": "消息群组更新成功"})
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "消息群组更新成功",
+	})
 }
 
 // DeleteMsgGroup 删除消息群组
@@ -167,7 +177,10 @@ func (ctr *MsgGroupController) DeleteMsgGroup(ctx *gin.Context) {
 		return
 	}
 	// 返回成功响应
-	ctx.JSON(200, gin.H{"message": "消息群组删除成功"})
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "消息群组删除成功",
+	})
 }
 
 // ListMsgGroups 获取消息群组列表

@@ -114,7 +114,7 @@ func (repo *UserRepositoryImpl) ListAllUsers(ctx context.Context, page, pageSize
 	var total int64
 
 	query := repo.db.WithContext(ctx).Table("users u").
-		Select("u.id, u.nickname, u.avatar_url, u.name, u.gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name, ur.role_name").
+		Select("u.user_id, u.nickname, u.avatar_url, u.name, u.gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name, ur.role_name").
 		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
 		Joins("LEFT JOIN user_role ur ON ur.role_code = u.role")
 
@@ -134,7 +134,7 @@ func (repo *UserRepositoryImpl) ListAllUsers(ctx context.Context, page, pageSize
 	if req.Position != "" {
 		query = query.Where("u.position LIKE ?", "%"+req.Position+"%")
 	}
-	if req.Industry != 0 {
+	if req.Industry != "" {
 		query = query.Where("u.industry = ?", req.Industry)
 	}
 

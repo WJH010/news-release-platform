@@ -15,7 +15,7 @@ type UserUpdateRequest struct {
 	Unit        *string `json:"unit" binding:"omitempty"`
 	Department  *string `json:"department" binding:"omitempty"`
 	Position    *string `json:"position" binding:"omitempty"`
-	Industry    *int    `json:"industry" binding:"omitempty"`
+	Industry    *string `json:"industry" binding:"omitempty"`
 }
 
 // UserInfoResponse 用户信息响应
@@ -30,7 +30,7 @@ type UserInfoResponse struct {
 	Unit         string `json:"unit"`
 	Department   string `json:"department"`
 	Position     string `json:"position"`
-	Industry     int    `json:"industry"`
+	Industry     string `json:"industry"`
 	IndustryName string `json:"industry_name"`
 }
 
@@ -42,7 +42,7 @@ type ListUsersRequest struct {
 	Unit       string `form:"unit" binding:"omitempty,max=255"`
 	Department string `form:"department" binding:"omitempty,max=255"`
 	Position   string `form:"position" binding:"omitempty,max=255"`
-	Industry   int    `form:"industry" binding:"omitempty,numeric"`
+	Industry   string `form:"industry" binding:"omitempty,numeric"`
 }
 
 type ListUsersResponse struct {
@@ -57,7 +57,7 @@ type ListUsersResponse struct {
 	Unit         string `json:"unit"`
 	Department   string `json:"department"`
 	Position     string `json:"position"`
-	Industry     int    `json:"industry"`
+	Industry     string `json:"industry"`
 	IndustryName string `json:"industry_name"`
 	RoleName     string `json:"role_name"`
 }

@@ -193,17 +193,17 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			adminMessage := message.Group("")
 			adminMessage.Use(middleware.RoleMiddleware(utils.RoleAdmin))
 			{
-				adminMessage.POST("/createGroup", msgGroupController.CreateMsgGroup)
-				adminMessage.POST("/addUserToGroup", msgGroupController.AddUserToGroup)
-				adminMessage.POST("/removeUserFromGroup", msgGroupController.DeleteUserFromGroup)
-				adminMessage.PUT("/updateGroup/:id", msgGroupController.UpdateMsgGroup)
-				adminMessage.DELETE("/deleteGroup/:id", msgGroupController.DeleteMsgGroup)
+				adminMessage.GET("/byGroupID/:id", msgController.ListMessagesByGroupID)
 				adminMessage.GET("/messageGroups", msgGroupController.ListMsgGroups)
 				adminMessage.GET("/groupUsers/:id", msgGroupController.ListGroupsUsers)
 				adminMessage.GET("/notIngroupUsers/:id", msgGroupController.ListNotInGroupUsers)
+				adminMessage.POST("/createGroup", msgGroupController.CreateMsgGroup)
+				adminMessage.POST("/addUserToGroup/:id", msgGroupController.AddUserToGroup)
 				adminMessage.POST("/sendMessage/:id", msgController.SendMessage)
-				adminMessage.GET("/byGroupID/:id", msgController.ListMessagesByGroupID)
+				adminMessage.PUT("/updateGroup/:id", msgGroupController.UpdateMsgGroup)
 				adminMessage.DELETE("/revokeMessage/:id", msgController.RevokeGroupMessage)
+				adminMessage.DELETE("/removeUserFromGroup/:id", msgGroupController.DeleteUserFromGroup)
+				adminMessage.DELETE("/deleteGroup/:id", msgGroupController.DeleteMsgGroup)
 			}
 		}
 		// 活动相关路由

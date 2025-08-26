@@ -229,7 +229,7 @@ func (repo *MsgGroupRepositoryImpl) ListGroupsUsers(ctx context.Context, page in
 					ELSE '未知'
 				END AS gender,
 				u.phone_number, u.email, u.unit, u.department, u.position, 
-				u.industry, i.industry_name"`).
+				u.industry, i.industry_name`).
 		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
 		Joins("JOIN user_msg_group_mappings m ON u.user_id = m.user_id").
 		Where("m.msg_group_id = ? AND m.is_deleted = ?", msgGroupID, "N")
@@ -268,9 +268,8 @@ func (repo *MsgGroupRepositoryImpl) ListNotInGroupUsers(ctx context.Context, pag
 					ELSE '未知'
 				END AS gender,
 				u.phone_number, u.email, u.unit, u.department, u.position, 
-				u.industry, i.industry_name"`).
+				u.industry, i.industry_name`).
 		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
-		Where("m.msg_group_id = ? AND m.is_deleted = ?", msgGroupID, "N").
 		Where(`NOT EXISTS (
 						SELECT 1  
 						FROM user_msg_group_mappings m  
@@ -294,7 +293,7 @@ func (repo *MsgGroupRepositoryImpl) ListNotInGroupUsers(ctx context.Context, pag
 	if req.Position != "" {
 		query = query.Where("u.position LIKE ?", "%"+req.Position+"%")
 	}
-	if req.Industry != 0 {
+	if req.Industry != "" {
 		query = query.Where("u.industry = ?", req.Industry)
 	}
 

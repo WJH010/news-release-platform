@@ -2,7 +2,7 @@ package dto
 
 // MsgGroupIDRequest 用户入群请求
 type MsgGroupIDRequest struct {
-	MsgGroupID int `uri:"msg_group_id" binding:"required,numeric"` // 消息组ID，必须为数字
+	MsgGroupID int `uri:"id" binding:"required,numeric"` // 消息组ID，必须为数字
 }
 
 // UserListForGroupRequest 用户ID列表请求
@@ -35,7 +35,7 @@ type ListMsgGroupRequest struct {
 
 // DeleteMsgGroupMapRequest 撤回组内消息请求
 type DeleteMsgGroupMapRequest struct {
-	MapID int `uri:"map_id" binding:"required,numeric"`
+	MapID int `uri:"id" binding:"required,numeric"`
 }
 
 // ListNotInGroupUsersRequest 查询不在指定组内的用户请求参数
@@ -47,7 +47,7 @@ type ListNotInGroupUsersRequest struct {
 	Unit       string `form:"unit" binding:"omitempty,max=255"`
 	Department string `form:"department" binding:"omitempty,max=255"`
 	Position   string `form:"position" binding:"omitempty,max=255"`
-	Industry   int    `form:"industry" binding:"omitempty,numeric"`
+	Industry   string `form:"industry" binding:"omitempty,numeric"`
 }
 
 // ListMsgGroupResponse 消息群组列表响应
@@ -73,6 +73,6 @@ type ListGroupsUsersResponse struct {
 	Unit         string `json:"unit"`
 	Department   string `json:"department"`
 	Position     string `json:"position"`
-	Industry     int    `json:"industry"`
+	Industry     string `json:"industry"`
 	IndustryName string `json:"industry_name"`
 }
