@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"gorm.io/gorm"
+	"news-release/internal/article/dto"
 	"news-release/internal/article/model"
 	"news-release/internal/utils"
 )
@@ -12,9 +13,9 @@ import (
 // ArticleRepository 数据访问接口，定义数据访问的方法集
 type ArticleRepository interface {
 	// List 分页查询
-	List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int, queryScope string) ([]*model.Article, int64, error)
+	List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int, queryScope string) ([]dto.ArticleListResponse, int64, error)
 	// GetArticleContent 内容查询
-	GetArticleContent(ctx context.Context, articleID int) (*model.Article, error)
+	GetArticleContent(ctx context.Context, articleID int) (*dto.ArticleContentResponse, error)
 	// GetArticleByTitle 根据标题查询文章
 	GetArticleByTitle(ctx context.Context, title string) (*model.Article, error)
 	// CreateArticle 创建文章
@@ -34,7 +35,7 @@ func NewArticleRepository(db *gorm.DB) ArticleRepository {
 }
 
 // List 分页查询数据
-func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int, queryScope string) ([]*model.Article, int64, error) {
+func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int, queryScope string) ([]dto.ArticleListResponse, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -43,12 +44,12 @@ func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int,
 	}
 
 	offset := (page - 1) * pageSize
-	var articles []*model.Article
+	var articles []dto.ArticleListResponse
 	query := repo.db.WithContext(ctx)
 
 	// 构建基础查询
 	query = query.Table("articles a").
-		Select("a.article_id, a.article_title, a.article_type, a.release_time, a.brief_content, a.is_selection, f.field_name, a.cover_image_url,a.article_source,at.type_name").
+		Select("a.article_id, a.article_title, a.article_type AS article_type_code, a.release_time, a.brief_content, a.is_selection, f.field_name, a.cover_image_url,a.article_source,at.type_name AS article_type").
 		Joins("LEFT JOIN field_types f ON a.field_type = f.field_code").
 		Joins("LEFT JOIN article_types at ON a.article_type = at.type_code")
 
@@ -102,10 +103,16 @@ func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int,
 }
 
 // GetArticleContent 内容查询
-func (repo *ArticleRepositoryImpl) GetArticleContent(ctx context.Context, articleID int) (*model.Article, error) {
-	var article model.Article
+func (repo *ArticleRepositoryImpl) GetArticleContent(ctx context.Context, articleID int) (*dto.ArticleContentResponse, error) {
+	var article dto.ArticleContentResponse
 
-	result := repo.db.WithContext(ctx).First(&article, articleID)
+	query := repo.db.WithContext(ctx).Table("articles a").
+		Select("a.article_id, a.article_title, f.field_name, a.release_time, a.article_content, a.article_type AS article_type_code, at.type_name AS article_type, a.article_source").
+		Joins("LEFT JOIN field_types f ON a.field_type = f.field_code").
+		Joins("LEFT JOIN article_types at ON a.article_type = at.type_code").
+		Where("a.article_id = ?", articleID)
+
+	result := query.First(&article, articleID)
 	err := result.Error
 
 	// 查询文章内容

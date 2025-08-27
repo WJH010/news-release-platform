@@ -42,27 +42,11 @@ func (ctr *ArticleController) ListArticle(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	article, total, err := ctr.articleService.ListArticle(ctx, page, pageSize, req.ArticleTitle, req.ArticleType, req.ReleaseTime, req.FieldType, req.IsSelection, req.QueryScope)
+	results, total, err := ctr.articleService.ListArticle(ctx, page, pageSize, req.ArticleTitle, req.ArticleType, req.ReleaseTime, req.FieldType, req.IsSelection, req.QueryScope)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
 		return
-	}
-
-	var result []dto.ArticleListResponse
-	for _, a := range article {
-		result = append(result, dto.ArticleListResponse{
-			ArticleID:       a.ArticleID,
-			ArticleTitle:    a.ArticleTitle,
-			ArticleTypeCode: a.ArticleType,
-			ArticleType:     a.TypeName,
-			FieldName:       a.FieldName,
-			ReleaseTime:     a.ReleaseTime,
-			BriefContent:    a.BriefContent,
-			IsSelection:     a.IsSelection,
-			CoverImageURL:   a.CoverImageURL,
-			ArticleSource:   a.ArticleSource,
-		})
 	}
 
 	// 返回分页结果
@@ -70,7 +54,7 @@ func (ctr *ArticleController) ListArticle(ctx *gin.Context) {
 		"total":     total,
 		"page":      page,
 		"page_size": pageSize,
-		"data":      result,
+		"data":      results,
 	})
 }
 
@@ -83,22 +67,11 @@ func (ctr *ArticleController) GetArticleContent(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	article, err := ctr.articleService.GetArticleContent(ctx, req.ArticleID)
+	result, err := ctr.articleService.GetArticleContent(ctx, req.ArticleID)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
 		return
-	}
-
-	result := dto.ArticleContentResponse{
-		ArticleID:       article.ArticleID,
-		ArticleTitle:    article.ArticleTitle,
-		FieldName:       article.FieldName,
-		ReleaseTime:     article.ReleaseTime,
-		ArticleContent:  article.ArticleContent,
-		ArticleTypeCode: article.ArticleType,
-		ArticleType:     article.TypeName,
-		ArticleSource:   article.ArticleSource,
 	}
 
 	// 返回成功响应
