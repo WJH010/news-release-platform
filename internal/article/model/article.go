@@ -21,10 +21,6 @@ type Article struct {
 	UpdateTime     time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 	CreateUser     int       `json:"create_user" gorm:"column:create_user"` // 创建人ID
 	UpdateUser     int       `json:"update_user" gorm:"column:update_user"` // 最后更新人ID
-	// 关联字段
-	FieldName string `json:"field_name" gorm:"column:field_name"` // 关联field_types
-	TypeName  string `json:"type_name" gorm:"column:type_name"`   // 关联article_types
-
 }
 
 // TableName 设置表名

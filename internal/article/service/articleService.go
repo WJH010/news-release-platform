@@ -15,9 +15,9 @@ import (
 // ArticleService 服务接口，定义方法，接收 context.Context 和数据模型。
 type ArticleService interface {
 	// ListArticle 分页查询文章列表
-	ListArticle(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int, queryScope string) ([]*model.Article, int64, error)
+	ListArticle(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int, queryScope string) ([]dto.ArticleListResponse, int64, error)
 	// GetArticleContent 获取文章内容
-	GetArticleContent(ctx context.Context, articleID int) (*model.Article, error)
+	GetArticleContent(ctx context.Context, articleID int) (*dto.ArticleContentResponse, error)
 	// CreateArticle 创建文章
 	CreateArticle(ctx context.Context, article *model.Article, imageIDList []int) error
 	// UpdateArticle 更新文章
@@ -38,12 +38,12 @@ func NewArticleService(articleRepo repository.ArticleRepository, fileRepo filere
 }
 
 // ListArticle 分页查询数据
-func (svc *ArticleServiceImpl) ListArticle(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int, queryScope string) ([]*model.Article, int64, error) {
+func (svc *ArticleServiceImpl) ListArticle(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int, queryScope string) ([]dto.ArticleListResponse, int64, error) {
 	return svc.articleRepo.List(ctx, page, pageSize, articleTitle, articleType, releaseTime, fieldType, isSelection, queryScope)
 }
 
 // GetArticleContent 获取文章内容
-func (svc *ArticleServiceImpl) GetArticleContent(ctx context.Context, articleID int) (*model.Article, error) {
+func (svc *ArticleServiceImpl) GetArticleContent(ctx context.Context, articleID int) (*dto.ArticleContentResponse, error) {
 	return svc.articleRepo.GetArticleContent(ctx, articleID)
 }
 
@@ -170,15 +170,6 @@ func (svc *ArticleServiceImpl) UpdateArticle(ctx context.Context, articleID int,
 // 辅助函数：构建更新字段映射
 func makeArticleUpdateFields(req dto.UpdateArticleRequest) (map[string]interface{}, error) {
 	updateFields := make(map[string]interface{})
-
-	// 处理时间字段（字符串转time.Time）
-	if req.ReleaseTime != nil {
-		releaseTime, err := utils.StringToTime(*req.ReleaseTime)
-		if err != nil {
-			return nil, err
-		}
-		updateFields["release_time"] = releaseTime
-	}
 
 	// 处理其他字段
 	if req.ArticleTitle != nil {

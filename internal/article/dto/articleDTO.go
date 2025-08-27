@@ -42,7 +42,6 @@ type UpdateArticleRequest struct {
 	FieldType      *string `json:"field_type" binding:"omitempty"`                       // 领域类型
 	CoverImageURL  *string `json:"cover_image_url" binding:"omitempty,url"`              // 封面图URL
 	ArticleSource  *string `json:"article_source" binding:"omitempty"`                   // 文章来源
-	ReleaseTime    *string `json:"release_time" binding:"omitempty,time_format"`         // 发布时间
 	ImageIDList    *[]int  `json:"image_id_list" binding:"omitempty,dive,min=1"`         // 图片ID列表
 }
 
