@@ -140,6 +140,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		{
 			// 公开接口 - 无需认证
 			user.POST("/login", userController.Login)
+			user.POST("/bgLogin", userController.TestLogin)
 			// 需要认证的用户接口
 			authUser := user.Group("")
 			authUser.Use(middleware.AuthMiddleware(cfg))
