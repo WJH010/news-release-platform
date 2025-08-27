@@ -170,3 +170,12 @@ func (ctr *UserController) ListAllUsers(ctx *gin.Context) {
 		"data":      userResponses,
 	})
 }
+
+// TestLogin 测试用接口，直接返回token
+func (ctr *UserController) TestLogin(ctx *gin.Context) {
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "登录成功",
+		"token":   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjQ5MjkxOTYsImlhdCI6MTc1NjI4OTE5Niwib3BlbmlkIjoib3AtOUl2cDZROWhhTEpqRDdIWU15TDJWMTNqOCIsInVzZXJfcm9sZSI6MiwidXNlcmlkIjo4fQ._g3jb63kMYQOU_RPaD-TBISb_dtioZJ9qekdZ3BbMiA",
+	})
+}
