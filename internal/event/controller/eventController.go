@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"news-release/internal/event/dto"
+	"news-release/internal/event/model"
 	"news-release/internal/event/service"
 	"news-release/internal/utils"
 )
@@ -39,7 +40,7 @@ func (ctr *EventController) ListEvent(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	event, total, err := ctr.eventService.ListEvent(ctx, page, pageSize, req.EventStatus)
+	event, total, err := ctr.eventService.ListEvent(ctx, page, pageSize, req.EventStatus, req.QueryScope)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
@@ -256,5 +257,173 @@ func (ctr *EventController) ListUserRegisteredEvents(ctx *gin.Context) {
 		"page":      page,
 		"page_size": pageSize,
 		"data":      result,
+	})
+}
+
+// CreateEvent 处理创建活动的请求
+func (ctr *EventController) CreateEvent(ctx *gin.Context) {
+	// 初始化参数结构体并绑定请求体
+	var req dto.CreateEventRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 转换时间格式
+	eventStartTime, err := utils.StringToTime(req.EventStartTime)
+	eventEndTime, err := utils.StringToTime(req.EventEndTime)
+	registrationStartTime, err := utils.StringToTime(req.RegistrationStartTime)
+	registrationEndTime, err := utils.StringToTime(req.RegistrationEndTime)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 构造活动模型
+	event := &model.Event{
+		Title:                 req.Title,
+		Detail:                req.Detail,
+		EventStartTime:        eventStartTime,
+		EventEndTime:          eventEndTime,
+		RegistrationStartTime: registrationStartTime,
+		RegistrationEndTime:   registrationEndTime,
+		EventAddress:          req.EventAddress,
+		RegistrationFee:       req.RegistrationFee,
+		CoverImageURL:         req.CoverImageURL,
+		CreateUser:            userID,
+		UpdateUser:            userID,
+	}
+
+	// 调用服务层创建活动
+	err = ctr.eventService.CreateEvent(ctx, event, req.ImageIDList)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "活动创建成功",
+		"data": gin.H{
+			"event_id": event.ID,
+		},
+	})
+}
+
+// UpdateEvent 处理更新活动的请求
+func (ctr *EventController) UpdateEvent(ctx *gin.Context) {
+	// 获取活动ID
+	var urlReq dto.EventDetailRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+	// 初始化参数结构体并绑定请求体
+	var req dto.UpdateEventRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务层更新活动
+	err = ctr.eventService.UpdateEvent(ctx, urlReq.EventID, req, userID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "活动更新成功",
+	})
+}
+
+// DeleteEvent 处理删除活动的请求
+func (ctr *EventController) DeleteEvent(ctx *gin.Context) {
+	// 获取活动ID
+	var req dto.EventDetailRequest
+	if !utils.BindUrl(ctx, &req) {
+		return
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务层删除活动
+	err = ctr.eventService.DeleteEvent(ctx, req.EventID, userID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "活动删除成功",
+	})
+}
+
+// ListEventRegisteredUsers 获取活动报名用户列表
+func (ctr *EventController) ListEventRegisteredUsers(ctx *gin.Context) {
+	// 获取活动ID
+	var req dto.EventDetailRequest
+	if !utils.BindUrl(ctx, &req) {
+		return
+	}
+
+	// page 默认1
+	page := 1
+
+	// pageSize 默认10
+	pageSize := 10
+
+	// 调用服务层获取活动报名用户列表
+	users, total, err := ctr.eventService.ListEventRegisteredUser(ctx, page, pageSize, req.EventID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	var list []dto.ListEventRegUserResponse
+
+	for _, user := range users {
+		list = append(list, dto.ListEventRegUserResponse{
+			Nickname:     user.Nickname,
+			Name:         user.Name,
+			GenderCode:   user.Gender,
+			Gender:       map[string]string{"M": "男", "F": "女", "U": "未知"}[user.Gender],
+			PhoneNumber:  user.PhoneNumber,
+			Email:        user.Email,
+			Unit:         user.Unit,
+			Department:   user.Department,
+			Position:     user.Position,
+			Industry:     user.Industry,
+			IndustryName: user.IndustryName,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"total":     total,
+		"page":      page,
+		"page_size": pageSize,
+		"data":      list,
 	})
 }

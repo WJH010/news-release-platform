@@ -7,14 +7,17 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"news-release/internal/event/model"
+	usermodel "news-release/internal/user/model"
 	"news-release/internal/utils"
 	"time"
 )
 
 // EventRepository 数据访问接口，定义数据访问的方法集
 type EventRepository interface {
+	// ExecTransaction 执行事务
+	ExecTransaction(ctx context.Context, fn func(tx *gorm.DB) error) error
 	// List 分页查询
-	List(ctx context.Context, page, pageSize int, eventStatus string) ([]*model.Event, int, error)
+	List(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error)
 	// GetEventDetail 获取活动详情
 	GetEventDetail(ctx context.Context, eventID int) (*model.Event, error)
 	// ListEventImage 获取活动图片列表
@@ -29,6 +32,14 @@ type EventRepository interface {
 	IsUserRegistered(ctx context.Context, eventID int, userID int) (bool, error)
 	// ListUserRegisteredEvents 获取用户已报名活动列表
 	ListUserRegisteredEvents(ctx context.Context, page, pageSize int, userID int, eventStatus string) ([]*model.Event, int, error)
+	// CreateEvent 创建活动
+	CreateEvent(ctx context.Context, tx *gorm.DB, event *model.Event) error
+	// UpdateEvent 更新活动
+	UpdateEvent(ctx context.Context, tx *gorm.DB, eventID int, updateFields map[string]interface{}) error
+	// ListEventRegisteredUser 查询已报名活动的用户列表
+	ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*usermodel.User, int, error)
+	// GetEventByTitle 根据活动标题查询活动
+	GetEventByTitle(ctx context.Context, title string) (*model.Event, error)
 }
 
 // EventRepositoryImpl 实现接口的具体结构体
@@ -47,8 +58,13 @@ type EventImage struct {
 	URL   string `json:"url" gorm:"column:url"`
 }
 
+// ExecTransaction 实现事务执行（使用 GORM 的 Transaction 方法）
+func (repo *EventRepositoryImpl) ExecTransaction(ctx context.Context, fn func(tx *gorm.DB) error) error {
+	return repo.db.WithContext(ctx).Transaction(fn)
+}
+
 // List 分页查询数据
-func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, eventStatus string) ([]*model.Event, int, error) {
+func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -62,8 +78,21 @@ func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, e
 
 	query := repo.db.WithContext(ctx)
 	// 构建基础查询
-	query = query.Table("events e").
-		Where("is_deleted = ?", "N") // 软删除标志，查询未被删除的活动
+	query = query.Table("events e")
+
+	if queryScope != "" {
+		// 如果传入了查询范围，则添加查询条件
+		// 如果传入了查询范围为DELETED，则查询已删除的活动
+		if queryScope == utils.QueryScopeDeleted {
+			query = query.Where("e.is_deleted = ?", utils.DeletedFlagYes) // 查询已删除的活动
+		}
+		if queryScope == utils.QueryScopeAll {
+			// 如果传入了查询范围为ALL，则查询所有活动
+		}
+	} else {
+		// 默认查询未删除的活动
+		query = query.Where("e.is_deleted = ?", utils.DeletedFlagNo)
+	}
 
 	// 根据活动状态拼接查询条件
 	if eventStatus == model.EventStatusInProgress {
@@ -238,4 +267,80 @@ func (repo *EventRepositoryImpl) ListUserRegisteredEvents(ctx context.Context, p
 	}
 
 	return events, int(total), nil
+}
+
+// CreateEvent 创建活动
+func (repo *EventRepositoryImpl) CreateEvent(ctx context.Context, tx *gorm.DB, event *model.Event) error {
+	// 插入新活动
+	if err := tx.WithContext(ctx).Create(event).Error; err != nil {
+		return utils.NewSystemError(fmt.Errorf("创建活动失败: %w", err))
+	}
+
+	return nil
+}
+
+// UpdateEvent 更新活动
+func (repo *EventRepositoryImpl) UpdateEvent(ctx context.Context, tx *gorm.DB, eventID int, updateFields map[string]interface{}) error {
+	// 更新活动信息
+	result := tx.WithContext(ctx).Model(&model.Event{}).
+		Where("id = ?", eventID).
+		Updates(updateFields)
+
+	if result.Error != nil {
+		return utils.NewSystemError(fmt.Errorf("更新活动信息失败: %w", result.Error))
+	}
+	if result.RowsAffected == 0 {
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "更新活动信息失败，活动数据异常，请刷新页面后重试")
+	}
+	return nil
+}
+
+// ListEventRegisteredUser 查询已报名活动的用户列表
+func (repo *EventRepositoryImpl) ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*usermodel.User, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	offset := (page - 1) * pageSize
+	var users []*usermodel.User
+	var total int64
+
+	query := repo.db.WithContext(ctx).
+		Table("users u").
+		Select("u.nickname, u.name, u.gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name").
+		Joins("JOIN event_user_mappings eum ON u.user_id = eum.user_id").
+		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
+		Where("eum.event_id = ? AND eum.is_deleted = ?", eventID, utils.DeletedFlagNo)
+
+	// 计算总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("计算总数时数据库查询失败: %v", err))
+	}
+
+	// 分页查询数据
+	if err := query.Offset(offset).Limit(pageSize).Find(&users).Error; err != nil {
+		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
+	}
+
+	return users, int(total), nil
+}
+
+// GetEventByTitle 根据活动标题查询活动
+func (repo *EventRepositoryImpl) GetEventByTitle(ctx context.Context, title string) (*model.Event, error) {
+	var event model.Event
+
+	result := repo.db.WithContext(ctx).Where("title = ? AND is_deleted = ?", title, utils.DeletedFlagNo).First(&event)
+	err := result.Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
+	}
+
+	return &event, nil
 }

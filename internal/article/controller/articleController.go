@@ -3,8 +3,10 @@ package controller
 import (
 	"net/http"
 	"news-release/internal/article/dto"
+	"news-release/internal/article/model"
 	"news-release/internal/article/service"
 	"news-release/internal/utils"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,7 +42,7 @@ func (ctr *ArticleController) ListArticle(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	article, total, err := ctr.articleService.ListArticle(ctx, page, pageSize, req.ArticleTitle, req.ArticleType, req.ReleaseTime, req.FieldType, req.IsSelection)
+	article, total, err := ctr.articleService.ListArticle(ctx, page, pageSize, req.ArticleTitle, req.ArticleType, req.ReleaseTime, req.FieldType, req.IsSelection, req.QueryScope)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
@@ -101,4 +103,112 @@ func (ctr *ArticleController) GetArticleContent(ctx *gin.Context) {
 
 	// 返回成功响应
 	ctx.JSON(http.StatusOK, gin.H{"data": result})
+}
+
+// CreateArticle 创建文章
+func (ctr *ArticleController) CreateArticle(ctx *gin.Context) {
+	// 初始化参数结构体并绑定请求体
+	var req dto.CreateArticleRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 获取userID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 构造文章对象
+	article := &model.Article{
+		ArticleTitle:   req.ArticleTitle,
+		ArticleType:    req.ArticleType,
+		BriefContent:   req.BriefContent,
+		ArticleContent: req.ArticleContent,
+		IsSelection:    req.IsSelection,
+		FieldType:      req.FieldType,
+		CoverImageURL:  req.CoverImageURL,
+		ArticleSource:  req.ArticleSource,
+		ReleaseTime:    time.Now(),
+		CreateUser:     userID,
+		UpdateUser:     userID,
+	}
+
+	// 调用服务层
+	if err := ctr.articleService.CreateArticle(ctx, article, req.ImageIDList); err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "文章创建成功",
+		"data": gin.H{
+			"article_id": article.ArticleID,
+		},
+	})
+}
+
+// UpdateArticle 处理更新文章的请求
+func (ctr *ArticleController) UpdateArticle(ctx *gin.Context) {
+	// 从URL获取文章ID
+	var urlReq dto.ArticleContentRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+
+	// 从请求体获取更新参数
+	var req dto.UpdateArticleRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 获取当前用户ID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务层更新文章
+	err = ctr.articleService.UpdateArticle(ctx, urlReq.ArticleID, req, userID)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "文章更新成功",
+	})
+}
+
+// DeleteArticle 处理删除文章的请求
+func (ctr *ArticleController) DeleteArticle(ctx *gin.Context) {
+	// 从URL获取文章ID
+	var req dto.ArticleContentRequest
+	if !utils.BindUrl(ctx, &req) {
+		return
+	}
+
+	// 获取当前用户ID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务层删除文章
+	err = ctr.articleService.DeleteArticle(ctx, req.ArticleID, userID)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "文章删除成功",
+	})
 }

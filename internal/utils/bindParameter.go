@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"strconv"
@@ -50,7 +51,8 @@ func BindJSON(ctx *gin.Context, req interface{}) bool {
 			err = NewBusinessError(ErrCodeParamInvalid, msg.String())
 			WrapErrorHandler(ctx, err)
 		} else {
-			err = NewBusinessError(ErrCodeParamBind, "参数绑定失败")
+			//err = NewBusinessError(ErrCodeParamBind, "参数绑定失败")
+			err = NewSystemError(fmt.Errorf("参数绑定失败: " + err.Error()))
 			WrapErrorHandler(ctx, err)
 		}
 		return false
@@ -123,6 +125,12 @@ func GetValidationErrorMsg(err validator.FieldError) string {
 		return err.Field() + "手机号格式错误"
 	case "email":
 		return err.Field() + "邮箱格式错误"
+	case "non_empty_string":
+		return err.Field() + "不能为空字符串"
+	case "query_scope":
+		return err.Field() + "查询范围错误，只能为全部数据或已删除数据"
+	case "user_group_message_type":
+		return err.Field() + "用户群组消息类型错误，必须为系统消息或群组消息"
 	default:
 		return err.Field() + "参数格式错误"
 	}

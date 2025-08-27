@@ -2,15 +2,14 @@ package controller
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"net/http"
 	"news-release/internal/file/dto"
 	"news-release/internal/file/service"
 	"news-release/internal/utils"
 	"os"
 	"path/filepath"
-
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // FileController 文件控制器
@@ -77,5 +76,33 @@ func (ctr *FileController) UploadFile(ctx *gin.Context) {
 		"code":    200,
 		"message": "文件上传成功",
 		"data":    response,
+	})
+}
+
+// DeleteImage 删除图片
+func (ctr *FileController) DeleteImage(ctx *gin.Context) {
+	// 初始化参数结构体并绑定请求参数
+	var req dto.FileDeleteRequest
+	if !utils.BindUrl(ctx, &req) {
+		return
+	}
+
+	// 获取当前用户ID
+	userID, err := utils.GetUserID(ctx)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务删除图片
+	if err := ctr.fileService.DeleteImage(ctx, req.ID, userID); err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "图片删除成功",
 	})
 }

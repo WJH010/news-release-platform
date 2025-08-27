@@ -2,6 +2,7 @@ package utils
 
 import (
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -28,6 +29,21 @@ func RegisterCustomValidators(v *validator.Validate) {
 	if err := v.RegisterValidation("phone", validatePhoneNumber); err != nil {
 		panic("注册手机号验证失败: " + err.Error())
 	}
+
+	// 非空字符串验证
+	if err := v.RegisterValidation("non_empty_string", validateNonEmptyString); err != nil {
+		panic("注册非空字符串验证失败: " + err.Error())
+	}
+
+	// 查询范围验证
+	if err := v.RegisterValidation("query_scope", validateQueryScope); err != nil {
+		panic("注册查询范围验证失败: " + err.Error())
+	}
+	// 用户群组消息类型验证
+	if err := v.RegisterValidation("user_group_message_type", validateUserGroupMessageType); err != nil {
+		panic("注册用户群组消息类型验证失败: " + err.Error())
+	}
+
 	// 其他自定义规则...
 }
 
@@ -93,4 +109,43 @@ func validatePhoneNumber(fl validator.FieldLevel) bool {
 	// 中国大陆手机号规则：1开头，第二位3-9，后面9位数字
 	match, _ := regexp.MatchString(`^1[3-9]\d{9}$`, fieldValue)
 	return match
+}
+
+// 非空字符串验证实现
+func validateNonEmptyString(fl validator.FieldLevel) bool {
+	fieldValue := fl.Field().String()
+	if strings.TrimSpace(fieldValue) == "" {
+		return false // 非空字符串验证失败
+	}
+	return true // 非空字符串验证成功
+}
+
+// 查询范围验证实现
+func validateQueryScope(fl validator.FieldLevel) bool {
+	fieldValue := fl.Field().String()
+	if fieldValue == "" {
+		return true // 空值通过（配合omitempty使用）
+	}
+	// 允许的查询范围
+	allowedScopes := QueryScopeList
+	for _, scope := range allowedScopes {
+		if strings.EqualFold(fieldValue, scope) {
+			return true
+		}
+	}
+	return false
+}
+
+// 用户群组消息类型验证实现
+func validateUserGroupMessageType(fl validator.FieldLevel) bool {
+	fieldValue := fl.Field().String()
+
+	// 允许的消息类型
+	allowedTypes := UserGroupMessageTypeList
+	for _, t := range allowedTypes {
+		if strings.EqualFold(fieldValue, t) {
+			return true
+		}
+	}
+	return false
 }

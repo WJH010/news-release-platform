@@ -4,18 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"gorm.io/gorm"
 	"news-release/internal/article/model"
 	"news-release/internal/utils"
-
-	"gorm.io/gorm"
 )
 
 // ArticleRepository 数据访问接口，定义数据访问的方法集
 type ArticleRepository interface {
 	// List 分页查询
-	List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int) ([]*model.Article, int64, error)
+	List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int, queryScope string) ([]*model.Article, int64, error)
 	// GetArticleContent 内容查询
 	GetArticleContent(ctx context.Context, articleID int) (*model.Article, error)
+	// GetArticleByTitle 根据标题查询文章
+	GetArticleByTitle(ctx context.Context, title string) (*model.Article, error)
+	// CreateArticle 创建文章
+	CreateArticle(ctx context.Context, tx *gorm.DB, article *model.Article) error
+	// UpdateArticle 更新文章
+	UpdateArticle(ctx context.Context, tx *gorm.DB, articleID int, updateFields map[string]interface{}) error
 }
 
 // ArticleRepositoryImpl 实现接口的具体结构体
@@ -29,7 +34,7 @@ func NewArticleRepository(db *gorm.DB) ArticleRepository {
 }
 
 // List 分页查询数据
-func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int) ([]*model.Article, int64, error) {
+func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int, queryScope string) ([]*model.Article, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -45,8 +50,21 @@ func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int,
 	query = query.Table("articles a").
 		Select("a.article_id, a.article_title, a.article_type, a.release_time, a.brief_content, a.is_selection, f.field_name, a.cover_image_url,a.article_source,at.type_name").
 		Joins("LEFT JOIN field_types f ON a.field_type = f.field_code").
-		Joins("LEFT JOIN article_types at ON a.article_type = at.type_code").
-		Where("a.is_deleted = ?", "N")
+		Joins("LEFT JOIN article_types at ON a.article_type = at.type_code")
+
+	if queryScope != "" {
+		// 如果传入了查询范围，则添加查询条件
+		// 如果传入了查询范围为DELETED，则查询已删除的文章
+		if queryScope == utils.QueryScopeDeleted {
+			query = query.Where("a.is_deleted = ?", utils.DeletedFlagYes) // 查询已删除的文章
+		}
+		if queryScope == utils.QueryScopeAll {
+			// 如果传入了查询范围为ALL，则查询所有文章（包括已删除和未删除的）
+		}
+	} else {
+		// 默认查询未删除的
+		query = query.Where("a.is_deleted = ?", utils.DeletedFlagNo)
+	}
 
 	// 添加条件查询
 	if releaseTime != "" {
@@ -99,4 +117,47 @@ func (repo *ArticleRepositoryImpl) GetArticleContent(ctx context.Context, articl
 	}
 
 	return &article, nil
+}
+
+// CreateArticle 创建文章
+func (repo *ArticleRepositoryImpl) CreateArticle(ctx context.Context, tx *gorm.DB, article *model.Article) error {
+	// 插入文章数据
+	if err := tx.WithContext(ctx).Create(article).Error; err != nil {
+		return utils.NewSystemError(fmt.Errorf("创建文章失败: %w", err))
+	}
+
+	return nil
+}
+
+// GetArticleByTitle 根据标题查询文章
+func (repo *ArticleRepositoryImpl) GetArticleByTitle(ctx context.Context, title string) (*model.Article, error) {
+	var article model.Article
+
+	// 查询文章
+	if err := repo.db.WithContext(ctx).Where("article_title = ? AND is_deleted = ?", title, "N").First(&article).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
+	}
+
+	return &article, nil
+}
+
+// UpdateArticle 更新文章字段
+func (repo *ArticleRepositoryImpl) UpdateArticle(ctx context.Context, tx *gorm.DB, articleID int, updateFields map[string]interface{}) error {
+	// 执行更新（仅更新未删除的文章）
+	result := tx.WithContext(ctx).
+		Model(&model.Article{}).
+		Where("article_id = ? AND is_deleted = ?", articleID, "N").
+		Updates(updateFields)
+
+	if result.Error != nil {
+		return utils.NewSystemError(fmt.Errorf("更新文章失败: %w", result.Error))
+	}
+	if result.RowsAffected == 0 {
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "文章不存在或已被删除，请刷新页面后重试")
+	}
+
+	return nil
 }

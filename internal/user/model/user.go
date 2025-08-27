@@ -30,6 +30,7 @@ type User struct {
 	UpdateTime    time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
 	// 关联字段
 	IndustryName string `json:"industry_name" gorm:"column:industry_name"` // 行业名称，关联 industries 表
+	RoleName     string `json:"role_name" gorm:"column:role_name"`
 }
 
 // TableName 设置表名

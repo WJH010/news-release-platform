@@ -4,3 +4,5 @@ config.yaml
 /.idea/workspace.xml
 /.idea/news-release-platform.iml
 /.idea/vcs.xml
+/internal/utils/sqlPrint.go
+/cmd/test/test.go

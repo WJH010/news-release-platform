@@ -5,6 +5,7 @@ import (
 	"news-release/internal/config"
 	"news-release/internal/database"
 	"news-release/internal/middleware"
+	"news-release/internal/utils"
 
 	articlectr "news-release/internal/article/controller"
 	articlerepo "news-release/internal/article/repository"
@@ -75,19 +76,19 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	userRepo := userrepo.NewUserRepository(db)
 	industryRepo := userrepo.NewIndustryRepository(db)
 	msgRepo := msgrepo.NewMessageRepository(db)
-	msgType := msgrepo.NewMessageTypeRepository(db)
 	eventRepo := eventrepo.NewEventRepository(db)
+	msgGroupRepo := msgrepo.NewMsgGroupRepository(db, msgRepo)
 
 	// 初始化服务
-	articleService := articlesvc.NewArticleService(articleRepo)
+	articleService := articlesvc.NewArticleService(articleRepo, fileRepo)
 	fieldService := articlesvc.NewFieldTypeService(fieldTypeRepo)
 	noticeService := noticesvc.NewNoticeService(noticeRepo)
 	fileService := filesvc.NewFileService(minioRepo, fileRepo)
 	userService := usersvc.NewUserService(userRepo, cfg)
 	industryService := usersvc.NewIndustryService(industryRepo)
-	msgService := msgsvc.NewMessageService(msgRepo)
-	msgTypeService := msgsvc.NewMessageTypeService(msgType)
-	eventService := eventsvc.NewEventService(eventRepo, userRepo)
+	msgService := msgsvc.NewMessageService(msgRepo, msgGroupRepo)
+	msgGroupService := msgsvc.NewMsgGroupService(msgGroupRepo, msgRepo)
+	eventService := eventsvc.NewEventService(eventRepo, userRepo, fileRepo, msgGroupService)
 
 	// 初始化控制器
 	articleController := articlectr.NewArticleController(articleService)
@@ -97,8 +98,8 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	userController := userctr.NewUserController(userService)
 	industryController := userctr.NewIndustryController(industryService)
 	msgController := msgctr.NewMessageController(msgService)
-	msgTypeController := msgctr.NewMessageTypeController(msgTypeService)
 	eventController := eventctr.NewEventController(eventService)
+	msgGroupController := msgctr.NewMsgGroupController(msgGroupService)
 
 	// API分组
 	api := router.Group("/api")
@@ -106,8 +107,22 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		// articles
 		articles := api.Group("/articles")
 		{
+			// 公开接口 - 无需认证
 			articles.GET("", articleController.ListArticle)
 			articles.GET("/:id", articleController.GetArticleContent)
+			// 需要认证的用户接口
+			authArticles := articles.Group("")
+			authArticles.Use(middleware.AuthMiddleware(cfg))
+			{
+				// 管理员接口 - 在认证基础上增加角色校验
+				adminArticles := authArticles.Group("")
+				adminArticles.Use(middleware.RoleMiddleware(utils.RoleAdmin))
+				{
+					adminArticles.POST("/create", articleController.CreateArticle)
+					adminArticles.PUT("/update/:id", articleController.UpdateArticle)
+					adminArticles.DELETE("/delete/:id", articleController.DeleteArticle)
+				}
+			}
 		}
 		// 领域类型相关路由
 		policyFieldType := api.Group("/fieldType")
@@ -123,46 +138,100 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		// 用户相关路由
 		user := api.Group("/user")
 		{
+			// 公开接口 - 无需认证
 			user.POST("/login", userController.Login)
-			user.PUT("/update", middleware.AuthMiddleware(cfg), userController.UpdateUserInfo)
-			user.GET("/info", middleware.AuthMiddleware(cfg), userController.GetUserInfo)
+			// 需要认证的用户接口
+			authUser := user.Group("")
+			authUser.Use(middleware.AuthMiddleware(cfg))
+			{
+				authUser.PUT("/update", middleware.AuthMiddleware(cfg), userController.UpdateUserInfo)
+				authUser.GET("/info", middleware.AuthMiddleware(cfg), userController.GetUserInfo)
+				// 管理员接口 - 在认证基础上增加角色校验
+				adminUser := authUser.Group("")
+				adminUser.Use(middleware.RoleMiddleware(utils.RoleAdmin))
+				{
+					adminUser.GET("/listAll", userController.ListAllUsers)
+				}
+			}
 		}
 		// 行业路由
 		industry := api.Group("/industry")
 		{
+			// 公开接口 - 无需认证
 			industry.GET("", industryController.ListIndustries)
+			// 需要认证的用户接口
+			authIndustry := industry.Group("")
+			authIndustry.Use(middleware.AuthMiddleware(cfg))
+			{
+				// 管理员接口 - 在认证基础上增加角色校验
+				adminIndustry := authIndustry.Group("")
+				adminIndustry.Use(middleware.RoleMiddleware(utils.RoleAdmin))
+				{
+					adminIndustry.POST("/create", industryController.CreateIndustry)
+					adminIndustry.PUT("/update/:id", industryController.UpdateIndustry)
+				}
+			}
 		}
 		// 文件上传路由
 		file := api.Group("/file")
-		// file.Use(middleware.AuthMiddleware(cfg))
+		file.Use(middleware.AuthMiddleware(cfg))
 		{
-			// 上传文件需进行身份验证
-			file.POST("/upload", middleware.AuthMiddleware(cfg), fileController.UploadFile)
+			file.POST("/upload", fileController.UploadFile)
+			file.DELETE("/deleteImage/:id", fileController.DeleteImage)
+
 		}
 		// 消息相关路由
 		message := api.Group("/message")
 		message.Use(middleware.AuthMiddleware(cfg))
 		{
 			message.GET("/:id", msgController.GetMessageContent)
-			message.GET("/unreadMessageCount", msgController.GetUnreadMessageCount)
+			message.GET("/hasUnreadMessages", msgController.HasUnreadMessages)
 			message.PUT("/markAllAsRead", msgController.MarkAllMessagesAsRead)
-			message.GET("/byTypeGroups", msgController.ListMessageByTypeGroups)
-			message.GET("/byEventGroups", msgController.ListMessageByEventGroups)
+			message.GET("/userMessageGroups", msgController.ListUserMessageGroups)
 			message.GET("/byGroups", msgController.ListMsgByGroups)
-		}
-		messageType := api.Group("/messageType")
-		{
-			messageType.GET("", msgTypeController.ListMessageType)
+			// 消息群组管理，仅管理员可操作
+			adminMessage := message.Group("")
+			adminMessage.Use(middleware.RoleMiddleware(utils.RoleAdmin))
+			{
+				adminMessage.GET("/byGroupID/:id", msgController.ListMessagesByGroupID)
+				adminMessage.GET("/messageGroups", msgGroupController.ListMsgGroups)
+				adminMessage.GET("/groupUsers/:id", msgGroupController.ListGroupsUsers)
+				adminMessage.GET("/notIngroupUsers/:id", msgGroupController.ListNotInGroupUsers)
+				adminMessage.POST("/createGroup", msgGroupController.CreateMsgGroup)
+				adminMessage.POST("/addUserToGroup/:id", msgGroupController.AddUserToGroup)
+				adminMessage.POST("/sendMessage/:id", msgController.SendMessage)
+				adminMessage.PUT("/updateGroup/:id", msgGroupController.UpdateMsgGroup)
+				adminMessage.DELETE("/revokeMessage/:id", msgController.RevokeGroupMessage)
+				adminMessage.DELETE("/removeUserFromGroup/:id", msgGroupController.DeleteUserFromGroup)
+				adminMessage.DELETE("/deleteGroup/:id", msgGroupController.DeleteMsgGroup)
+			}
 		}
 		// 活动相关路由
 		event := api.Group("/event")
 		{
+			// 公开接口 - 无需认证
 			event.GET("", eventController.ListEvent)
 			event.GET("/:id", eventController.GetEventDetail)
-			event.POST("/registration", middleware.AuthMiddleware(cfg), eventController.RegistrationEvent)
-			event.GET("/isUserRegistered/:id", middleware.AuthMiddleware(cfg), eventController.IsUserRegistered)
-			event.DELETE("/cancelRegistration/:id", middleware.AuthMiddleware(cfg), eventController.CancelRegistrationEvent)
-			event.GET("/userRegisteredEvents", middleware.AuthMiddleware(cfg), eventController.ListUserRegisteredEvents)
+
+			// 需要认证的用户接口
+			authEvent := event.Group("")
+			authEvent.Use(middleware.AuthMiddleware(cfg))
+			{
+				authEvent.POST("/registration", eventController.RegistrationEvent)
+				authEvent.GET("/isUserRegistered/:id", eventController.IsUserRegistered)
+				authEvent.DELETE("/cancelRegistration/:id", eventController.CancelRegistrationEvent)
+				authEvent.GET("/userRegisteredEvents", eventController.ListUserRegisteredEvents)
+
+				// 管理员接口 - 在认证基础上增加角色校验
+				adminEvent := authEvent.Group("")
+				adminEvent.Use(middleware.RoleMiddleware(utils.RoleAdmin))
+				{
+					adminEvent.POST("/create", eventController.CreateEvent)
+					adminEvent.PUT("/update/:id", eventController.UpdateEvent)
+					adminEvent.DELETE("/delete/:id", eventController.DeleteEvent)
+					adminEvent.GET("/regUsers/:id", eventController.ListEventRegisteredUsers)
+				}
+			}
 		}
 	}
 }

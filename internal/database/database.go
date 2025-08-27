@@ -2,14 +2,17 @@ package database
 
 import (
 	"fmt"
-
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
+// 全局DB实例（初始化后复用，避免重复创建连接）
+var db *gorm.DB
+
 // NewDatabase 创建数据库连接
 func NewDatabase(dsn string) (*gorm.DB, error) {
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	var err error
+	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("数据库连接失败: %v", err)
 	}
@@ -27,3 +30,8 @@ func NewDatabase(dsn string) (*gorm.DB, error) {
 // 	// 添加需要迁移的模型
 // 	return db.AutoMigrate(&model.Example{})
 // }
+
+// GetDB 获取数据库连接实例
+func GetDB() *gorm.DB {
+	return db
+}
