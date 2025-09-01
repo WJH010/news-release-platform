@@ -74,8 +74,6 @@ func (ctr *MessageController) HasUnreadMessages(ctx *gin.Context) {
 
 	// 返回成功响应
 	ctx.JSON(http.StatusOK, gin.H{
-		"code":    200,
-		"message": "查询成功",
 		"data": gin.H{
 			"hasUnread": hasUnread,
 		},
