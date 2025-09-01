@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"gorm.io/gorm"
 	"news-release/internal/event/dto"
 	"news-release/internal/event/model"
 	"news-release/internal/event/repository"
@@ -14,6 +13,8 @@ import (
 	userrepo "news-release/internal/user/repository"
 	"news-release/internal/utils"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // EventService 定义事件服务接口，提供事件相关的业务逻辑方法
@@ -76,13 +77,15 @@ func (svc *EventServiceImpl) GetEventDetail(ctx context.Context, eventID int) (*
 	}
 
 	// 获取关联图片列表
-	var images []repository.EventImage
-	images = svc.eventRepo.ListEventImage(ctx, eventID)
+	images := svc.eventRepo.ListEventImage(ctx, eventID)
 
 	// 添加图片到活动详情
-	event.Images = make([]string, 0, len(images)) // 预分配空间，提高性能
+	event.Images = make([]dto.Image, 0, len(images)) // 预分配空间，提高性能
 	for _, img := range images {
-		event.Images = append(event.Images, img.URL)
+		event.Images = append(event.Images, dto.Image{
+			ImageID: img.BizID,
+			URL:     img.URL,
+		})
 	}
 
 	return event, nil
