@@ -330,7 +330,8 @@ func (repo *MsgGroupRepositoryImpl) GetAllUserIDs(ctx context.Context, page int)
 // GetAllUserGroupIDs 获取所有包含全体用户的群组ID
 func (repo *MsgGroupRepositoryImpl) GetAllUserGroupIDs(ctx context.Context) ([]int, error) {
 	var groupIDs []int
-	err := repo.db.WithContext(ctx).Table("user_message_groups").Pluck("id", &groupIDs).Where("include_all_user = ?", "Y").Error
+	println("获取群组ID")
+	err := repo.db.Debug().WithContext(ctx).Table("user_message_groups").Where("include_all_user = ?", "Y").Pluck("id", &groupIDs).Error
 
 	return groupIDs, err
 }

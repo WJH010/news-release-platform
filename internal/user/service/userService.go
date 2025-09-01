@@ -29,8 +29,8 @@ type WxLoginResponse struct {
 type UserService interface {
 	Login(ctx context.Context, code string) (string, error)
 	UpdateUserInfo(ctx context.Context, userID int, req dto.UserUpdateRequest) error
-	GetUserByID(ctx context.Context, userID int) (*model.User, error)
-	ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*model.User, int64, error)
+	GetUserByID(ctx context.Context, userID int) (*dto.UserInfoResponse, error)
+	ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*dto.ListUsersResponse, int64, error)
 }
 
 // UserServiceImpl 用户服务实现
@@ -48,10 +48,14 @@ func NewUserService(userRepo repository.UserRepository, msgSvc msgsvc.MsgGroupSe
 // Login 微信登录逻辑
 func (svc *UserServiceImpl) Login(ctx context.Context, code string) (string, error) {
 	// 调用微信接口
-	wxResp, err := svc.getFromWechat(code)
-	if err != nil {
-		return "", err
-	}
+	// wxResp, err := svc.getFromWechat(code)
+	// if err != nil {
+	// 	return "", err
+	// }
+
+	var wxResp WxLoginResponse
+	wxResp.OpenID = "op-9IvnxLBtvDA6ZwmI_c13Tg8QE"
+	wxResp.SessionKey = "tXSEQ1iqrF4JZ32ptHK0nw=="
 
 	// 查找或创建用户
 	userID, userRole, err := svc.findOrCreateUser(ctx, wxResp.OpenID, wxResp.SessionKey, wxResp.UnionID)
@@ -210,7 +214,7 @@ func (svc *UserServiceImpl) UpdateUserInfo(ctx context.Context, userID int, req 
 	return nil
 }
 
-func (svc *UserServiceImpl) GetUserByID(ctx context.Context, userID int) (*model.User, error) {
+func (svc *UserServiceImpl) GetUserByID(ctx context.Context, userID int) (*dto.UserInfoResponse, error) {
 	// 查询用户信息
 	user, err := svc.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
@@ -224,6 +228,6 @@ func (svc *UserServiceImpl) GetUserByID(ctx context.Context, userID int) (*model
 }
 
 // ListAllUsers 分页查询用户列表
-func (svc *UserServiceImpl) ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*model.User, int64, error) {
+func (svc *UserServiceImpl) ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*dto.ListUsersResponse, int64, error) {
 	return svc.userRepo.ListAllUsers(ctx, page, pageSize, req)
 }

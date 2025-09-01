@@ -18,8 +18,8 @@ type UserRepository interface {
 	Create(ctx context.Context, user *model.User) error
 	Update(ctx context.Context, userID int, updateFields map[string]interface{}) error
 	UpdateSessionAndLoginTime(ctx context.Context, userID int, sessionKey string) error
-	GetUserByID(ctx context.Context, userID int) (*model.User, error)
-	ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*model.User, int64, error)
+	GetUserByID(ctx context.Context, userID int) (*dto.UserInfoResponse, error)
+	ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*dto.ListUsersResponse, int64, error)
 }
 
 // UserRepositoryImpl 用户仓库实现
@@ -74,12 +74,20 @@ func (repo *UserRepositoryImpl) UpdateSessionAndLoginTime(ctx context.Context, u
 }
 
 // GetUserByID 获取用户信息
-func (repo *UserRepositoryImpl) GetUserByID(ctx context.Context, userID int) (*model.User, error) {
-	var user model.User
+func (repo *UserRepositoryImpl) GetUserByID(ctx context.Context, userID int) (*dto.UserInfoResponse, error) {
+	var user dto.UserInfoResponse
 	query := repo.db.WithContext(ctx)
 
 	result := query.Table("users u").
-		Select("u.nickname, u.avatar_url, u.name, u.gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name").
+		Select(`u.nickname, u.avatar_url, u.name, u.gender AS gender_code,
+				CASE
+					WHEN gender = 'M' THEN
+					'男'
+					WHEN gender = 'F' THEN
+					'女'
+					ELSE
+					'未知'
+				END AS gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name`).
 		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
 		Where("user_id = ?", userID).First(&user)
 
@@ -109,12 +117,21 @@ func (repo *UserRepositoryImpl) Update(ctx context.Context, userID int, updateFi
 }
 
 // ListAllUsers 分页查询用户列表
-func (repo *UserRepositoryImpl) ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*model.User, int64, error) {
-	var users []*model.User
+func (repo *UserRepositoryImpl) ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*dto.ListUsersResponse, int64, error) {
+	var users []*dto.ListUsersResponse
 	var total int64
 
 	query := repo.db.WithContext(ctx).Table("users u").
-		Select("u.user_id, u.nickname, u.avatar_url, u.name, u.gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name, ur.role_name").
+		Select(`u.user_id, u.nickname, u.avatar_url, u.name, u.gender AS gender_code,
+				CASE
+					WHEN gender = 'M' THEN
+					'男'
+					WHEN gender = 'F' THEN
+					'女'
+					ELSE
+					'未知'
+				END AS gender,
+				u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name, ur.role_name`).
 		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
 		Joins("LEFT JOIN user_role ur ON ur.role_code = u.role")
 
