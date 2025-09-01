@@ -189,7 +189,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 			message.GET("/hasUnreadMessages", msgController.HasUnreadMessages)
 			message.PUT("/markAllAsRead", msgController.MarkAllMessagesAsRead)
 			message.GET("/userMessageGroups", msgController.ListUserMessageGroups)
-			message.GET("/byGroups", msgController.ListMsgByGroups)
+			message.GET("/byGroups/:id", msgController.ListMsgByGroups)
 			// 消息群组管理，仅管理员可操作
 			adminMessage := message.Group("")
 			adminMessage.Use(middleware.RoleMiddleware(utils.RoleAdmin))
