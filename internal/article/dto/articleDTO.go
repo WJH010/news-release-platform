@@ -71,6 +71,7 @@ type ArticleContentResponse struct {
 	ArticleTypeCode string    `json:"article_type_code"`
 	ArticleType     string    `json:"article_type"`
 	ArticleSource   string    `json:"article_source"`
+	CoverImageURL   string    `json:"cover_image_url"`
 	Images          []Image   `json:"images"`
 }
 
