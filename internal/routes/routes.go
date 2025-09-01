@@ -198,6 +198,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 				adminMessage.GET("/messageGroups", msgGroupController.ListMsgGroups)
 				adminMessage.GET("/groupUsers/:id", msgGroupController.ListGroupsUsers)
 				adminMessage.GET("/notIngroupUsers/:id", msgGroupController.ListNotInGroupUsers)
+				adminMessage.GET("/groupDetail/:id", msgGroupController.GetMsgGroupByID)
 				adminMessage.POST("/createGroup", msgGroupController.CreateMsgGroup)
 				adminMessage.POST("/addUserToGroup/:id", msgGroupController.AddUserToGroup)
 				adminMessage.POST("/sendMessage/:id", msgController.SendMessage)

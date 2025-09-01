@@ -13,6 +13,8 @@ import (
 )
 
 type MsgGroupService interface {
+	// GetMsgGroupByID 根据id获取消息群组信息
+	GetMsgGroupByID(ctx context.Context, msgGroupID int) (*model.UserMessageGroup, error)
 	// AddUserToGroup 用户入群
 	AddUserToGroup(ctx context.Context, msgGroupID int, userIDs []int, operateUser int) error
 	// CreateMsgGroup 创建消息群组
@@ -79,6 +81,11 @@ func extractUserIDs(mappings []model.UserMsgGroupMapping) []int {
 		ids = append(ids, m.UserID)
 	}
 	return ids
+}
+
+// GetMsgGroupByID 根据id获取消息群组信息
+func (svc *MsgGroupServiceImpl) GetMsgGroupByID(ctx context.Context, msgGroupID int) (*model.UserMessageGroup, error) {
+	return svc.msgGroupRepo.GetMsgGroupByID(ctx, msgGroupID)
 }
 
 // AddUserToGroup 用户入群
