@@ -53,15 +53,29 @@ func (svc *ArticleServiceImpl) GetArticleContent(ctx context.Context, articleID 
 	// 获取关联图片列表
 	images := svc.articleRepo.ListArticleImage(ctx, articleID)
 
-	// 添加图片到活动详情
-	article.Images = make([]dto.Image, 0, len(images)) // 预分配空间，提高性能
+	// 拼接文章内容和图片列表
+	res := dto.ArticleContentResponse{
+		ArticleID:       article.ArticleID,
+		ArticleTitle:    article.ArticleTitle,
+		BriefContent:    article.BriefContent,
+		FieldType:       article.FieldType,
+		FieldName:       article.FieldName,
+		ReleaseTime:     article.ReleaseTime,
+		ArticleContent:  article.ArticleContent,
+		ArticleTypeCode: article.ArticleTypeCode,
+		ArticleType:     article.ArticleType,
+		ArticleSource:   article.ArticleSource,
+		IsSelection:     article.IsSelection,
+		CoverImageURL:   article.CoverImageURL,
+	}
+	res.Images = make([]dto.Image, 0, len(images)) // 预分配空间，提高性能
 	for _, img := range images {
-		article.Images = append(article.Images, dto.Image{
+		res.Images = append(res.Images, dto.Image{
 			ImageID: img.ImageID,
 			URL:     img.URL,
 		})
 	}
-	return article, err
+	return &res, err
 }
 
 // CreateArticle 创建文章

@@ -17,7 +17,7 @@ type ArticleRepository interface {
 	// List 分页查询
 	List(ctx context.Context, page, pageSize int, articleTitle string, articleType string, releaseTime string, fieldType string, isSelection int, queryScope string) ([]dto.ArticleListResponse, int64, error)
 	// GetArticleContent 内容查询
-	GetArticleContent(ctx context.Context, articleID int) (*dto.ArticleContentResponse, error)
+	GetArticleContent(ctx context.Context, articleID int) (*dto.ArticleContentDTO, error)
 	// GetArticleByTitle 根据标题查询文章
 	GetArticleByTitle(ctx context.Context, title string) (*model.Article, error)
 	// CreateArticle 创建文章
@@ -107,8 +107,8 @@ func (repo *ArticleRepositoryImpl) List(ctx context.Context, page, pageSize int,
 }
 
 // GetArticleContent 内容查询
-func (repo *ArticleRepositoryImpl) GetArticleContent(ctx context.Context, articleID int) (*dto.ArticleContentResponse, error) {
-	var article dto.ArticleContentResponse
+func (repo *ArticleRepositoryImpl) GetArticleContent(ctx context.Context, articleID int) (*dto.ArticleContentDTO, error) {
+	var article dto.ArticleContentDTO
 
 	query := repo.db.WithContext(ctx).Table("articles a").
 		Select(`a.article_id, a.article_title, f.field_name, a.release_time, a.article_content, 

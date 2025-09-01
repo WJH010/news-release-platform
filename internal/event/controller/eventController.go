@@ -93,7 +93,7 @@ func (ctr *EventController) GetEventDetail(ctx *gin.Context) {
 	// 获取活动状态
 	status := ctr.eventService.GetEventStatus(event.RegistrationStartTime, event.RegistrationEndTime)
 
-	ctx.JSON(http.StatusOK, dto.EventDetailResponse{
+	res := dto.EventDetailResponse{
 		Title:                 event.Title,
 		Detail:                event.Detail,
 		EventStartTime:        event.EventStartTime,
@@ -105,6 +105,10 @@ func (ctr *EventController) GetEventDetail(ctx *gin.Context) {
 		Status:                status,
 		CoverImageURL:         event.CoverImageURL,
 		Images:                event.Images,
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"data": res,
 	})
 }
 
