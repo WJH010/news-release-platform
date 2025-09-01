@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
+	"news-release/internal/event/dto"
 	"news-release/internal/event/model"
-	usermodel "news-release/internal/user/model"
 	"news-release/internal/utils"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 // EventRepository 数据访问接口，定义数据访问的方法集
@@ -37,7 +38,7 @@ type EventRepository interface {
 	// UpdateEvent 更新活动
 	UpdateEvent(ctx context.Context, tx *gorm.DB, eventID int, updateFields map[string]interface{}) error
 	// ListEventRegisteredUser 查询已报名活动的用户列表
-	ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*usermodel.User, int, error)
+	ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*dto.ListEventRegUserResponse, int, error)
 	// GetEventByTitle 根据活动标题查询活动
 	GetEventByTitle(ctx context.Context, title string) (*model.Event, error)
 }
@@ -296,7 +297,7 @@ func (repo *EventRepositoryImpl) UpdateEvent(ctx context.Context, tx *gorm.DB, e
 }
 
 // ListEventRegisteredUser 查询已报名活动的用户列表
-func (repo *EventRepositoryImpl) ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*usermodel.User, int, error) {
+func (repo *EventRepositoryImpl) ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*dto.ListEventRegUserResponse, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -305,12 +306,20 @@ func (repo *EventRepositoryImpl) ListEventRegisteredUser(ctx context.Context, pa
 	}
 
 	offset := (page - 1) * pageSize
-	var users []*usermodel.User
+	var users []*dto.ListEventRegUserResponse
 	var total int64
 
 	query := repo.db.WithContext(ctx).
 		Table("users u").
-		Select("u.nickname, u.name, u.gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name").
+		Select(`u.nickname, u.name, u.gender AS gender_code,
+				CASE
+					WHEN gender = 'M' THEN
+					'男'
+					WHEN gender = 'F' THEN
+					'女'
+					ELSE
+					'未知'
+				END AS gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name`).
 		Joins("JOIN event_user_mappings eum ON u.user_id = eum.user_id").
 		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
 		Where("eum.event_id = ? AND eum.is_deleted = ?", eventID, utils.DeletedFlagNo)

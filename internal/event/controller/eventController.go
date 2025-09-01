@@ -423,28 +423,10 @@ func (ctr *EventController) ListEventRegisteredUsers(ctx *gin.Context) {
 		return
 	}
 
-	var list []dto.ListEventRegUserResponse
-
-	for _, user := range users {
-		list = append(list, dto.ListEventRegUserResponse{
-			Nickname:     user.Nickname,
-			Name:         user.Name,
-			GenderCode:   user.Gender,
-			Gender:       map[string]string{"M": "男", "F": "女", "U": "未知"}[user.Gender],
-			PhoneNumber:  user.PhoneNumber,
-			Email:        user.Email,
-			Unit:         user.Unit,
-			Department:   user.Department,
-			Position:     user.Position,
-			Industry:     user.Industry,
-			IndustryName: user.IndustryName,
-		})
-	}
-
 	ctx.JSON(http.StatusOK, gin.H{
 		"total":     total,
 		"page":      page,
 		"page_size": pageSize,
-		"data":      list,
+		"data":      users,
 	})
 }
