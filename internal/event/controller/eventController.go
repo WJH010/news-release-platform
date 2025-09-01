@@ -1,12 +1,13 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"news-release/internal/event/dto"
 	"news-release/internal/event/model"
 	"news-release/internal/event/service"
 	"news-release/internal/utils"
+
+	"github.com/gin-gonic/gin"
 )
 
 // EventController 定义事件控制器，处理与事件相关的 HTTP 请求
@@ -49,6 +50,8 @@ func (ctr *EventController) ListEvent(ctx *gin.Context) {
 
 	var result []dto.EventListResponse
 	for _, ev := range event {
+		// 获取活动状态
+		status := ctr.eventService.GetEventStatus(ev.RegistrationStartTime, ev.RegistrationEndTime)
 		result = append(result, dto.EventListResponse{
 			ID:                    ev.ID,
 			Title:                 ev.Title,
@@ -58,6 +61,7 @@ func (ctr *EventController) ListEvent(ctx *gin.Context) {
 			RegistrationEndTime:   ev.RegistrationEndTime,
 			EventAddress:          ev.EventAddress,
 			RegistrationFee:       ev.RegistrationFee,
+			Status:                status,
 			CoverImageURL:         ev.CoverImageURL,
 		})
 	}
@@ -86,6 +90,9 @@ func (ctr *EventController) GetEventDetail(ctx *gin.Context) {
 		return
 	}
 
+	// 获取活动状态
+	status := ctr.eventService.GetEventStatus(event.RegistrationStartTime, event.RegistrationEndTime)
+
 	ctx.JSON(http.StatusOK, dto.EventDetailResponse{
 		Title:                 event.Title,
 		Detail:                event.Detail,
@@ -95,6 +102,8 @@ func (ctr *EventController) GetEventDetail(ctx *gin.Context) {
 		RegistrationEndTime:   event.RegistrationEndTime,
 		EventAddress:          event.EventAddress,
 		RegistrationFee:       event.RegistrationFee,
+		Status:                status,
+		CoverImageURL:         event.CoverImageURL,
 		Images:                event.Images,
 	})
 }

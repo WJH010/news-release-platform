@@ -19,6 +19,8 @@ import (
 
 // EventService 定义事件服务接口，提供事件相关的业务逻辑方法
 type EventService interface {
+	// GetEventStatus 根据开始时间和结束时间计算活动状态
+	GetEventStatus(registrationStartTime time.Time, registrationEndTime time.Time) string
 	// ListEvent 分页查询活动列表
 	ListEvent(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error)
 	// GetEventDetail 获取活动详情
@@ -62,6 +64,20 @@ func NewEventService(
 		fileRepo:  fileRepo,
 		msgSvc:    msgSvc,
 	}
+}
+
+// GetEventStatus 根据开始时间和结束时间计算活动状态
+func (svc *EventServiceImpl) GetEventStatus(registrationStartTime time.Time, registrationEndTime time.Time) string {
+	if registrationStartTime.After(time.Now()) {
+		return "未开始"
+	}
+	if registrationStartTime.Before(time.Now()) && registrationEndTime.After(time.Now()) {
+		return "正在进行"
+	}
+	if registrationEndTime.Before(time.Now()) {
+		return "已结束"
+	}
+	return ""
 }
 
 // ListEvent 分页查询活动列表
