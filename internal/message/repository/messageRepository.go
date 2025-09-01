@@ -4,11 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 	"news-release/internal/message/dto"
 	"news-release/internal/message/model"
 	"news-release/internal/utils"
+
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 // MessageRepository 数据访问接口，定义数据访问的方法集
@@ -317,7 +318,7 @@ func (repo *MessageRepositoryImpl) CheckUserMsgPermission(ctx context.Context, u
 	// 如果是管理员，直接返回true
 	err = repo.db.WithContext(ctx).
 		Table("users").
-		Where("id = ? AND role = ?", userID, utils.RoleAdmin).
+		Where("user_id = ? AND role = ?", userID, utils.RoleAdmin).
 		Count(&count).Error
 	if err != nil {
 		return utils.NewSystemError(fmt.Errorf("权限校验时数据库查询失败: %w", err))
