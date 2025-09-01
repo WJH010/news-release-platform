@@ -48,14 +48,10 @@ func NewUserService(userRepo repository.UserRepository, msgSvc msgsvc.MsgGroupSe
 // Login 微信登录逻辑
 func (svc *UserServiceImpl) Login(ctx context.Context, code string) (string, error) {
 	// 调用微信接口
-	// wxResp, err := svc.getFromWechat(code)
-	// if err != nil {
-	// 	return "", err
-	// }
-
-	var wxResp WxLoginResponse
-	wxResp.OpenID = "op-9IvnxLBtvDA6ZwmI_c13Tg8QE"
-	wxResp.SessionKey = "tXSEQ1iqrF4JZ32ptHK0nw=="
+	wxResp, err := svc.getFromWechat(code)
+	if err != nil {
+		return "", err
+	}
 
 	// 查找或创建用户
 	userID, userRole, err := svc.findOrCreateUser(ctx, wxResp.OpenID, wxResp.SessionKey, wxResp.UnionID)
