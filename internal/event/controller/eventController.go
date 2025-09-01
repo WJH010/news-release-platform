@@ -286,8 +286,20 @@ func (ctr *EventController) CreateEvent(ctx *gin.Context) {
 
 	// 转换时间格式
 	eventStartTime, err := utils.StringToTime(req.EventStartTime)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
 	eventEndTime, err := utils.StringToTime(req.EventEndTime)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
 	registrationStartTime, err := utils.StringToTime(req.RegistrationStartTime)
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
 	registrationEndTime, err := utils.StringToTime(req.RegistrationEndTime)
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
