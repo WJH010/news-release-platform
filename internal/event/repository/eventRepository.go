@@ -140,6 +140,7 @@ func (repo *EventRepositoryImpl) ListEventImage(ctx context.Context, bizID int) 
 
 	err := repo.db.WithContext(ctx).
 		Table("images").
+		Select("id AS image_id, url").
 		Where("biz_type = ? AND biz_id = ?", utils.TypeEvent, bizID).
 		Find(&images).Error
 

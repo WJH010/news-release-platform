@@ -61,6 +61,28 @@ type ArticleListResponse struct {
 	ArticleSource   string    `json:"article_source"`
 }
 
+// Image 关联图片列表结构体
+type Image struct {
+	ImageID int    `json:"image_id"`
+	URL     string `json:"url"`
+}
+
+// ArticleContentResponse 文章内容响应结构体
+type ArticleContentDTO struct {
+	ArticleID       int       `json:"article_id"`
+	ArticleTitle    string    `json:"article_title"`
+	BriefContent    string    `json:"brief_content"`
+	FieldType       string    `json:"field_type"`
+	FieldName       string    `json:"field_name"`
+	ReleaseTime     time.Time `json:"release_time"`
+	ArticleContent  string    `json:"article_content"`
+	ArticleTypeCode string    `json:"article_type_code"`
+	ArticleType     string    `json:"article_type"`
+	ArticleSource   string    `json:"article_source"`
+	IsSelection     int       `json:"is_selection"`
+	CoverImageURL   string    `json:"cover_image_url"`
+}
+
 // ArticleContentResponse 文章内容响应结构体
 type ArticleContentResponse struct {
 	ArticleID       int       `json:"article_id"`
@@ -76,10 +98,4 @@ type ArticleContentResponse struct {
 	IsSelection     int       `json:"is_selection"`
 	CoverImageURL   string    `json:"cover_image_url"`
 	Images          []Image   `json:"images"`
-}
-
-// Image 关联图片列表结构体
-type Image struct {
-	ImageID int    `json:"image_id"`
-	URL     string `json:"url"`
 }
