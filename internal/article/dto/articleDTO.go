@@ -65,12 +65,15 @@ type ArticleListResponse struct {
 type ArticleContentResponse struct {
 	ArticleID       int       `json:"article_id"`
 	ArticleTitle    string    `json:"article_title"`
+	BriefContent    string    `json:"brief_content"`
+	FieldType       string    `json:"field_type"`
 	FieldName       string    `json:"field_name"`
 	ReleaseTime     time.Time `json:"release_time"`
 	ArticleContent  string    `json:"article_content"`
 	ArticleTypeCode string    `json:"article_type_code"`
 	ArticleType     string    `json:"article_type"`
 	ArticleSource   string    `json:"article_source"`
+	IsSelection     int       `json:"is_selection"`
 	CoverImageURL   string    `json:"cover_image_url"`
 	Images          []Image   `json:"images"`
 }

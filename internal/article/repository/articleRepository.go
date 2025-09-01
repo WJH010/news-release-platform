@@ -111,7 +111,9 @@ func (repo *ArticleRepositoryImpl) GetArticleContent(ctx context.Context, articl
 	var article dto.ArticleContentResponse
 
 	query := repo.db.WithContext(ctx).Table("articles a").
-		Select("a.article_id, a.article_title, f.field_name, a.release_time, a.article_content, a.article_type AS article_type_code, at.type_name AS article_type, a.article_source, a.cover_image_url").
+		Select(`a.article_id, a.article_title, f.field_name, a.release_time, a.article_content, 
+				a.article_type AS article_type_code, at.type_name AS article_type, a.article_source, 
+				a.cover_image_url, a.brief_content, a.is_selection, a.field_type`).
 		Joins("LEFT JOIN field_types f ON a.field_type = f.field_code").
 		Joins("LEFT JOIN article_types at ON a.article_type = at.type_code").
 		Where("a.article_id = ?", articleID)
