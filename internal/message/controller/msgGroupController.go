@@ -1,12 +1,13 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"news-release/internal/message/dto"
 	"news-release/internal/message/model"
 	"news-release/internal/message/service"
 	"news-release/internal/utils"
+
+	"github.com/gin-gonic/gin"
 )
 
 type MsgGroupController struct {
@@ -15,6 +16,26 @@ type MsgGroupController struct {
 
 func NewMsgGroupController(msgGroupService service.MsgGroupService) *MsgGroupController {
 	return &MsgGroupController{msgGroupService: msgGroupService}
+}
+
+// GetMsgGroupByID 根据id获取消息群组信息
+func (ctr *MsgGroupController) GetMsgGroupByID(ctx *gin.Context) {
+	// 初始化参数结构体并绑定URL路径参数
+	var urlReq dto.MsgGroupIDRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+
+	// 调用服务层
+	msgGroup, err := ctr.msgGroupService.GetMsgGroupByID(ctx, urlReq.MsgGroupID)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 返回成功响应
+	ctx.JSON(http.StatusOK, gin.H{"data": msgGroup})
 }
 
 // AddUserToGroup 用户入群

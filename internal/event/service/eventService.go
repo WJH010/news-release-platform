@@ -3,21 +3,23 @@ package service
 import (
 	"context"
 	"fmt"
-	"gorm.io/gorm"
 	"news-release/internal/event/dto"
 	"news-release/internal/event/model"
 	"news-release/internal/event/repository"
 	filerepo "news-release/internal/file/repository"
 	msgmodel "news-release/internal/message/model"
 	msgsvc "news-release/internal/message/service"
-	usermodel "news-release/internal/user/model"
 	userrepo "news-release/internal/user/repository"
 	"news-release/internal/utils"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 // EventService 定义事件服务接口，提供事件相关的业务逻辑方法
 type EventService interface {
+	// GetEventStatus 根据开始时间和结束时间计算活动状态
+	GetEventStatus(registrationStartTime time.Time, registrationEndTime time.Time) string
 	// ListEvent 分页查询活动列表
 	ListEvent(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error)
 	// GetEventDetail 获取活动详情
@@ -37,7 +39,7 @@ type EventService interface {
 	// DeleteEvent 删除活动
 	DeleteEvent(ctx context.Context, eventID int, userID int) error
 	// ListEventRegisteredUser 获取活动报名用户列表
-	ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*usermodel.User, int, error)
+	ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*dto.ListEventRegUserResponse, int, error)
 }
 
 // EventServiceImpl 实现 EventService 接口，提供事件相关的业务逻辑
@@ -63,6 +65,20 @@ func NewEventService(
 	}
 }
 
+// GetEventStatus 根据开始时间和结束时间计算活动状态
+func (svc *EventServiceImpl) GetEventStatus(registrationStartTime time.Time, registrationEndTime time.Time) string {
+	if registrationStartTime.After(time.Now()) {
+		return "未开始"
+	}
+	if registrationStartTime.Before(time.Now()) && registrationEndTime.After(time.Now()) {
+		return "正在进行"
+	}
+	if registrationEndTime.Before(time.Now()) {
+		return "已结束"
+	}
+	return ""
+}
+
 // ListEvent 分页查询活动列表
 func (svc *EventServiceImpl) ListEvent(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error) {
 	return svc.eventRepo.List(ctx, page, pageSize, eventStatus, queryScope)
@@ -76,13 +92,15 @@ func (svc *EventServiceImpl) GetEventDetail(ctx context.Context, eventID int) (*
 	}
 
 	// 获取关联图片列表
-	var images []repository.EventImage
-	images = svc.eventRepo.ListEventImage(ctx, eventID)
+	images := svc.eventRepo.ListEventImage(ctx, eventID)
 
 	// 添加图片到活动详情
-	event.Images = make([]string, 0, len(images)) // 预分配空间，提高性能
+	event.Images = make([]dto.Image, 0, len(images)) // 预分配空间，提高性能
 	for _, img := range images {
-		event.Images = append(event.Images, img.URL)
+		event.Images = append(event.Images, dto.Image{
+			ImageID: img.ImageID,
+			URL:     img.URL,
+		})
 	}
 
 	return event, nil
@@ -445,6 +463,6 @@ func (svc *EventServiceImpl) DeleteEvent(ctx context.Context, eventID int, userI
 }
 
 // ListEventRegisteredUser 获取活动报名用户列表
-func (svc *EventServiceImpl) ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*usermodel.User, int, error) {
+func (svc *EventServiceImpl) ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*dto.ListEventRegUserResponse, int, error) {
 	return svc.eventRepo.ListEventRegisteredUser(ctx, page, pageSize, eventID)
 }

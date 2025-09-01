@@ -98,23 +98,8 @@ func (ctr *UserController) GetUserInfo(ctx *gin.Context) {
 		return
 	}
 
-	result := dto.UserInfoResponse{
-		Nickname:     user.Nickname,
-		AvatarURL:    user.AvatarURL,
-		Name:         user.Name,
-		GenderCode:   user.Gender,
-		Gender:       map[string]string{"M": "男", "F": "女", "U": "未知"}[user.Gender],
-		PhoneNumber:  user.PhoneNumber,
-		Email:        user.Email,
-		Unit:         user.Unit,
-		Department:   user.Department,
-		Position:     user.Position,
-		Industry:     user.Industry,
-		IndustryName: user.IndustryName,
-	}
-
 	ctx.JSON(http.StatusOK, gin.H{
-		"data": result,
+		"data": user,
 	})
 }
 
@@ -142,32 +127,11 @@ func (ctr *UserController) ListAllUsers(ctx *gin.Context) {
 		return
 	}
 
-	// 构建响应数据
-	var userResponses []dto.ListUsersResponse
-	for _, user := range users {
-		userResponses = append(userResponses, dto.ListUsersResponse{
-			UserID:       user.UserID,
-			Nickname:     user.Nickname,
-			AvatarURL:    user.AvatarURL,
-			Name:         user.Name,
-			GenderCode:   user.Gender,
-			Gender:       map[string]string{"M": "男", "F": "女", "U": "未知"}[user.Gender],
-			PhoneNumber:  user.PhoneNumber,
-			Email:        user.Email,
-			Unit:         user.Unit,
-			Department:   user.Department,
-			Position:     user.Position,
-			Industry:     user.Industry,
-			IndustryName: user.IndustryName,
-			RoleName:     user.RoleName,
-		})
-	}
-
 	ctx.JSON(http.StatusOK, gin.H{
 		"page":      req.Page,
 		"page_size": req.PageSize,
 		"total":     total,
-		"data":      userResponses,
+		"data":      users,
 	})
 }
 

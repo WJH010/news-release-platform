@@ -84,10 +84,10 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fieldService := articlesvc.NewFieldTypeService(fieldTypeRepo)
 	noticeService := noticesvc.NewNoticeService(noticeRepo)
 	fileService := filesvc.NewFileService(minioRepo, fileRepo)
-	userService := usersvc.NewUserService(userRepo, cfg)
-	industryService := usersvc.NewIndustryService(industryRepo)
 	msgService := msgsvc.NewMessageService(msgRepo, msgGroupRepo)
 	msgGroupService := msgsvc.NewMsgGroupService(msgGroupRepo, msgRepo)
+	userService := usersvc.NewUserService(userRepo, msgGroupService, cfg)
+	industryService := usersvc.NewIndustryService(industryRepo)
 	eventService := eventsvc.NewEventService(eventRepo, userRepo, fileRepo, msgGroupService)
 
 	// 初始化控制器
@@ -198,6 +198,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 				adminMessage.GET("/messageGroups", msgGroupController.ListMsgGroups)
 				adminMessage.GET("/groupUsers/:id", msgGroupController.ListGroupsUsers)
 				adminMessage.GET("/notIngroupUsers/:id", msgGroupController.ListNotInGroupUsers)
+				adminMessage.GET("/groupDetail/:id", msgGroupController.GetMsgGroupByID)
 				adminMessage.POST("/createGroup", msgGroupController.CreateMsgGroup)
 				adminMessage.POST("/addUserToGroup/:id", msgGroupController.AddUserToGroup)
 				adminMessage.POST("/sendMessage/:id", msgController.SendMessage)

@@ -58,7 +58,14 @@ type EventListResponse struct {
 	RegistrationEndTime   time.Time `json:"registration_end_time"`   // 活动报名截止时间
 	EventAddress          string    `json:"event_address"`           // 活动地址
 	RegistrationFee       float64   `json:"registration_fee"`        // 报名费用
+	Status                string    `json:"status"`                  // 活动状态
 	CoverImageURL         string    `json:"cover_image_url"`         // 封面图片URL
+}
+
+// Image 关联图片列表结构体
+type Image struct {
+	ImageID int    `json:"image_id"`
+	URL     string `json:"url"`
 }
 
 // EventDetailResponse 活动详情响应结构体
@@ -71,7 +78,9 @@ type EventDetailResponse struct {
 	RegistrationEndTime   time.Time `json:"registration_end_time"`   // 活动报名截止时间
 	EventAddress          string    `json:"event_address"`           // 活动地址
 	RegistrationFee       float64   `json:"registration_fee"`        // 报名费用
-	Images                []string  `json:"images"`                  // 图片列表
+	Status                string    `json:"status"`                  // 活动状态
+	CoverImageURL         string    `json:"cover_image_url"`         // 封面图片URL
+	Images                []Image   `json:"images"`                  // 图片列表
 }
 
 // ListEventRegUserResponse 活动报名列表查询请求参数

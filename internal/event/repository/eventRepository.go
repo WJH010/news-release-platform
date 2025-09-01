@@ -4,12 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
+	"news-release/internal/event/dto"
 	"news-release/internal/event/model"
-	usermodel "news-release/internal/user/model"
 	"news-release/internal/utils"
 	"time"
+
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 // EventRepository 数据访问接口，定义数据访问的方法集
@@ -21,7 +22,7 @@ type EventRepository interface {
 	// GetEventDetail 获取活动详情
 	GetEventDetail(ctx context.Context, eventID int) (*model.Event, error)
 	// ListEventImage 获取活动图片列表
-	ListEventImage(ctx context.Context, bizID int) []EventImage
+	ListEventImage(ctx context.Context, bizID int) []dto.Image
 	// GetEventUserMap 查询活动-用户关联映射
 	GetEventUserMap(ctx context.Context, eventID int, userID int) (*model.EventUserMapping, error)
 	// CreatEventUserMap 创建活动-用户关联映射,将用户添加到活动中
@@ -37,7 +38,7 @@ type EventRepository interface {
 	// UpdateEvent 更新活动
 	UpdateEvent(ctx context.Context, tx *gorm.DB, eventID int, updateFields map[string]interface{}) error
 	// ListEventRegisteredUser 查询已报名活动的用户列表
-	ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*usermodel.User, int, error)
+	ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*dto.ListEventRegUserResponse, int, error)
 	// GetEventByTitle 根据活动标题查询活动
 	GetEventByTitle(ctx context.Context, title string) (*model.Event, error)
 }
@@ -50,12 +51,6 @@ type EventRepositoryImpl struct {
 // NewEventRepository 创建数据访问实例
 func NewEventRepository(db *gorm.DB) EventRepository {
 	return &EventRepositoryImpl{db: db}
-}
-
-// EventImage 结构体用于暂存图片查询结果,只在当前包内使用
-type EventImage struct {
-	BizID int    `json:"biz_id" gorm:"column:biz_id"`
-	URL   string `json:"url" gorm:"column:url"`
 }
 
 // ExecTransaction 实现事务执行（使用 GORM 的 Transaction 方法）
@@ -140,12 +135,12 @@ func (repo *EventRepositoryImpl) GetEventDetail(ctx context.Context, eventID int
 }
 
 // ListEventImage 获取活动图片列表
-func (repo *EventRepositoryImpl) ListEventImage(ctx context.Context, bizID int) []EventImage {
-	var images []EventImage
+func (repo *EventRepositoryImpl) ListEventImage(ctx context.Context, bizID int) []dto.Image {
+	var images []dto.Image
 
 	err := repo.db.WithContext(ctx).
 		Table("images").
-		Where("biz_type = ? AND biz_id = ?", "EVENT", bizID).
+		Where("biz_type = ? AND biz_id = ?", utils.TypeEvent, bizID).
 		Find(&images).Error
 
 	if err != nil {
@@ -296,7 +291,7 @@ func (repo *EventRepositoryImpl) UpdateEvent(ctx context.Context, tx *gorm.DB, e
 }
 
 // ListEventRegisteredUser 查询已报名活动的用户列表
-func (repo *EventRepositoryImpl) ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*usermodel.User, int, error) {
+func (repo *EventRepositoryImpl) ListEventRegisteredUser(ctx context.Context, page, pageSize int, eventID int) ([]*dto.ListEventRegUserResponse, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -305,12 +300,20 @@ func (repo *EventRepositoryImpl) ListEventRegisteredUser(ctx context.Context, pa
 	}
 
 	offset := (page - 1) * pageSize
-	var users []*usermodel.User
+	var users []*dto.ListEventRegUserResponse
 	var total int64
 
 	query := repo.db.WithContext(ctx).
 		Table("users u").
-		Select("u.nickname, u.name, u.gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name").
+		Select(`u.nickname, u.name, u.gender AS gender_code,
+				CASE
+					WHEN gender = 'M' THEN
+					'男'
+					WHEN gender = 'F' THEN
+					'女'
+					ELSE
+					'未知'
+				END AS gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name`).
 		Joins("JOIN event_user_mappings eum ON u.user_id = eum.user_id").
 		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
 		Where("eum.event_id = ? AND eum.is_deleted = ?", eventID, utils.DeletedFlagNo)

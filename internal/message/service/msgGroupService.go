@@ -3,15 +3,18 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 	"news-release/internal/message/dto"
 	"news-release/internal/message/model"
 	"news-release/internal/message/repository"
 	"news-release/internal/utils"
+
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 type MsgGroupService interface {
+	// GetMsgGroupByID 根据id获取消息群组信息
+	GetMsgGroupByID(ctx context.Context, msgGroupID int) (*model.UserMessageGroup, error)
 	// AddUserToGroup 用户入群
 	AddUserToGroup(ctx context.Context, msgGroupID int, userIDs []int, operateUser int) error
 	// CreateMsgGroup 创建消息群组
@@ -28,6 +31,8 @@ type MsgGroupService interface {
 	ListGroupsUsers(ctx context.Context, page int, pageSize int, msgGroupID int) ([]dto.ListGroupsUsersResponse, int64, error)
 	// ListNotInGroupUsers 查询不在指定组内的用户
 	ListNotInGroupUsers(ctx context.Context, page int, pageSize int, msgGroupID int, req dto.ListNotInGroupUsersRequest) ([]dto.ListGroupsUsersResponse, int64, error)
+	// AddUserToGroups 将指定用户加入到包含全体用户的群组中，用于新用户注册时加入全体用户群组
+	AddUserToAllUserGroups(ctx context.Context, userID int)
 }
 
 // MsgGroupServiceImpl 实现接口的具体结构体，持有数据访问层接口 Repository 的实例
@@ -76,6 +81,11 @@ func extractUserIDs(mappings []model.UserMsgGroupMapping) []int {
 		ids = append(ids, m.UserID)
 	}
 	return ids
+}
+
+// GetMsgGroupByID 根据id获取消息群组信息
+func (svc *MsgGroupServiceImpl) GetMsgGroupByID(ctx context.Context, msgGroupID int) (*model.UserMessageGroup, error) {
+	return svc.msgGroupRepo.GetMsgGroupByID(ctx, msgGroupID)
 }
 
 // AddUserToGroup 用户入群
@@ -132,6 +142,44 @@ func (svc *MsgGroupServiceImpl) AddUserToGroup(ctx context.Context, msgGroupID i
 	return nil
 }
 
+// AddUserToGroups 将指定用户加入到包含全体用户的群组中，用于新用户注册时加入全体用户群组
+func (svc *MsgGroupServiceImpl) AddUserToAllUserGroups(ctx context.Context, userID int) {
+	groupIDs, err := svc.msgGroupRepo.GetAllUserGroupIDs(ctx)
+	if err != nil {
+		// 只记录错误日志，避免影响新用户注册过程
+		logrus.Errorf("获取包含全体用户的群组列表失败： %s", err.Error())
+	}
+	var mapings []model.UserMsgGroupMapping
+	for _, groupID := range groupIDs {
+		// 获取当前群组最新消息ID
+		latestMsgID, err := svc.msgRepo.GetLatestMsgIDInGroup(ctx, groupID)
+		if err != nil {
+			logrus.Errorf("获取群组最新消息ID失败： %s", err.Error())
+		}
+		// 拼接新建数据
+		mapings = append(mapings, model.UserMsgGroupMapping{
+			MsgGroupID:    groupID,
+			UserID:        userID,
+			JoinMsgID:     latestMsgID, // 入群时的最新消息ID（用于过滤历史消息）
+			LastReadMsgID: latestMsgID,
+			CreateUser:    0, // 自动创建
+			UpdateUser:    0,
+			IsDeleted:     "N",
+		})
+	}
+	err = svc.msgGroupRepo.ExecTransaction(ctx, func(tx *gorm.DB) error {
+		if err := svc.msgGroupRepo.CreateUserMsgGroupMappings(ctx, tx, mapings); err != nil {
+			logrus.Errorf("用户入群失败： %s", err.Error())
+		}
+		return nil
+	})
+
+	// 处理事务执行结果
+	if err != nil {
+		logrus.Errorf("事务执行失败: %s", err.Error())
+	}
+}
+
 // CreateMsgGroup 创建消息群组
 // 没有进行事务控制，允许群组创建成功但用户添加失败
 func (svc *MsgGroupServiceImpl) CreateMsgGroup(ctx context.Context, msgGroup *model.UserMessageGroup, userIDs []int) error {
@@ -144,10 +192,36 @@ func (svc *MsgGroupServiceImpl) CreateMsgGroup(ctx context.Context, msgGroup *mo
 	if msgGroup.IncludeAllUser == "N" && len(userIDs) > 0 {
 		err = svc.AddUserToGroup(ctx, msgGroup.ID, userIDs, msgGroup.CreateUser)
 		if err != nil {
-			logrus.Errorf("添加用户到群组失败" + err.Error())
+			logrus.Errorf("添加用户到群组失败 %s", err.Error())
 			return utils.NewBusinessError(utils.ErrCodeServerInternalError, "添加用户到群组失败，请手动添加")
 		}
 	}
+	// 如果是包含全体用户，则将全体用户添加到群组
+	if msgGroup.IncludeAllUser == "Y" {
+		var UIDs []int
+		page := 1
+		// 避免数据量过大，采用循环分批处理方式
+		for {
+			UIDs, err = svc.msgGroupRepo.GetAllUserIDs(ctx, page)
+			if err != nil {
+				logrus.Errorf("添加用户到群组失败 %s", err.Error())
+				return utils.NewBusinessError(utils.ErrCodeServerInternalError, "添加用户到群组失败，请手动添加")
+			}
+			// 若没有更多数据，退出循环
+			if len(UIDs) == 0 {
+				break
+			}
+			// 批量入群
+			err = svc.AddUserToGroup(ctx, msgGroup.ID, UIDs, msgGroup.CreateUser)
+			if err != nil {
+				logrus.Errorf("添加用户到群组失败 %s", err.Error())
+				return utils.NewBusinessError(utils.ErrCodeServerInternalError, "添加用户到群组失败，请手动添加")
+			}
+			page++
+		}
+
+	}
+
 	return nil
 }
 

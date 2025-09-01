@@ -1,6 +1,7 @@
 package model
 
 import (
+	"news-release/internal/event/dto"
 	"time"
 )
 
@@ -28,7 +29,7 @@ type Event struct {
 	CreateUser            int       `json:"create_user" gorm:"column:create_user"`                              // 创建人ID
 	UpdateUser            int       `json:"update_user" gorm:"column:update_user"`                              // 最后更新人ID
 	// 关联字段
-	Images []string `json:"images" gorm:"-"` // 图片列表，存储图片URL
+	Images []dto.Image `json:"images" gorm:"-"` // 图片列表，存储图片ID和URL
 }
 
 // TableName 设置表名

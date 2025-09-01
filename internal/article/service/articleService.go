@@ -3,13 +3,14 @@ package service
 import (
 	"context"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"news-release/internal/article/dto"
 	"news-release/internal/article/model"
 	"news-release/internal/article/repository"
 	db "news-release/internal/database"
 	filerepo "news-release/internal/file/repository"
 	"news-release/internal/utils"
+
+	"github.com/sirupsen/logrus"
 )
 
 // ArticleService 服务接口，定义方法，接收 context.Context 和数据模型。
@@ -44,7 +45,23 @@ func (svc *ArticleServiceImpl) ListArticle(ctx context.Context, page, pageSize i
 
 // GetArticleContent 获取文章内容
 func (svc *ArticleServiceImpl) GetArticleContent(ctx context.Context, articleID int) (*dto.ArticleContentResponse, error) {
-	return svc.articleRepo.GetArticleContent(ctx, articleID)
+	article, err := svc.articleRepo.GetArticleContent(ctx, articleID)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取关联图片列表
+	images := svc.articleRepo.ListArticleImage(ctx, articleID)
+
+	// 添加图片到活动详情
+	article.Images = make([]dto.Image, 0, len(images)) // 预分配空间，提高性能
+	for _, img := range images {
+		article.Images = append(article.Images, dto.Image{
+			ImageID: img.ImageID,
+			URL:     img.URL,
+		})
+	}
+	return article, err
 }
 
 // CreateArticle 创建文章

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"news-release/internal/config"
+	msgsvc "news-release/internal/message/service"
 	"news-release/internal/user/dto"
 	"news-release/internal/user/model"
 	"news-release/internal/user/repository"
@@ -28,19 +29,20 @@ type WxLoginResponse struct {
 type UserService interface {
 	Login(ctx context.Context, code string) (string, error)
 	UpdateUserInfo(ctx context.Context, userID int, req dto.UserUpdateRequest) error
-	GetUserByID(ctx context.Context, userID int) (*model.User, error)
-	ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*model.User, int64, error)
+	GetUserByID(ctx context.Context, userID int) (*dto.UserInfoResponse, error)
+	ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*dto.ListUsersResponse, int64, error)
 }
 
 // UserServiceImpl 用户服务实现
 type UserServiceImpl struct {
 	userRepo repository.UserRepository
+	msgSvc   msgsvc.MsgGroupService
 	cfg      *config.Config
 }
 
 // NewUserService 创建用户服务实例
-func NewUserService(userRepo repository.UserRepository, cfg *config.Config) UserService {
-	return &UserServiceImpl{userRepo: userRepo, cfg: cfg}
+func NewUserService(userRepo repository.UserRepository, msgSvc msgsvc.MsgGroupService, cfg *config.Config) UserService {
+	return &UserServiceImpl{userRepo: userRepo, msgSvc: msgSvc, cfg: cfg}
 }
 
 // Login 微信登录逻辑
@@ -124,6 +126,8 @@ func (svc *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessio
 		if err := svc.userRepo.Create(ctx, user); err != nil {
 			return user.UserID, user.Role, err
 		}
+		// 新用户创建成功后加入全体成员的群组
+		svc.msgSvc.AddUserToAllUserGroups(ctx, user.UserID)
 	} else {
 		// 如果用户存在，更新session_key和登录时间
 		if err := svc.userRepo.UpdateSessionAndLoginTime(ctx, user.UserID, sessionKey); err != nil {
@@ -206,7 +210,7 @@ func (svc *UserServiceImpl) UpdateUserInfo(ctx context.Context, userID int, req 
 	return nil
 }
 
-func (svc *UserServiceImpl) GetUserByID(ctx context.Context, userID int) (*model.User, error) {
+func (svc *UserServiceImpl) GetUserByID(ctx context.Context, userID int) (*dto.UserInfoResponse, error) {
 	// 查询用户信息
 	user, err := svc.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
@@ -220,6 +224,6 @@ func (svc *UserServiceImpl) GetUserByID(ctx context.Context, userID int) (*model
 }
 
 // ListAllUsers 分页查询用户列表
-func (svc *UserServiceImpl) ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*model.User, int64, error) {
+func (svc *UserServiceImpl) ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*dto.ListUsersResponse, int64, error) {
 	return svc.userRepo.ListAllUsers(ctx, page, pageSize, req)
 }
