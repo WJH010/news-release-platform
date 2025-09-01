@@ -322,7 +322,7 @@ func (repo *MsgGroupRepositoryImpl) GetAllUserIDs(ctx context.Context, page int)
 	offset := (page - 1) * pageSize
 
 	var userIDs []int
-	err := repo.db.WithContext(ctx).Table("users").Pluck("user_id", &userIDs).Limit(pageSize).Offset(offset).Error
+	err := repo.db.WithContext(ctx).Table("users").Limit(pageSize).Offset(offset).Pluck("user_id", &userIDs).Error
 
 	return userIDs, err
 }

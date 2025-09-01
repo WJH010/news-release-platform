@@ -191,21 +191,21 @@ func (svc *MsgGroupServiceImpl) CreateMsgGroup(ctx context.Context, msgGroup *mo
 	}
 	// 如果是包含全体用户，则将全体用户添加到群组
 	if msgGroup.IncludeAllUser == "Y" {
-		var IDs []int
+		var UIDs []int
 		page := 1
 		// 避免数据量过大，采用循环分批处理方式
 		for {
-			IDs, err = svc.msgGroupRepo.GetAllUserIDs(ctx, page)
+			UIDs, err = svc.msgGroupRepo.GetAllUserIDs(ctx, page)
 			if err != nil {
 				logrus.Errorf("添加用户到群组失败 %s", err.Error())
 				return utils.NewBusinessError(utils.ErrCodeServerInternalError, "添加用户到群组失败，请手动添加")
 			}
 			// 若没有更多数据，退出循环
-			if len(userIDs) == 0 {
+			if len(UIDs) == 0 {
 				break
 			}
 			// 批量入群
-			err = svc.AddUserToGroup(ctx, msgGroup.ID, IDs, msgGroup.CreateUser)
+			err = svc.AddUserToGroup(ctx, msgGroup.ID, UIDs, msgGroup.CreateUser)
 			if err != nil {
 				logrus.Errorf("添加用户到群组失败 %s", err.Error())
 				return utils.NewBusinessError(utils.ErrCodeServerInternalError, "添加用户到群组失败，请手动添加")
