@@ -84,10 +84,10 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	fieldService := articlesvc.NewFieldTypeService(fieldTypeRepo)
 	noticeService := noticesvc.NewNoticeService(noticeRepo)
 	fileService := filesvc.NewFileService(minioRepo, fileRepo)
-	userService := usersvc.NewUserService(userRepo, cfg)
-	industryService := usersvc.NewIndustryService(industryRepo)
 	msgService := msgsvc.NewMessageService(msgRepo, msgGroupRepo)
 	msgGroupService := msgsvc.NewMsgGroupService(msgGroupRepo, msgRepo)
+	userService := usersvc.NewUserService(userRepo, msgGroupService, cfg)
+	industryService := usersvc.NewIndustryService(industryRepo)
 	eventService := eventsvc.NewEventService(eventRepo, userRepo, fileRepo, msgGroupService)
 
 	// 初始化控制器

@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"news-release/internal/config"
+	msgsvc "news-release/internal/message/service"
 	"news-release/internal/user/dto"
 	"news-release/internal/user/model"
 	"news-release/internal/user/repository"
@@ -35,12 +36,13 @@ type UserService interface {
 // UserServiceImpl 用户服务实现
 type UserServiceImpl struct {
 	userRepo repository.UserRepository
+	msgSvc   msgsvc.MsgGroupService
 	cfg      *config.Config
 }
 
 // NewUserService 创建用户服务实例
-func NewUserService(userRepo repository.UserRepository, cfg *config.Config) UserService {
-	return &UserServiceImpl{userRepo: userRepo, cfg: cfg}
+func NewUserService(userRepo repository.UserRepository, msgSvc msgsvc.MsgGroupService, cfg *config.Config) UserService {
+	return &UserServiceImpl{userRepo: userRepo, msgSvc: msgSvc, cfg: cfg}
 }
 
 // Login 微信登录逻辑
@@ -124,6 +126,8 @@ func (svc *UserServiceImpl) findOrCreateUser(ctx context.Context, openID, sessio
 		if err := svc.userRepo.Create(ctx, user); err != nil {
 			return user.UserID, user.Role, err
 		}
+		// 新用户创建成功后加入全体成员的群组
+		svc.msgSvc.AddUserToAllUserGroups(ctx, user.UserID)
 	} else {
 		// 如果用户存在，更新session_key和登录时间
 		if err := svc.userRepo.UpdateSessionAndLoginTime(ctx, user.UserID, sessionKey); err != nil {

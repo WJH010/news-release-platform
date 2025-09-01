@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"news-release/internal/message/dto"
 	"news-release/internal/message/model"
 	"news-release/internal/utils"
+
+	"gorm.io/gorm"
 )
 
 // MsgGroupRepository 消息群组数据访问接口
@@ -34,6 +35,10 @@ type MsgGroupRepository interface {
 	ListGroupsUsers(ctx context.Context, page int, pageSize int, msgGroupID int) ([]dto.ListGroupsUsersResponse, int64, error)
 	// ListNotInGroupUsers 查询不在指定组内的用户
 	ListNotInGroupUsers(ctx context.Context, page int, pageSize int, msgGroupID int, req dto.ListNotInGroupUsersRequest) ([]dto.ListGroupsUsersResponse, int64, error)
+	// GetAllUserIDs 获取所有有效用户id列表，用于全体用户入群过程
+	GetAllUserIDs(ctx context.Context, page int) ([]int, error)
+	// GetAllUserGroupIDs 获取所有包含全体用户的群组ID
+	GetAllUserGroupIDs(ctx context.Context) ([]int, error)
 }
 
 // MsgGroupRepositoryImpl 实现消息群组数据访问接口的具体结构体
@@ -309,4 +314,23 @@ func (repo *MsgGroupRepositoryImpl) ListNotInGroupUsers(ctx context.Context, pag
 		return nil, 0, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 	return users, total, nil
+}
+
+// GetAllUserIDs 获取所有有效用户id列表，用于全体用户入群过程
+func (repo *MsgGroupRepositoryImpl) GetAllUserIDs(ctx context.Context, page int) ([]int, error) {
+	pageSize := 200
+	offset := (page - 1) * pageSize
+
+	var userIDs []int
+	err := repo.db.WithContext(ctx).Table("users").Pluck("user_id", &userIDs).Limit(pageSize).Offset(offset).Error
+
+	return userIDs, err
+}
+
+// GetAllUserGroupIDs 获取所有包含全体用户的群组ID
+func (repo *MsgGroupRepositoryImpl) GetAllUserGroupIDs(ctx context.Context) ([]int, error) {
+	var groupIDs []int
+	err := repo.db.WithContext(ctx).Table("user_message_groups").Pluck("id", &groupIDs).Where("include_all_user = ?", "Y").Error
+
+	return groupIDs, err
 }
