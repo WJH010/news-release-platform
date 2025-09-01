@@ -22,7 +22,7 @@ type EventRepository interface {
 	// GetEventDetail 获取活动详情
 	GetEventDetail(ctx context.Context, eventID int) (*model.Event, error)
 	// ListEventImage 获取活动图片列表
-	ListEventImage(ctx context.Context, bizID int) []EventImage
+	ListEventImage(ctx context.Context, bizID int) []dto.Image
 	// GetEventUserMap 查询活动-用户关联映射
 	GetEventUserMap(ctx context.Context, eventID int, userID int) (*model.EventUserMapping, error)
 	// CreatEventUserMap 创建活动-用户关联映射,将用户添加到活动中
@@ -51,12 +51,6 @@ type EventRepositoryImpl struct {
 // NewEventRepository 创建数据访问实例
 func NewEventRepository(db *gorm.DB) EventRepository {
 	return &EventRepositoryImpl{db: db}
-}
-
-// EventImage 结构体用于暂存图片查询结果,只在当前包内使用
-type EventImage struct {
-	BizID int    `json:"biz_id" gorm:"column:biz_id"`
-	URL   string `json:"url" gorm:"column:url"`
 }
 
 // ExecTransaction 实现事务执行（使用 GORM 的 Transaction 方法）
@@ -141,12 +135,12 @@ func (repo *EventRepositoryImpl) GetEventDetail(ctx context.Context, eventID int
 }
 
 // ListEventImage 获取活动图片列表
-func (repo *EventRepositoryImpl) ListEventImage(ctx context.Context, bizID int) []EventImage {
-	var images []EventImage
+func (repo *EventRepositoryImpl) ListEventImage(ctx context.Context, bizID int) []dto.Image {
+	var images []dto.Image
 
 	err := repo.db.WithContext(ctx).
 		Table("images").
-		Where("biz_type = ? AND biz_id = ?", "EVENT", bizID).
+		Where("biz_type = ? AND biz_id = ?", utils.TypeEvent, bizID).
 		Find(&images).Error
 
 	if err != nil {

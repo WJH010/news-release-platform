@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"news-release/internal/article/dto"
 	"news-release/internal/article/model"
 	"news-release/internal/utils"
+
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 )
 
 // ArticleRepository 数据访问接口，定义数据访问的方法集
@@ -22,6 +24,8 @@ type ArticleRepository interface {
 	CreateArticle(ctx context.Context, tx *gorm.DB, article *model.Article) error
 	// UpdateArticle 更新文章
 	UpdateArticle(ctx context.Context, tx *gorm.DB, articleID int, updateFields map[string]interface{}) error
+	// ListArticleImage 获取关联图片列表
+	ListArticleImage(ctx context.Context, bizID int) []dto.Image
 }
 
 // ArticleRepositoryImpl 实现接口的具体结构体
@@ -167,4 +171,21 @@ func (repo *ArticleRepositoryImpl) UpdateArticle(ctx context.Context, tx *gorm.D
 	}
 
 	return nil
+}
+
+// ListArticleImage 获取关联图片列表
+func (repo *ArticleRepositoryImpl) ListArticleImage(ctx context.Context, bizID int) []dto.Image {
+	var images []dto.Image
+
+	err := repo.db.WithContext(ctx).
+		Table("images").
+		Where("biz_type = ? AND biz_id = ?", utils.TypeArticle, bizID).
+		Find(&images).Error
+
+	if err != nil {
+		logrus.Errorf("获取文章关联图片失败: %v", err) // 只记录异常，不影响活动信息的返回
+		return nil
+	}
+
+	return images
 }

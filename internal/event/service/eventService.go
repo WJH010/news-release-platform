@@ -98,7 +98,7 @@ func (svc *EventServiceImpl) GetEventDetail(ctx context.Context, eventID int) (*
 	event.Images = make([]dto.Image, 0, len(images)) // 预分配空间，提高性能
 	for _, img := range images {
 		event.Images = append(event.Images, dto.Image{
-			ImageID: img.BizID,
+			ImageID: img.ImageID,
 			URL:     img.URL,
 		})
 	}

@@ -1,6 +1,8 @@
 package dto
 
-import "time"
+import (
+	"time"
+)
 
 // ArticleListRequest 文章列表查询请求参数
 type ArticleListRequest struct {
@@ -69,4 +71,11 @@ type ArticleContentResponse struct {
 	ArticleTypeCode string    `json:"article_type_code"`
 	ArticleType     string    `json:"article_type"`
 	ArticleSource   string    `json:"article_source"`
+	Images          []Image   `json:"images"`
+}
+
+// Image 关联图片列表结构体
+type Image struct {
+	ImageID int    `json:"image_id"`
+	URL     string `json:"url"`
 }
