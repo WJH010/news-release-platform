@@ -21,7 +21,7 @@ type User struct {
 	LastLoginTime time.Time `json:"last_login_time" gorm:"column:last_login_time;autoUpdateTime"`
 	UserLevel     int       `json:"user_level" gorm:"column:user_level"`
 	Password      string    `json:"password" gorm:"column:password"`
-	Role          int       `json:"role" gorm:"column:role;default:1"` // 默认=1，1：普通用户，2：管理员
+	Role          string    `json:"role" gorm:"column:role;default:'USER'"` // 默认=USER
 	Unit          string    `json:"unit" gorm:"column:unit;default:NULL"`
 	Department    string    `json:"department" gorm:"column:department;default:NULL"`
 	Position      string    `json:"position" gorm:"column:position;default:NULL"`

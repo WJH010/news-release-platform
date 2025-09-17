@@ -16,12 +16,12 @@ import (
 type CustomClaims struct {
 	OpenID             string `json:"openid"`
 	UserID             int    `json:"userid"`
-	UserRole           int    `json:"user_role"`
+	UserRole           string `json:"user_role"`
 	jwt.StandardClaims        // 嵌入标准声明
 }
 
 // RoleMiddleware 角色权限认证中间件
-func RoleMiddleware(requiredRole int) gin.HandlerFunc {
+func RoleMiddleware(requiredRole string) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		// 从上下文获取用户角色
 		role, exists := ctx.Get("user_role")
@@ -31,8 +31,16 @@ func RoleMiddleware(requiredRole int) gin.HandlerFunc {
 			return
 		}
 
-		// 检查角色是否匹配
-		if role != requiredRole {
+		// 类型断言，确保角色是字符串类型
+		userRoleStr, ok := role.(string)
+		if !ok {
+			utils.WrapErrorHandler(ctx, utils.NewBusinessError(utils.ErrCodeInvalidRole, "用户角色格式无效"))
+			ctx.Abort()
+			return
+		}
+
+		// 检查权限: 用户角色是否有权访问所需角色的接口
+		if !utils.HasAccess(userRoleStr, requiredRole) {
 			utils.WrapErrorHandler(ctx, utils.NewBusinessError(utils.ErrCodePermissionDenied, "没有访问权限"))
 			ctx.Abort()
 			return

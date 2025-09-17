@@ -74,5 +74,5 @@ type CreateAdminRequest struct {
 	PhoneNumber string `json:"phone_number" binding:"required,phone"`
 	Password    string `json:"password" binding:"required"`
 	Email       string `json:"email" binding:"omitempty,email"`
-	Role        int    `json:"role" binding:"required,oneof=2 3"` // 2：管理员，3：超级管理员
+	Role        string `json:"role" binding:"required,oneof=ADMIN SUPERADMIN"` // ADMIN：管理员，SUPERADMIN：超级管理员
 }
