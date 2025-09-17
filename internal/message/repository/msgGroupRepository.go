@@ -181,9 +181,9 @@ func (repo *MsgGroupRepositoryImpl) ListMsgGroups(ctx context.Context, page int,
 			JOIN (
 				SELECT msg_group_id, COUNT(*) AS count 
 				FROM user_msg_group_mappings 
-				WHERE is_deleted = '?' 
+				WHERE is_deleted = ?
 				GROUP BY msg_group_id 
-				) member_counts ON member_counts.msg_group_id = umg.id`, "N")
+				) member_counts ON member_counts.msg_group_id = umg.id`, utils.DeletedFlagNo)
 	// 拼接查询条件
 	if groupName != "" {
 		query = query.Where("umg.group_name LIKE ?", "%"+groupName+"%")
