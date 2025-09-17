@@ -20,6 +20,8 @@ type UserRepository interface {
 	UpdateSessionAndLoginTime(ctx context.Context, userID int, sessionKey string) error
 	GetUserByID(ctx context.Context, userID int) (*dto.UserInfoResponse, error)
 	ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*dto.ListUsersResponse, int64, error)
+	// GetPasswordByPhone 根据手机号获取密码
+	GetPasswordByPhone(ctx context.Context, phoneNumber string) (string, error)
 }
 
 // UserRepositoryImpl 用户仓库实现
@@ -167,4 +169,16 @@ func (repo *UserRepositoryImpl) ListAllUsers(ctx context.Context, page, pageSize
 	}
 
 	return users, total, nil
+}
+
+// GetPasswordByPhone 根据手机号获取密码
+func (repo *UserRepositoryImpl) GetPasswordByPhone(ctx context.Context, phoneNumber string) (string, error) {
+	var user model.User
+	if err := repo.db.WithContext(ctx).Where("phone_number = ? AND status = ?", phoneNumber, 1).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return "", utils.NewBusinessError(utils.ErrCodeResourceNotFound, "用户不存在或账号已被禁用")
+		}
+		return "", utils.NewSystemError(fmt.Errorf("查询用户失败: %w", err))
+	}
+	return user.Password, nil
 }
