@@ -30,6 +30,7 @@ const (
 	ErrCodeAuthTokenInvalid = 40003 // 令牌格式无效（如 Token 被篡改、格式错误）
 	ErrCodeAuthRequired     = 40004 // 需要先认证（未登录时访问需登录的资源）
 	ErrCodeGetUserIDFailed  = 40005 // 验证码错误（如登录时验证码不匹配）
+	ErrCodeInvalidRole      = 40006 // 角色无效（如角色不存在、角色权限错误）
 
 	// 服务器/系统相关
 	ErrCodeServerInternalError = 50001 // 服务器内部错误（如代码异常、未捕获的异常）

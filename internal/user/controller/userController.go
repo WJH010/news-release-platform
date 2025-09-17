@@ -135,11 +135,46 @@ func (ctr *UserController) ListAllUsers(ctx *gin.Context) {
 	})
 }
 
-// TestLogin 测试用接口，直接返回token
-func (ctr *UserController) TestLogin(ctx *gin.Context) {
+// BgLogin 后台登录
+func (ctr *UserController) BgLogin(ctx *gin.Context) {
+	// 绑定并验证请求参数
+	var req dto.BgLoginRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	token, err := ctr.userService.BgLogin(ctx, req)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":    200,
 		"message": "登录成功",
-		"token":   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NjQ5MjkxOTYsImlhdCI6MTc1NjI4OTE5Niwib3BlbmlkIjoib3AtOUl2cDZROWhhTEpqRDdIWU15TDJWMTNqOCIsInVzZXJfcm9sZSI6MiwidXNlcmlkIjo4fQ._g3jb63kMYQOU_RPaD-TBISb_dtioZJ9qekdZ3BbMiA",
+		"token":   token,
+	})
+}
+
+// CreateAdminUser 新增管理员
+func (ctr *UserController) CreateAdminUser(ctx *gin.Context) {
+	// 绑定并验证请求参数
+	var req dto.CreateAdminRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 调用服务新增管理员
+	err := ctr.userService.CreateAdminUser(ctx, req)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "新增管理员成功",
 	})
 }

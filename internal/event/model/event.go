@@ -7,6 +7,7 @@ import (
 
 // 活动状态常量定义
 const (
+	EventStatusNotBegun   = "NotBegun"   // 未开始
 	EventStatusInProgress = "InProgress" // 进行中
 	EventStatusCompleted  = "Completed"  // 已结束
 )

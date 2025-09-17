@@ -140,7 +140,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		{
 			// 公开接口 - 无需认证
 			user.POST("/login", userController.Login)
-			user.POST("/bgLogin", userController.TestLogin)
+			user.POST("/bgLogin", userController.BgLogin)
 			// 需要认证的用户接口
 			authUser := user.Group("")
 			authUser.Use(middleware.AuthMiddleware(cfg))
@@ -153,6 +153,8 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 				{
 					adminUser.GET("/listAll", userController.ListAllUsers)
 				}
+				// 新增管理员接口
+				adminUser.POST("/createAdmin", middleware.RoleMiddleware(utils.RoleSuperAdmin), userController.CreateAdminUser)
 			}
 		}
 		// 行业路由

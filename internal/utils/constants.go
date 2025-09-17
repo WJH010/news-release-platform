@@ -11,8 +11,9 @@ const (
 	QueryScopeAll     = "ALL"     // 查询范围常量，表示查询全部
 	QueryScopeDeleted = "DELETED" // 查询范围常量，表示查询
 	// 角色常量
-	RoleUser  = 1 // 普通用户角色
-	RoleAdmin = 2 // 管理员角色
+	RoleUser       = "USER"       // 普通用户角色
+	RoleAdmin      = "ADMIN"      // 管理员角色
+	RoleSuperAdmin = "SUPERADMIN" // 超级管理员角色
 )
 
 var QueryScopeList = []string{

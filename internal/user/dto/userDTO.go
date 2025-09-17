@@ -4,6 +4,11 @@ type WxLoginRequest struct {
 	Code string `json:"code" binding:"required"`
 }
 
+type BgLoginRequest struct {
+	PhoneNumber string `json:"phone_number" binding:"required"`
+	Password    string `json:"password" binding:"required"`
+}
+
 // UserUpdateRequest 用户信息更新请求
 type UserUpdateRequest struct {
 	Nickname    *string `json:"nickname" binding:"omitempty,nickname"`
@@ -60,4 +65,14 @@ type ListUsersResponse struct {
 	Industry     string `json:"industry"`
 	IndustryName string `json:"industry_name"`
 	RoleName     string `json:"role_name"`
+}
+
+type CreateAdminRequest struct {
+	Nickname    string `json:"nickname" binding:"required,nickname"`
+	Name        string `json:"name" binding:"omitempty,real_name"`
+	AvatarURL   string `json:"avatar_url" binding:"omitempty,url"`
+	PhoneNumber string `json:"phone_number" binding:"required,phone"`
+	Password    string `json:"password" binding:"required"`
+	Email       string `json:"email" binding:"omitempty,email"`
+	Role        string `json:"role" binding:"required,oneof=ADMIN SUPERADMIN"` // ADMIN：管理员，SUPERADMIN：超级管理员
 }

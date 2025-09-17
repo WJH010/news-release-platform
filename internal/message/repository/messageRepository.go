@@ -174,6 +174,7 @@ func (repo *MessageRepositoryImpl) ListMessageGroupsByUserID(ctx context.Context
             m.title AS latest_title,
             m.content AS latest_content,
             m.send_time AS latest_send_time,
+            member_counts.count AS member_count,
             CASE
                 WHEN umg.latest_msg_id > COALESCE(umgm.last_read_msg_id, 0) THEN 'Y'
                 ELSE 'N'
@@ -181,6 +182,14 @@ func (repo *MessageRepositoryImpl) ListMessageGroupsByUserID(ctx context.Context
         `).
 		Joins("JOIN user_msg_group_mappings umgm ON umgm.msg_group_id = umg.id").
 		Joins("LEFT JOIN messages m ON m.id = umg.latest_msg_id AND m.id > umgm.join_msg_id AND m.is_deleted = ?", "N").
+		// 成员计数子查询
+		Joins(`
+			JOIN (
+				SELECT msg_group_id, COUNT(*) AS count 
+				FROM user_msg_group_mappings 
+				WHERE is_deleted = ?
+				GROUP BY msg_group_id 
+				) member_counts ON member_counts.msg_group_id = umg.id`, "N").
 		Where("umg.is_deleted = ?", "N").  // 仅有效群组
 		Where("umgm.is_deleted = ?", "N"). // 仅有效用户-群组映射
 		Where("umgm.user_id = ?", userID)

@@ -18,7 +18,7 @@ type EventRepository interface {
 	// ExecTransaction 执行事务
 	ExecTransaction(ctx context.Context, fn func(tx *gorm.DB) error) error
 	// List 分页查询
-	List(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error)
+	List(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*dto.EventListResponse, int, error)
 	// GetEventDetail 获取活动详情
 	GetEventDetail(ctx context.Context, eventID int) (*model.Event, error)
 	// ListEventImage 获取活动图片列表
@@ -59,7 +59,7 @@ func (repo *EventRepositoryImpl) ExecTransaction(ctx context.Context, fn func(tx
 }
 
 // List 分页查询数据
-func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error) {
+func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*dto.EventListResponse, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -68,12 +68,16 @@ func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, e
 	}
 
 	offset := (page - 1) * pageSize
-	var events []*model.Event
+	var events []*dto.EventListResponse
 	var total int64
 
 	query := repo.db.WithContext(ctx)
 	// 构建基础查询
-	query = query.Table("events e")
+	query = query.Table("events e").
+		Select(`e.*, 
+				COUNT(DISTINCT m.user_id) as member_count`).
+		Joins("LEFT JOIN event_user_mappings m ON e.id = m.event_id AND m.is_deleted = ?", utils.DeletedFlagNo).
+		Group("e.id")
 
 	if queryScope != "" {
 		// 如果传入了查询范围，则添加查询条件
@@ -100,6 +104,11 @@ func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, e
 		query = query.Where("e.registration_end_time < ?", time.Now())
 		// 按活动开始时间降序排列
 		query = query.Order("e.event_start_time DESC")
+	} else if eventStatus == model.EventStatusNotBegun {
+		// 未开始的活动：报名开始时间在当前时间之后
+		query = query.Where("e.registration_start_time > ?", time.Now())
+		// 按活动开始时间升序排列
+		query = query.Order("e.event_start_time ASC")
 	}
 
 	// 计算总数

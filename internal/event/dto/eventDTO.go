@@ -60,6 +60,7 @@ type EventListResponse struct {
 	RegistrationFee       float64   `json:"registration_fee"`        // 报名费用
 	Status                string    `json:"status"`                  // 活动状态
 	CoverImageURL         string    `json:"cover_image_url"`         // 封面图片URL
+	MemberCount           int       `json:"member_count"`            // 报名人数
 }
 
 // Image 关联图片列表结构体

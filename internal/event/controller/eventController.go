@@ -41,29 +41,11 @@ func (ctr *EventController) ListEvent(ctx *gin.Context) {
 	}
 
 	// 调用服务层
-	event, total, err := ctr.eventService.ListEvent(ctx, page, pageSize, req.EventStatus, req.QueryScope)
+	result, total, err := ctr.eventService.ListEvent(ctx, page, pageSize, req.EventStatus, req.QueryScope)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
 		return
-	}
-
-	var result []dto.EventListResponse
-	for _, ev := range event {
-		// 获取活动状态
-		status := ctr.eventService.GetEventStatus(ev.RegistrationStartTime, ev.RegistrationEndTime)
-		result = append(result, dto.EventListResponse{
-			ID:                    ev.ID,
-			Title:                 ev.Title,
-			EventStartTime:        ev.EventStartTime,
-			EventEndTime:          ev.EventEndTime,
-			RegistrationStartTime: ev.RegistrationStartTime,
-			RegistrationEndTime:   ev.RegistrationEndTime,
-			EventAddress:          ev.EventAddress,
-			RegistrationFee:       ev.RegistrationFee,
-			Status:                status,
-			CoverImageURL:         ev.CoverImageURL,
-		})
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
