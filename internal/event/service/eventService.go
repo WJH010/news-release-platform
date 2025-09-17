@@ -21,7 +21,7 @@ type EventService interface {
 	// GetEventStatus 根据开始时间和结束时间计算活动状态
 	GetEventStatus(registrationStartTime time.Time, registrationEndTime time.Time) string
 	// ListEvent 分页查询活动列表
-	ListEvent(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error)
+	ListEvent(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*dto.EventListResponse, int, error)
 	// GetEventDetail 获取活动详情
 	GetEventDetail(ctx context.Context, eventID int) (*model.Event, error)
 	// RegistrationEvent 活动报名
@@ -80,7 +80,7 @@ func (svc *EventServiceImpl) GetEventStatus(registrationStartTime time.Time, reg
 }
 
 // ListEvent 分页查询活动列表
-func (svc *EventServiceImpl) ListEvent(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*model.Event, int, error) {
+func (svc *EventServiceImpl) ListEvent(ctx context.Context, page, pageSize int, eventStatus string, queryScope string) ([]*dto.EventListResponse, int, error) {
 	return svc.eventRepo.List(ctx, page, pageSize, eventStatus, queryScope)
 }
 
