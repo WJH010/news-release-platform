@@ -330,7 +330,7 @@ func (svc *UserServiceImpl) BgLogin(ctx context.Context, req dto.BgLoginRequest)
 	}
 
 	// 密码验证成功，生成JWT Token
-	token, err := svc.generateToken(req.PhoneNumber, userInfo.UserID, utils.RoleAdmin)
+	token, err := svc.generateToken(req.PhoneNumber, userInfo.UserID, userInfo.Role)
 	if err != nil {
 		return "", utils.NewSystemError(fmt.Errorf("生成Token失败: %w", err))
 	}

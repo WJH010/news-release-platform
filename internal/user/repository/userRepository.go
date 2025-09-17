@@ -51,6 +51,10 @@ func (repo *UserRepositoryImpl) GetUserByOpenID(ctx context.Context, openid stri
 func (repo *UserRepositoryImpl) Create(ctx context.Context, user *model.User) error {
 	err := repo.db.WithContext(ctx).Create(user).Error
 	if err != nil {
+		exist, fieldName := utils.IsUniqueConstraintError(err)
+		if exist && fieldName == "phone_number" {
+			return utils.NewBusinessError(utils.ErrCodeResourceExists, "手机号已被注册")
+		}
 		return utils.NewSystemError(fmt.Errorf("创建用户失败: %w", err))
 	}
 	return err

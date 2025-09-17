@@ -7,7 +7,7 @@ import (
 // User 数据模型
 type User struct {
 	UserID        int       `json:"user_id" gorm:"primaryKey;column:user_id"`
-	OpenID        string    `json:"openid" gorm:"column:openid"`
+	OpenID        string    `json:"openid" gorm:"column:openid;default:NULL"`
 	UnionID       string    `json:"unionid" gorm:"column:unionid;default:NULL"`
 	SessionKey    string    `json:"session_key" gorm:"column:session_key"`
 	Nickname      string    `json:"nickname" gorm:"column:nickname"`
