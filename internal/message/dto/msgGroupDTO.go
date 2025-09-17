@@ -59,6 +59,7 @@ type ListMsgGroupResponse struct {
 	EventTitle     string `json:"event_title"`
 	IncludeAllUser string `json:"include_all_user"`
 	IsDeleted      string `json:"is_deleted"`
+	MemberCount    int    `json:"member_count"`
 }
 
 // ListGroupsUsersResponse 消息群组用户列表响应

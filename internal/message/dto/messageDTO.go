@@ -60,6 +60,7 @@ type MessageGroupDTO struct {
 	LatestContent  string    `json:"latest_content"`
 	LatestSendTime time.Time `json:"latest_send_time"`
 	HasUnread      string    `json:"has_unread"`
+	MemberCount    int       `json:"member_count"`
 }
 
 type ListMessageDTO struct {

@@ -175,8 +175,15 @@ func (repo *MsgGroupRepositoryImpl) ListMsgGroups(ctx context.Context, page int,
 	var groups []dto.ListMsgGroupResponse
 
 	query := repo.db.WithContext(ctx).Table("user_message_groups umg").
-		Select("umg.id, umg.group_name, umg.desc, umg.event_id, e.title AS event_title, umg.include_all_user, umg.is_deleted").
-		Joins("LEFT JOIN events e ON e.id = umg.event_id")
+		Select("umg.id, umg.group_name, umg.desc, umg.event_id, e.title AS event_title, umg.include_all_user, umg.is_deleted, COALESCE(member_counts.count, 0) AS member_count").
+		Joins("LEFT JOIN events e ON e.id = umg.event_id").
+		Joins(`
+			JOIN (
+				SELECT msg_group_id, COUNT(*) AS count 
+				FROM user_msg_group_mappings 
+				WHERE is_deleted = '?' 
+				GROUP BY msg_group_id 
+				) member_counts ON member_counts.msg_group_id = umg.id`, "N")
 	// 拼接查询条件
 	if groupName != "" {
 		query = query.Where("umg.group_name LIKE ?", "%"+groupName+"%")
