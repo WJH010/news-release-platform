@@ -100,6 +100,11 @@ func (repo *EventRepositoryImpl) List(ctx context.Context, page, pageSize int, e
 		query = query.Where("e.registration_end_time < ?", time.Now())
 		// 按活动开始时间降序排列
 		query = query.Order("e.event_start_time DESC")
+	} else if eventStatus == model.EventStatusNotBegun {
+		// 未开始的活动：报名开始时间在当前时间之后
+		query = query.Where("e.registration_start_time > ?", time.Now())
+		// 按活动开始时间升序排列
+		query = query.Order("e.event_start_time ASC")
 	}
 
 	// 计算总数
