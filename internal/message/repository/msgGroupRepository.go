@@ -178,7 +178,7 @@ func (repo *MsgGroupRepositoryImpl) ListMsgGroups(ctx context.Context, page int,
 		Select("umg.id, umg.group_name, umg.desc, umg.event_id, e.title AS event_title, umg.include_all_user, umg.is_deleted, COALESCE(member_counts.count, 0) AS member_count").
 		Joins("LEFT JOIN events e ON e.id = umg.event_id").
 		Joins(`
-			JOIN (
+			LEFT JOIN (
 				SELECT msg_group_id, COUNT(*) AS count 
 				FROM user_msg_group_mappings 
 				WHERE is_deleted = ?

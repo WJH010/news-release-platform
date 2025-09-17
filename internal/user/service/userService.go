@@ -311,13 +311,17 @@ func hashPassword(password string) (string, error) {
 // BgLogin 后台登录
 func (svc *UserServiceImpl) BgLogin(ctx context.Context, req dto.BgLoginRequest) (string, error) {
 	// 从数据库中根据手机号查询密码
-	password, err := svc.userRepo.GetPasswordByPhone(ctx, req.PhoneNumber)
+	userInfo, err := svc.userRepo.GetPasswordByPhone(ctx, req.PhoneNumber)
 	if err != nil {
 		return "", err
 	}
+	// 微信用户密码为空，不允许登录后台系统
+	if userInfo.Password == "" {
+		return "", utils.NewBusinessError(utils.ErrCodeAuthFailed, "账号未设置密码，无法登录后台系统")
+	}
 
 	// 验证密码
-	ok, err := verifyPassword(password, req.Password)
+	ok, err := verifyPassword(userInfo.Password, req.Password)
 	if err != nil {
 		return "", utils.NewSystemError(fmt.Errorf("验证密码失败: %w", err))
 	}
@@ -326,7 +330,7 @@ func (svc *UserServiceImpl) BgLogin(ctx context.Context, req dto.BgLoginRequest)
 	}
 
 	// 密码验证成功，生成JWT Token
-	token, err := svc.generateToken(req.PhoneNumber, 0, utils.RoleAdmin)
+	token, err := svc.generateToken(req.PhoneNumber, userInfo.UserID, utils.RoleAdmin)
 	if err != nil {
 		return "", utils.NewSystemError(fmt.Errorf("生成Token失败: %w", err))
 	}
