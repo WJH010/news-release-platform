@@ -185,24 +185,26 @@ func (svc *EventServiceImpl) CancelRegistrationEvent(ctx context.Context, eventI
 		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "活动已失效")
 	}
 
+	// 检查活动是否已开始
+	if event.EventStartTime.Before(time.Now()) {
+		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "活动已开始，无法取消报名")
+	}
+
 	// 执行取消报名逻辑
 	err = svc.eventRepo.UpdateEUMapDeleteFlag(ctx, eventID, userID, utils.DeletedFlagYes)
 	if err != nil {
 		return err
 	}
 
-	// 取消报名成功后，将用户从活动对应的消息群组移除，消息群组移除失败不影响取消报名成功
-	// 查询活动对应的消息群组
-	group, count, err := svc.msgSvc.ListMsgGroups(ctx, 0, 0, "", eventID, "")
-	if err != nil || count == 0 {
-		// 不存在对应的消息群组，直接返回成功
+	// 取消报名成功后，将用户从活动对应的消息群组移除
+	group, _, err := svc.msgSvc.ListMsgGroups(ctx, 0, 0, "", eventID, "")
+	if err != nil {
 		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "退出活动消息群组失败，请联系管理员处理")
 	}
 	// 将用户从消息群组移除
 	err = svc.msgSvc.DeleteUserFromGroup(ctx, group[0].ID, []int{userID}, userID)
 	if err != nil {
-		// 消息群组移除失败，直接返回成功
-		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "退出活动消息群组失败，请联系管理员")
+		return utils.NewBusinessError(utils.ErrCodeBusinessLogicError, "退出活动消息群组失败，请联系管理员处理")
 	}
 
 	return nil
