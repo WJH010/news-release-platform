@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -37,11 +38,13 @@ type UserService interface {
 	GetUserByID(ctx context.Context, userID int) (*dto.UserInfoResponse, error)
 	ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*dto.ListUsersResponse, int64, error)
 	// CreateAdminUser 新增管理员
-	CreateAdminUser(ctx context.Context, req dto.CreateAdminRequest) error
+	CreateAdminUser(ctx context.Context, req dto.CreateAdminRequest, operator int) error
 	// BgLogin 后台登录
 	BgLogin(ctx context.Context, req dto.BgLoginRequest) (string, error)
 	// UpdateAdminUser 更新管理员
-	UpdateAdminUser(ctx context.Context, userID int, req dto.UpdateAdminRequest) error
+	UpdateAdminUser(ctx context.Context, userID int, req dto.UpdateAdminRequest, operator int) error
+	// UpdateAdminStatus 更新管理员状态
+	UpdateAdminStatus(ctx context.Context, userID int, Operation string, operator int) error
 }
 
 // UserServiceImpl 用户服务实现
@@ -258,7 +261,7 @@ func (svc *UserServiceImpl) ListAllUsers(ctx context.Context, page, pageSize int
 }
 
 // CreateAdminUser 新增管理员
-func (svc *UserServiceImpl) CreateAdminUser(ctx context.Context, req dto.CreateAdminRequest) error {
+func (svc *UserServiceImpl) CreateAdminUser(ctx context.Context, req dto.CreateAdminRequest, operator int) error {
 	var avatar string
 	if req.AvatarURL == "" {
 		avatar = "http://47.113.194.28:9000/news-platform/images/202508/1754126743005963551.webp"
@@ -282,6 +285,8 @@ func (svc *UserServiceImpl) CreateAdminUser(ctx context.Context, req dto.CreateA
 		Role:          req.Role,
 		Password:      hashedPassword,
 		LastLoginTime: time.Now(),
+		CreateUser:    operator,
+		UpdateUser:    operator,
 	}
 
 	if err := svc.userRepo.Create(ctx, user); err != nil {
@@ -291,7 +296,7 @@ func (svc *UserServiceImpl) CreateAdminUser(ctx context.Context, req dto.CreateA
 }
 
 // UpdateAdminUser 更新管理员
-func (svc *UserServiceImpl) UpdateAdminUser(ctx context.Context, userID int, req dto.UpdateAdminRequest) error {
+func (svc *UserServiceImpl) UpdateAdminUser(ctx context.Context, userID int, req dto.UpdateAdminRequest, operator int) error {
 	// 查询用户是否存在
 	user, err := svc.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
@@ -326,6 +331,47 @@ func (svc *UserServiceImpl) UpdateAdminUser(ctx context.Context, userID int, req
 		}
 		updateFields["password"] = hashedPassword
 	}
+	updateFields["update_user"] = operator
+
+	// 执行更新
+	if len(updateFields) > 0 {
+		if err := svc.userRepo.Update(ctx, userID, updateFields); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// UpdateAdminStatus 禁用/启用管理员账号
+func (svc *UserServiceImpl) UpdateAdminStatus(ctx context.Context, userID int, Operation string, operator int) error {
+	// 查询用户是否存在
+	user, err := svc.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "用户不存在，请刷新后重试")
+	}
+	if Operation == "DISABLE" {
+		if user.Status == utils.UserStatusDisabled {
+			return utils.NewBusinessError(utils.ErrCodeResourceConflict, "用户已被禁用，请勿重复操作")
+		}
+	} else if Operation == "ENABLE" {
+		if user.Status == utils.UserStatusEnabled {
+			return utils.NewBusinessError(utils.ErrCodeResourceConflict, "用户已被启用，请勿重复操作")
+		}
+	} else {
+		return utils.NewBusinessError(utils.ErrCodeParamInvalid, "操作类型错误")
+	}
+
+	// 构建更新字段映射
+	updateFields := make(map[string]any)
+	if Operation == "DISABLE" {
+		updateFields["status"] = utils.UserStatusDisabled
+	} else if Operation == "ENABLE" {
+		updateFields["status"] = utils.UserStatusEnabled
+	}
+	updateFields["update_user"] = operator
 
 	// 执行更新
 	if len(updateFields) > 0 {
@@ -381,7 +427,28 @@ func (svc *UserServiceImpl) BgLogin(ctx context.Context, req dto.BgLoginRequest)
 		return "", utils.NewBusinessError(utils.ErrCodeAuthFailed, "密码错误")
 	}
 
-	// 密码验证成功，生成JWT Token
+	// 检查用户状态
+	if userInfo.Status == utils.UserStatusDisabled {
+		return "", utils.NewBusinessError(utils.ErrCodeAuthFailed, "账号已被禁用，无法登录后台系统")
+	}
+
+	// 检查用户角色
+	if userInfo.Role != utils.RoleAdmin && userInfo.Role != utils.RoleSuperAdmin {
+		return "", utils.NewBusinessError(utils.ErrCodeAuthFailed, "非管理员角色，无法登录后台系统")
+	}
+
+	// 更新最后登录时间
+	updateFields := make(map[string]any)
+	updateFields["last_login_time"] = time.Now()
+	if len(updateFields) > 0 {
+		if err := svc.userRepo.Update(ctx, userInfo.UserID, updateFields); err != nil {
+			// return "", err
+			// 只记录日志，不影响登录成功
+			logrus.Errorf("更新用户[%d]最后登录时间失败: %v", userInfo.UserID, err)
+		}
+	}
+
+	// 登录成功，生成JWT Token
 	token, err := svc.generateToken(req.PhoneNumber, userInfo.UserID, userInfo.Role)
 	if err != nil {
 		return "", err

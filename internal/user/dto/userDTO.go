@@ -43,6 +43,7 @@ type UserInfoResponse struct {
 	IndustryName string `json:"industry_name"`
 	Role         string `json:"role"`
 	RoleName     string `json:"role_name"`
+	Status       int    `json:"status"`
 }
 
 type ListUsersRequest struct {
@@ -91,4 +92,9 @@ type UpdateAdminRequest struct {
 	Password  *string `json:"password" binding:"omitempty"`
 	Email     *string `json:"email" binding:"omitempty,email"`
 	Role      *string `json:"role" binding:"omitempty,oneof=ADMIN SUPERADMIN"` // ADMIN：管理员，SUPERADMIN：超级管理员
+}
+
+// UpdateAdminStatusRequest 更新管理员状态请求
+type UpdateAdminStatusRequest struct {
+	Operation string `json:"operation" binding:"required,oneof=ENABLE DISABLE"` // ENABLE：启用，DISABLE：禁用
 }

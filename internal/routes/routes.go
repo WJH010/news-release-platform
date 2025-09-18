@@ -158,6 +158,10 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 				}
 				// 新增管理员接口
 				adminUser.POST("/createAdmin", middleware.RoleMiddleware(utils.RoleSuperAdmin), userController.CreateAdminUser)
+				// 禁用/启用管理员接口
+				adminUser.PUT("/updateStatus/:id", middleware.RoleMiddleware(utils.RoleSuperAdmin), userController.UpdateAdminStatus)
+				// 更新管理员信息
+				adminUser.PUT("/update/:id", middleware.RoleMiddleware(utils.RoleSuperAdmin), userController.UpdateAdminUser)
 			}
 		}
 		// 行业路由

@@ -28,6 +28,8 @@ type User struct {
 	Industry      string    `json:"industry" gorm:"column:industry;default:NULL"`
 	CreateTime    time.Time `json:"create_time" gorm:"column:create_time;autoCreateTime"`
 	UpdateTime    time.Time `json:"update_time" gorm:"column:update_time;autoUpdateTime"`
+	CreateUser    int       `json:"create_user" gorm:"column:create_user"` // 创建人ID
+	UpdateUser    int       `json:"update_user" gorm:"column:update_user"` // 最后更新人ID
 }
 
 // TableName 设置表名

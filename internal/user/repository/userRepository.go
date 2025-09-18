@@ -16,7 +16,7 @@ import (
 type UserRepository interface {
 	GetUserByOpenID(ctx context.Context, openid string) (*model.User, error)
 	Create(ctx context.Context, user *model.User) error
-	Update(ctx context.Context, userID int, updateFields map[string]interface{}) error
+	Update(ctx context.Context, userID int, updateFields map[string]any) error
 	UpdateSessionAndLoginTime(ctx context.Context, userID int, sessionKey string) error
 	GetUserByID(ctx context.Context, userID int) (*dto.UserInfoResponse, error)
 	ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*dto.ListUsersResponse, int64, error)
@@ -93,7 +93,7 @@ func (repo *UserRepositoryImpl) GetUserByID(ctx context.Context, userID int) (*d
 					'女'
 					ELSE
 					'未知'
-				END AS gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name, u.role, ur.role_name`).
+				END AS gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name, u.role, ur.role_name, u.status`).
 		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
 		Joins("LEFT JOIN user_role ur ON ur.role_code = u.role").
 		Where("user_id = ?", userID).First(&user)
@@ -108,7 +108,7 @@ func (repo *UserRepositoryImpl) GetUserByID(ctx context.Context, userID int) (*d
 }
 
 // Update 更新用户信息
-func (repo *UserRepositoryImpl) Update(ctx context.Context, userID int, updateFields map[string]interface{}) error {
+func (repo *UserRepositoryImpl) Update(ctx context.Context, userID int, updateFields map[string]any) error {
 
 	result := repo.db.WithContext(ctx).Model(&model.User{}).
 		Where("user_id = ?", userID).

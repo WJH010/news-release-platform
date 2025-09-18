@@ -14,6 +14,9 @@ const (
 	RoleUser       = "USER"       // 普通用户角色
 	RoleAdmin      = "ADMIN"      // 管理员角色
 	RoleSuperAdmin = "SUPERADMIN" // 超级管理员角色
+	// 用户状态常量
+	UserStatusEnabled  = 1 // 启用状态
+	UserStatusDisabled = 2 // 禁用状态
 )
 
 var QueryScopeList = []string{
