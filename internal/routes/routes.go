@@ -185,7 +185,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 		// 用户角色路由
 		userRole := api.Group("/userRole")
 		{
-			userRole.GET("", userRoleController.List)
+			userRole.GET("", middleware.RoleMiddleware(utils.RoleAdmin), userRoleController.List)
 		}
 		// 文件上传路由
 		file := api.Group("/file")

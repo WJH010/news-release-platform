@@ -10,7 +10,7 @@ type BgLoginRequest struct {
 }
 
 type UserIDRequest struct {
-	UserID int `uri:"user_id" binding:"required"`
+	UserID int `uri:"id" binding:"required"`
 }
 
 // UserUpdateRequest 用户信息更新请求
