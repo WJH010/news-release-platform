@@ -75,7 +75,7 @@ func (repo *MsgGroupRepositoryImpl) CreateMsgGroup(ctx context.Context, group *m
 // GetMsgGroupByID 根据ID获取消息群组
 func (repo *MsgGroupRepositoryImpl) GetMsgGroupByID(ctx context.Context, msgGroupID int) (*model.UserMessageGroup, error) {
 	var group model.UserMessageGroup
-	err := repo.db.WithContext(ctx).Where("id = ? AND is_deleted = ?", msgGroupID, "N").First(&group).Error
+	err := repo.db.WithContext(ctx).Where("id = ? AND is_deleted = ?", msgGroupID, utils.DeletedFlagNo).First(&group).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -122,7 +122,7 @@ func (repo *MsgGroupRepositoryImpl) RecoverUserMsgGroupMappings(ctx context.Cont
 	if err := tx.Model(&model.UserMsgGroupMapping{}).
 		Where("msg_group_id = ? AND user_id in (?)", msgGroupID, userIDs).
 		Updates(map[string]interface{}{
-			"is_deleted":       "N",
+			"is_deleted":       utils.DeletedFlagNo,
 			"last_read_msg_id": lastReadMsgID,
 			"join_msg_id":      lastReadMsgID,
 			"update_user":      operateUser,
@@ -140,9 +140,9 @@ func (repo *MsgGroupRepositoryImpl) DeleteUserMsgGroupMappings(ctx context.Conte
 	}
 
 	if err := repo.db.WithContext(ctx).Model(&model.UserMsgGroupMapping{}).
-		Where("msg_group_id = ? AND user_id in (?) AND is_deleted = ?", msgGroupID, userIDs, "N").
+		Where("msg_group_id = ? AND user_id in (?) AND is_deleted = ?", msgGroupID, userIDs, utils.DeletedFlagNo).
 		Updates(map[string]interface{}{
-			"is_deleted":  "Y",
+			"is_deleted":  utils.DeletedFlagYes,
 			"update_user": operateUser,
 		}).Error; err != nil {
 		return utils.NewSystemError(fmt.Errorf("批量删除用户-消息群组关联记录失败: %v", err))
@@ -254,7 +254,7 @@ func (repo *MsgGroupRepositoryImpl) ListGroupsUsers(ctx context.Context, page in
 				u.industry, i.industry_name`).
 		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
 		Joins("JOIN user_msg_group_mappings m ON u.user_id = m.user_id").
-		Where("m.msg_group_id = ? AND m.is_deleted = ?", msgGroupID, "N")
+		Where("m.msg_group_id = ? AND m.is_deleted = ?", msgGroupID, utils.DeletedFlagNo)
 
 	// 计算总数
 	var total int64
@@ -297,7 +297,7 @@ func (repo *MsgGroupRepositoryImpl) ListNotInGroupUsers(ctx context.Context, pag
 						FROM user_msg_group_mappings m  
 						WHERE m.user_id = u.user_id 
 						AND m.msg_group_id = ?
-						AND m.is_deleted = ?)`, msgGroupID, "N")
+						AND m.is_deleted = ?)`, msgGroupID, utils.DeletedFlagNo)
 
 	// 拼接查询条件
 	if req.Name != "" {
@@ -347,7 +347,7 @@ func (repo *MsgGroupRepositoryImpl) GetAllUserIDs(ctx context.Context, page int)
 // GetAllUserGroupIDs 获取所有包含全体用户的群组ID
 func (repo *MsgGroupRepositoryImpl) GetAllUserGroupIDs(ctx context.Context) ([]int, error) {
 	var groupIDs []int
-	err := repo.db.WithContext(ctx).Table("user_message_groups").Where("include_all_user = ?", "Y").Pluck("id", &groupIDs).Error
+	err := repo.db.WithContext(ctx).Table("user_message_groups").Where("include_all_user = ?", utils.FlagYes).Pluck("id", &groupIDs).Error
 
 	return groupIDs, err
 }

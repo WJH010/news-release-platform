@@ -147,7 +147,7 @@ func (repo *ArticleRepositoryImpl) GetArticleByTitle(ctx context.Context, title 
 	var article model.Article
 
 	// 查询文章
-	if err := repo.db.WithContext(ctx).Where("article_title = ? AND is_deleted = ?", title, "N").First(&article).Error; err != nil {
+	if err := repo.db.WithContext(ctx).Where("article_title = ? AND is_deleted = ?", title, utils.DeletedFlagNo).First(&article).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
@@ -162,7 +162,7 @@ func (repo *ArticleRepositoryImpl) UpdateArticle(ctx context.Context, tx *gorm.D
 	// 执行更新（仅更新未删除的文章）
 	result := tx.WithContext(ctx).
 		Model(&model.Article{}).
-		Where("article_id = ? AND is_deleted = ?", articleID, "N").
+		Where("article_id = ? AND is_deleted = ?", articleID, utils.DeletedFlagNo).
 		Updates(updateFields)
 
 	if result.Error != nil {

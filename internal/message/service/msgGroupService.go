@@ -55,7 +55,7 @@ func classifyUsers(
 	for _, userID := range userIDs {
 		if mapping, exists := existingMappings[userID]; exists {
 			// 记录存在：若is_deleted=Y则需要恢复，否则无需操作
-			if mapping.IsDeleted == "Y" {
+			if mapping.IsDeleted == utils.DeletedFlagYes {
 				needRecover = append(needRecover, mapping)
 			}
 		} else {
@@ -67,7 +67,7 @@ func classifyUsers(
 				LastReadMsgID: latestMsgID,
 				CreateUser:    operateUser,
 				UpdateUser:    operateUser,
-				IsDeleted:     "N",
+				IsDeleted:     utils.DeletedFlagNo,
 			})
 		}
 	}
@@ -164,7 +164,7 @@ func (svc *MsgGroupServiceImpl) AddUserToAllUserGroups(ctx context.Context, user
 			LastReadMsgID: latestMsgID,
 			CreateUser:    0, // 自动创建
 			UpdateUser:    0,
-			IsDeleted:     "N",
+			IsDeleted:     utils.DeletedFlagNo,
 		})
 	}
 	err = svc.msgGroupRepo.ExecTransaction(ctx, func(tx *gorm.DB) error {
@@ -189,7 +189,7 @@ func (svc *MsgGroupServiceImpl) CreateMsgGroup(ctx context.Context, msgGroup *mo
 		return err
 	}
 	// 如果群组创建成功且包含用户，则添加用户到群组
-	if msgGroup.IncludeAllUser == "N" && len(userIDs) > 0 {
+	if msgGroup.IncludeAllUser == utils.FlagNo && len(userIDs) > 0 {
 		err = svc.AddUserToGroup(ctx, msgGroup.ID, userIDs, msgGroup.CreateUser)
 		if err != nil {
 			logrus.Errorf("添加用户到群组失败 %s", err.Error())
@@ -197,7 +197,7 @@ func (svc *MsgGroupServiceImpl) CreateMsgGroup(ctx context.Context, msgGroup *mo
 		}
 	}
 	// 如果是包含全体用户，则将全体用户添加到群组
-	if msgGroup.IncludeAllUser == "Y" {
+	if msgGroup.IncludeAllUser == utils.FlagYes {
 		var UIDs []int
 		page := 1
 		// 避免数据量过大，采用循环分批处理方式
@@ -288,7 +288,7 @@ func (svc *MsgGroupServiceImpl) DeleteMsgGroup(ctx context.Context, msgGroupID i
 		// 事务内的业务操作：所有数据库操作必须使用 tx 作为 DB 实例
 		// 软删除消息群组，复用 UpdateMsgGroup 方法
 		updateField := map[string]interface{}{
-			"is_deleted":  "Y",
+			"is_deleted":  utils.DeletedFlagYes,
 			"update_user": userID,
 		}
 		if err = svc.msgGroupRepo.UpdateMsgGroup(ctx, tx, msgGroupID, updateField); err != nil {

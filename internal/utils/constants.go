@@ -10,6 +10,8 @@ const (
 	TypeSystem        = "SYSTEM"  // 系统消息类型常量
 	QueryScopeAll     = "ALL"     // 查询范围常量，表示查询全部
 	QueryScopeDeleted = "DELETED" // 查询范围常量，表示查询
+	FlagYes           = "Y"
+	FlagNo            = "N"
 	// 角色常量
 	RoleUser       = "USER"       // 普通用户角色
 	RoleAdmin      = "ADMIN"      // 管理员角色

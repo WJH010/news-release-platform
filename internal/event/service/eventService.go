@@ -273,7 +273,7 @@ func (svc *EventServiceImpl) CreateEvent(ctx context.Context, event *model.Event
 		GroupName:      event.Title,
 		Desc:           "由活动" + event.Title + "自动创建",
 		EventID:        event.ID,
-		IncludeAllUser: "N",
+		IncludeAllUser: utils.FlagNo,
 		CreateUser:     event.CreateUser,
 		UpdateUser:     event.UpdateUser,
 	}
@@ -434,7 +434,7 @@ func (svc *EventServiceImpl) DeleteEvent(ctx context.Context, eventID int, userI
 	err = svc.eventRepo.ExecTransaction(ctx, func(tx *gorm.DB) error {
 		// 软删除（更新is_deleted为Y，记录更新人）
 		updateFields := map[string]interface{}{
-			"is_deleted":  "Y",
+			"is_deleted":  utils.DeletedFlagYes,
 			"update_user": userID,
 		}
 		if err := svc.eventRepo.UpdateEvent(ctx, tx, eventID, updateFields); err != nil {

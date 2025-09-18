@@ -217,7 +217,7 @@ func (repo *EventRepositoryImpl) IsUserRegistered(ctx context.Context, eventID i
 	var count int64
 	err := repo.db.WithContext(ctx).
 		Model(&model.EventUserMapping{}).
-		Where("event_id = ? AND user_id = ? AND is_deleted = ?", eventID, userID, "N").
+		Where("event_id = ? AND user_id = ? AND is_deleted = ?", eventID, userID, utils.DeletedFlagNo).
 		Count(&count).Error
 
 	if err != nil {
@@ -244,7 +244,7 @@ func (repo *EventRepositoryImpl) ListUserRegisteredEvents(ctx context.Context, p
 
 	query = query.Table("events e").
 		Joins("JOIN event_user_mappings eum ON e.id = eum.event_id").
-		Where("eum.user_id = ? AND e.is_deleted = ? AND eum.is_deleted = ?", userID, "N", "N").
+		Where("eum.user_id = ? AND e.is_deleted = ? AND eum.is_deleted = ?", userID, utils.DeletedFlagNo, utils.DeletedFlagNo).
 		Find(&events)
 
 	// 根据活动状态拼接查询条件
