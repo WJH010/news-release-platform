@@ -50,6 +50,7 @@ type ListUsersRequest struct {
 	Department string `form:"department" binding:"omitempty,max=255"`
 	Position   string `form:"position" binding:"omitempty,max=255"`
 	Industry   string `form:"industry" binding:"omitempty,numeric"`
+	Role       string `form:"role" binding:"omitempty"`
 }
 
 type ListUsersResponse struct {

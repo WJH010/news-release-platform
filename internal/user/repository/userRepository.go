@@ -161,6 +161,9 @@ func (repo *UserRepositoryImpl) ListAllUsers(ctx context.Context, page, pageSize
 	if req.Industry != "" {
 		query = query.Where("u.industry = ?", req.Industry)
 	}
+	if req.Role != "" {
+		query = query.Where("u.role = ?", req.Role)
+	}
 
 	// 计算总记录数
 	if err := query.Count(&total).Error; err != nil {
