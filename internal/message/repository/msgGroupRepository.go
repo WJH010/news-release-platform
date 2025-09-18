@@ -28,7 +28,7 @@ type MsgGroupRepository interface {
 	// DeleteUserMsgGroupMappings 删除用户-消息群组关联记录（软删除）
 	DeleteUserMsgGroupMappings(ctx context.Context, msgGroupID int, userIDs []int, operateUser int) error
 	// UpdateMsgGroup 更新消息群组信息
-	UpdateMsgGroup(ctx context.Context, msgGroupID int, updateField map[string]interface{}) error
+	UpdateMsgGroup(ctx context.Context, tx *gorm.DB, msgGroupID int, updateField map[string]interface{}) error
 	// ListMsgGroups 分页查询消息群组
 	ListMsgGroups(ctx context.Context, page int, pageSize int, groupName string, eventID int, queryScope string) ([]dto.ListMsgGroupResponse, int64, error)
 	// ListGroupsUsers 查询指定群组的用户列表
@@ -39,6 +39,8 @@ type MsgGroupRepository interface {
 	GetAllUserIDs(ctx context.Context, page int) ([]int, error)
 	// GetAllUserGroupIDs 获取所有包含全体用户的群组ID
 	GetAllUserGroupIDs(ctx context.Context) ([]int, error)
+	// DeleteUserByGroupID 删除指定群组内的全部用户
+	DeleteUserByGroupID(ctx context.Context, tx *gorm.DB, msgGroupID int, updateField map[string]interface{}) error
 }
 
 // MsgGroupRepositoryImpl 实现消息群组数据访问接口的具体结构体
@@ -105,7 +107,7 @@ func (repo *MsgGroupRepositoryImpl) CreateUserMsgGroupMappings(ctx context.Conte
 	if len(mappings) == 0 {
 		return nil
 	}
-	if err := tx.WithContext(ctx).Create(&mappings).Error; err != nil {
+	if err := tx.Create(&mappings).Error; err != nil {
 		return utils.NewSystemError(fmt.Errorf("批量创建用户-消息群组关联记录失败: %v", err))
 	}
 	return nil
@@ -117,7 +119,7 @@ func (repo *MsgGroupRepositoryImpl) RecoverUserMsgGroupMappings(ctx context.Cont
 		return nil
 	}
 
-	if err := tx.WithContext(ctx).Model(&model.UserMsgGroupMapping{}).
+	if err := tx.Model(&model.UserMsgGroupMapping{}).
 		Where("msg_group_id = ? AND user_id in (?)", msgGroupID, userIDs).
 		Updates(map[string]interface{}{
 			"is_deleted":       "N",
@@ -150,10 +152,18 @@ func (repo *MsgGroupRepositoryImpl) DeleteUserMsgGroupMappings(ctx context.Conte
 }
 
 // UpdateMsgGroup 更新消息群组信息
-func (repo *MsgGroupRepositoryImpl) UpdateMsgGroup(ctx context.Context, msgGroupID int, updateField map[string]interface{}) error {
-	err := repo.db.WithContext(ctx).Model(&model.UserMessageGroup{}).
-		Where("id = ?", msgGroupID).
-		Updates(updateField).Error
+func (repo *MsgGroupRepositoryImpl) UpdateMsgGroup(ctx context.Context, tx *gorm.DB, msgGroupID int, updateField map[string]interface{}) error {
+	var err error
+	if tx == nil {
+		err = repo.db.WithContext(ctx).Model(&model.UserMessageGroup{}).
+			Where("id = ?", msgGroupID).
+			Updates(updateField).Error
+	} else {
+		err = tx.Model(&model.UserMessageGroup{}).
+			Where("id = ?", msgGroupID).
+			Updates(updateField).Error
+	}
+
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
@@ -340,4 +350,22 @@ func (repo *MsgGroupRepositoryImpl) GetAllUserGroupIDs(ctx context.Context) ([]i
 	err := repo.db.WithContext(ctx).Table("user_message_groups").Where("include_all_user = ?", "Y").Pluck("id", &groupIDs).Error
 
 	return groupIDs, err
+}
+
+// DeleteUserByGroupID 删除指定群组内的全部用户
+func (repo *MsgGroupRepositoryImpl) DeleteUserByGroupID(ctx context.Context, tx *gorm.DB, msgGroupID int, updateField map[string]interface{}) error {
+	var err error
+	if tx == nil {
+		err = repo.db.WithContext(ctx).Model(&model.UserMsgGroupMapping{}).
+			Where("msg_group_id = ?", msgGroupID).
+			Updates(updateField).Error
+	} else {
+		err = tx.Model(&model.UserMsgGroupMapping{}).
+			Where("msg_group_id = ?", msgGroupID).
+			Updates(updateField).Error
+	}
+	if err != nil {
+		return utils.NewSystemError(fmt.Errorf("删除群组[%d]内用户失败: %v", msgGroupID, err))
+	}
+	return nil
 }

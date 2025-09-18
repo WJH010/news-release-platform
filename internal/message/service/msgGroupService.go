@@ -265,7 +265,7 @@ func (svc *MsgGroupServiceImpl) UpdateMsgGroup(ctx context.Context, msgGroupID i
 	updateField["update_user"] = userID
 
 	// 更新消息群组信息
-	err = svc.msgGroupRepo.UpdateMsgGroup(ctx, msgGroupID, updateField)
+	err = svc.msgGroupRepo.UpdateMsgGroup(ctx, nil, msgGroupID, updateField)
 	if err != nil {
 		return err
 	}
@@ -283,13 +283,29 @@ func (svc *MsgGroupServiceImpl) DeleteMsgGroup(ctx context.Context, msgGroupID i
 		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "数据异常，消息群组不存在")
 	}
 
-	// 软删除消息群组，复用 UpdateMsgGroup 方法
-	updateField := map[string]interface{}{
-		"is_deleted":  "Y",
-		"update_user": userID,
-	}
-	if err = svc.msgGroupRepo.UpdateMsgGroup(ctx, msgGroupID, updateField); err != nil {
-		return err
+	// 使用 GORM 函数式事务执行
+	err = svc.msgGroupRepo.ExecTransaction(ctx, func(tx *gorm.DB) error {
+		// 事务内的业务操作：所有数据库操作必须使用 tx 作为 DB 实例
+		// 软删除消息群组，复用 UpdateMsgGroup 方法
+		updateField := map[string]interface{}{
+			"is_deleted":  "Y",
+			"update_user": userID,
+		}
+		if err = svc.msgGroupRepo.UpdateMsgGroup(ctx, tx, msgGroupID, updateField); err != nil {
+			return err
+		}
+
+		// 同步删除群组内的全部用户
+		if err = svc.msgGroupRepo.DeleteUserByGroupID(ctx, tx, msgGroupID, updateField); err != nil {
+			return err
+		}
+
+		return nil // 返回 nil，GORM 自动提交
+	})
+
+	// 处理事务执行结果
+	if err != nil {
+		return utils.NewSystemError(fmt.Errorf("事务执行失败: %w", err))
 	}
 
 	return nil
