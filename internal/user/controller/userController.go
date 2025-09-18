@@ -165,8 +165,16 @@ func (ctr *UserController) CreateAdminUser(ctx *gin.Context) {
 		return
 	}
 
+	// 获取当前登录用户ID
+	operator, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
 	// 调用服务新增管理员
-	err := ctr.userService.CreateAdminUser(ctx, req)
+	err = ctr.userService.CreateAdminUser(ctx, req, operator)
 	// 处理异常
 	if err != nil {
 		utils.WrapErrorHandler(ctx, err)
@@ -176,5 +184,77 @@ func (ctr *UserController) CreateAdminUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{
 		"code":    200,
 		"message": "新增管理员成功",
+	})
+}
+
+// UpdateAdminUser 更新管理员
+func (ctr *UserController) UpdateAdminUser(ctx *gin.Context) {
+	// 从路径参数获取userID
+	var urlReq dto.UserIDRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+
+	// 绑定并验证请求参数
+	var req dto.UpdateAdminRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 获取当前登录用户ID
+	operator, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务更新管理员
+	err = ctr.userService.UpdateAdminUser(ctx, urlReq.UserID, req, operator)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "更新管理员成功",
+	})
+}
+
+// UpdateAdminStatus 更新管理员状态
+func (ctr *UserController) UpdateAdminStatus(ctx *gin.Context) {
+	// 从路径参数获取userID
+	var urlReq dto.UserIDRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+
+	// 绑定并验证请求参数
+	var req dto.UpdateAdminStatusRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 获取当前登录用户ID
+	operator, err := utils.GetUserID(ctx)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	// 调用服务更新管理员状态
+	err = ctr.userService.UpdateAdminStatus(ctx, urlReq.UserID, req.Operation, operator)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "更新管理员状态成功",
 	})
 }

@@ -9,6 +9,10 @@ type BgLoginRequest struct {
 	Password    string `json:"password" binding:"required"`
 }
 
+type UserIDRequest struct {
+	UserID int `uri:"id" binding:"required"`
+}
+
 // UserUpdateRequest 用户信息更新请求
 type UserUpdateRequest struct {
 	Nickname    *string `json:"nickname" binding:"omitempty,nickname"`
@@ -37,6 +41,9 @@ type UserInfoResponse struct {
 	Position     string `json:"position"`
 	Industry     string `json:"industry"`
 	IndustryName string `json:"industry_name"`
+	Role         string `json:"role"`
+	RoleName     string `json:"role_name"`
+	Status       int    `json:"status"`
 }
 
 type ListUsersRequest struct {
@@ -48,6 +55,7 @@ type ListUsersRequest struct {
 	Department string `form:"department" binding:"omitempty,max=255"`
 	Position   string `form:"position" binding:"omitempty,max=255"`
 	Industry   string `form:"industry" binding:"omitempty,numeric"`
+	Role       string `form:"role" binding:"omitempty"`
 }
 
 type ListUsersResponse struct {
@@ -75,4 +83,18 @@ type CreateAdminRequest struct {
 	Password    string `json:"password" binding:"required"`
 	Email       string `json:"email" binding:"omitempty,email"`
 	Role        string `json:"role" binding:"required,oneof=ADMIN SUPERADMIN"` // ADMIN：管理员，SUPERADMIN：超级管理员
+}
+
+type UpdateAdminRequest struct {
+	Nickname  *string `json:"nickname" binding:"omitempty,nickname"`
+	Name      *string `json:"name" binding:"omitempty,real_name"`
+	AvatarURL *string `json:"avatar_url" binding:"omitempty,url"`
+	Password  *string `json:"password" binding:"omitempty"`
+	Email     *string `json:"email" binding:"omitempty,email"`
+	Role      *string `json:"role" binding:"omitempty,oneof=ADMIN SUPERADMIN"` // ADMIN：管理员，SUPERADMIN：超级管理员
+}
+
+// UpdateAdminStatusRequest 更新管理员状态请求
+type UpdateAdminStatusRequest struct {
+	Operation string `json:"operation" binding:"required,oneof=ENABLE DISABLE"` // ENABLE：启用，DISABLE：禁用
 }

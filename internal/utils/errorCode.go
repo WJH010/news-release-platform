@@ -23,6 +23,8 @@ const (
 	ErrCodeResourceLocked        = 30004 // 资源被锁定（如数据正被其他操作占用，无法修改）
 	ErrCodeResourceNotAllowed    = 30005 // 资源操作不允许（如删除系统保护资源）
 	ErrCodeResourceQuotaExceeded = 30006 // 资源配额超限（如存储容量已满、创建数量达上限）
+	ErrCodeUserDisabled          = 30007 // 用户已被禁用（如账号被禁用、权限被撤销）
+	ErrCodeResourceConflict      = 30008 // 资源冲突（如更新时数据已被修改）
 
 	// 认证相关
 	ErrCodeAuthFailed       = 40001 // 认证失败（如账号密码错误、Token 无效）

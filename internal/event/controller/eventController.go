@@ -150,10 +150,10 @@ func (ctr *EventController) IsUserRegistered(ctx *gin.Context) {
 
 	var flag, message string
 	if isRegistered {
-		flag = "Y"
+		flag = utils.FlagYes
 		message = "已报名"
 	} else {
-		flag = "N"
+		flag = utils.FlagNo
 		message = "未报名"
 	}
 

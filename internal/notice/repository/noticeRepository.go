@@ -43,7 +43,7 @@ func (repo *NoticeRepositoryImpl) List(ctx context.Context, page, pageSize int) 
 
 	// 添加条件查询
 	// 只查询未删除的公告
-	query = query.Where("is_deleted = ?", "N")
+	query = query.Where("is_deleted = ?", utils.DeletedFlagNo)
 
 	// 按发布时间降序排列
 	query = query.Order("release_time DESC")

@@ -82,18 +82,18 @@ func (repo *MessageRepositoryImpl) HasUnreadMessages(ctx context.Context, userID
 	query := repo.db.WithContext(ctx).Table("user_message_groups umg").
 		// 关联用户加入的非全员群组映射（全员群组无此记录）
 		Joins("JOIN user_msg_group_mappings umgm ON umgm.msg_group_id = umg.id").
-		Where("umg.is_deleted = ?", "N").                                // 只查询未删除的消息分组
-		Where("umgm.is_deleted = ?", "N").                               // 确保用户在该分组内
+		Where("umg.is_deleted = ?", utils.DeletedFlagNo).                // 只查询未删除的消息分组
+		Where("umgm.is_deleted = ?", utils.DeletedFlagNo).               // 确保用户在该分组内
 		Where("umg.latest_msg_id > COALESCE(umgm.last_read_msg_id, 0)"). // 只查询有未读消息的分组
 		Where("umgm.user_id = ?", userID)                                // 指定用户ID
 
 	switch typeCode {
 	case utils.TypeGroup:
 		// 群组消息(非全员消息)
-		query = query.Where("umg.include_all_user = ?", "N")
+		query = query.Where("umg.include_all_user = ?", utils.FlagNo)
 	case utils.TypeSystem:
 		// 系统消息(全员消息)
-		query = query.Where("umg.include_all_user = ?", "Y")
+		query = query.Where("umg.include_all_user = ?", utils.FlagYes)
 	default:
 		// 否则查询所有类型的未读消息
 	}
@@ -101,13 +101,13 @@ func (repo *MessageRepositoryImpl) HasUnreadMessages(ctx context.Context, userID
 	// 执行计数查询
 	err := query.Count(&count).Error
 	if err != nil {
-		return "N", utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
+		return utils.FlagNo, utils.NewSystemError(fmt.Errorf("数据库查询失败: %v", err))
 	}
 
 	if count > 0 {
-		return "Y", nil
+		return utils.FlagYes, nil
 	} else {
-		return "N", nil
+		return utils.FlagNo, nil
 	}
 }
 
@@ -118,7 +118,7 @@ func (repo *MessageRepositoryImpl) MarkAllMessagesAsRead(ctx context.Context, us
 		Select("umg.id AS msg_group_id, MAX(mgm.message_id) AS latest_msg_id").
 		Joins("LEFT JOIN user_msg_group_mappings umgm ON umgm.msg_group_id = umg.id AND umgm.user_id = ? AND umgm.is_deleted = 'N'", userID).
 		Joins("JOIN message_group_mappings mgm ON mgm.msg_group_id = umg.id"). // 关联消息映射表获取消息ID
-		Where("umg.is_deleted = ?", "N").                                      // 仅处理未删除的群组
+		Where("umg.is_deleted = ?", utils.DeletedFlagNo).                      // 仅处理未删除的群组
 		Group("umg.id")                                                        // 按群组ID分组
 
 	// 执行查询，获取每个消息组的最新消息ID
@@ -181,7 +181,7 @@ func (repo *MessageRepositoryImpl) ListMessageGroupsByUserID(ctx context.Context
             END AS has_unread
         `).
 		Joins("JOIN user_msg_group_mappings umgm ON umgm.msg_group_id = umg.id").
-		Joins("LEFT JOIN messages m ON m.id = umg.latest_msg_id AND m.id > umgm.join_msg_id AND m.is_deleted = ?", "N").
+		Joins("LEFT JOIN messages m ON m.id = umg.latest_msg_id AND m.id > umgm.join_msg_id AND m.is_deleted = ?", utils.DeletedFlagNo).
 		// 成员计数子查询
 		Joins(`
 			JOIN (
@@ -189,19 +189,19 @@ func (repo *MessageRepositoryImpl) ListMessageGroupsByUserID(ctx context.Context
 				FROM user_msg_group_mappings 
 				WHERE is_deleted = ?
 				GROUP BY msg_group_id 
-				) member_counts ON member_counts.msg_group_id = umg.id`, "N").
-		Where("umg.is_deleted = ?", "N").  // 仅有效群组
-		Where("umgm.is_deleted = ?", "N"). // 仅有效用户-群组映射
+				) member_counts ON member_counts.msg_group_id = umg.id`, utils.DeletedFlagNo).
+		Where("umg.is_deleted = ?", utils.DeletedFlagNo).  // 仅有效群组
+		Where("umgm.is_deleted = ?", utils.DeletedFlagNo). // 仅有效用户-群组映射
 		Where("umgm.user_id = ?", userID)
 
 	// 根据typeCode动态拼接群组归属条件
 	switch typeCode {
 	case utils.TypeGroup:
 		// 群组消息(非全员消息)
-		query = query.Where("umg.include_all_user = ?", "N")
+		query = query.Where("umg.include_all_user = ?", utils.FlagNo)
 	case utils.TypeSystem:
 		// 系统消息(全员消息)
-		query = query.Where("umg.include_all_user = ?", "Y")
+		query = query.Where("umg.include_all_user = ?", utils.FlagYes)
 	default:
 		return nil, 0, utils.NewBusinessError(utils.ErrCodeParamInvalid, "消息类型参数不合法")
 	}
@@ -244,8 +244,8 @@ func (repo *MessageRepositoryImpl) ListMsgByGroups(ctx context.Context, page, pa
 		Joins("JOIN user_msg_group_mappings umgm ON umgm.msg_group_id = mgm.msg_group_id AND umgm.user_id = ?", userID).
 		Where("mgm.msg_group_id = ?", msgGroupID).
 		Where("m.id > umgm.join_msg_id").
-		Where("m.is_deleted = ?", "N").  // 只查询未删除的消息
-		Where("mgm.is_deleted = ?", "N") // 只查询未删除的组内消息
+		Where("m.is_deleted = ?", utils.DeletedFlagNo).  // 只查询未删除的消息
+		Where("mgm.is_deleted = ?", utils.DeletedFlagNo) // 只查询未删除的组内消息
 
 	// 按发送时间降序排列
 	query = query.Order("m.send_time DESC")
@@ -298,7 +298,7 @@ func (repo *MessageRepositoryImpl) GetLatestMsgIDInGroup(ctx context.Context, ms
 	err := repo.db.WithContext(ctx).
 		Table("message_group_mappings").
 		Select("COALESCE(MAX(message_id), 0) AS max_message_id").
-		Where("msg_group_id = ? AND is_deleted = ?", msgGroupID, "N").
+		Where("msg_group_id = ? AND is_deleted = ?", msgGroupID, utils.DeletedFlagNo).
 		Scan(&latestMsgID).Error
 
 	if err != nil {
@@ -314,7 +314,7 @@ func (repo *MessageRepositoryImpl) CheckUserMsgPermission(ctx context.Context, u
 	var count int64
 	err := repo.db.WithContext(ctx).
 		Table("user_message_groups").
-		Where("id = ? AND include_all_user = ? AND is_deleted = ?", msgGroupID, "Y", "N").
+		Where("id = ? AND include_all_user = ? AND is_deleted = ?", msgGroupID, utils.FlagYes, utils.DeletedFlagNo).
 		Count(&count).Error
 	if err != nil {
 		return utils.NewSystemError(fmt.Errorf("权限校验时数据库查询失败: %w", err))
@@ -340,7 +340,7 @@ func (repo *MessageRepositoryImpl) CheckUserMsgPermission(ctx context.Context, u
 	// 检查普通用户是否属于该消息组
 	err = repo.db.WithContext(ctx).
 		Table("user_msg_group_mappings").
-		Where("user_id = ? AND msg_group_id = ? AND is_deleted = ?", userID, msgGroupID, "N").
+		Where("user_id = ? AND msg_group_id = ? AND is_deleted = ?", userID, msgGroupID, utils.DeletedFlagNo).
 		Count(&count).Error
 
 	if err != nil {
@@ -388,7 +388,7 @@ func (repo *MessageRepositoryImpl) ListMessagesByGroupID(ctx context.Context, pa
 		Select("m.id, mgm.id AS map_id,m.title, m.content, m.send_time").
 		Joins("JOIN message_group_mappings mgm ON mgm.message_id = m.id").
 		Where("mgm.msg_group_id = ?", msgGroupID).
-		Where("m.is_deleted = ?", "N") // 只查询未删除的消息
+		Where("m.is_deleted = ?", utils.DeletedFlagNo) // 只查询未删除的消息
 
 	if queryScope != "" {
 		// 如果传入了查询范围，则添加查询条件

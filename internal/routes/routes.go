@@ -78,6 +78,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	msgRepo := msgrepo.NewMessageRepository(db)
 	eventRepo := eventrepo.NewEventRepository(db)
 	msgGroupRepo := msgrepo.NewMsgGroupRepository(db, msgRepo)
+	userRoleRepo := userrepo.NewUserRoleRepository(db)
 
 	// 初始化服务
 	articleService := articlesvc.NewArticleService(articleRepo, fileRepo)
@@ -89,6 +90,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	userService := usersvc.NewUserService(userRepo, msgGroupService, cfg)
 	industryService := usersvc.NewIndustryService(industryRepo)
 	eventService := eventsvc.NewEventService(eventRepo, userRepo, fileRepo, msgGroupService)
+	userRoleService := usersvc.NewUserRoleService(userRoleRepo)
 
 	// 初始化控制器
 	articleController := articlectr.NewArticleController(articleService)
@@ -100,6 +102,7 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 	msgController := msgctr.NewMessageController(msgService)
 	eventController := eventctr.NewEventController(eventService)
 	msgGroupController := msgctr.NewMsgGroupController(msgGroupService)
+	userRoleController := userctr.NewUserRoleController(userRoleService)
 
 	// API分组
 	api := router.Group("/api")
@@ -155,6 +158,10 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 				}
 				// 新增管理员接口
 				adminUser.POST("/createAdmin", middleware.RoleMiddleware(utils.RoleSuperAdmin), userController.CreateAdminUser)
+				// 禁用/启用管理员接口
+				adminUser.PUT("/updateStatus/:id", middleware.RoleMiddleware(utils.RoleSuperAdmin), userController.UpdateAdminStatus)
+				// 更新管理员信息
+				adminUser.PUT("/update/:id", middleware.RoleMiddleware(utils.RoleSuperAdmin), userController.UpdateAdminUser)
 			}
 		}
 		// 行业路由
@@ -174,6 +181,11 @@ func SetupRoutes(cfg *config.Config, router *gin.Engine) {
 					adminIndustry.PUT("/update/:id", industryController.UpdateIndustry)
 				}
 			}
+		}
+		// 用户角色路由
+		userRole := api.Group("/userRole")
+		{
+			userRole.GET("", middleware.RoleMiddleware(utils.RoleAdmin), userRoleController.List)
 		}
 		// 文件上传路由
 		file := api.Group("/file")

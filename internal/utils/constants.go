@@ -10,10 +10,15 @@ const (
 	TypeSystem        = "SYSTEM"  // 系统消息类型常量
 	QueryScopeAll     = "ALL"     // 查询范围常量，表示查询全部
 	QueryScopeDeleted = "DELETED" // 查询范围常量，表示查询
+	FlagYes           = "Y"
+	FlagNo            = "N"
 	// 角色常量
 	RoleUser       = "USER"       // 普通用户角色
 	RoleAdmin      = "ADMIN"      // 管理员角色
 	RoleSuperAdmin = "SUPERADMIN" // 超级管理员角色
+	// 用户状态常量
+	UserStatusEnabled  = 1 // 启用状态
+	UserStatusDisabled = 2 // 禁用状态
 )
 
 var QueryScopeList = []string{

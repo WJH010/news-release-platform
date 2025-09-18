@@ -256,7 +256,7 @@ func (svc *ArticleServiceImpl) DeleteArticle(ctx context.Context, articleID int,
 
 	// 软删除（更新is_deleted为Y，记录更新人）
 	updateFields := map[string]interface{}{
-		"is_deleted":  "Y",
+		"is_deleted":  utils.DeletedFlagYes,
 		"update_user": userID,
 	}
 	if err := svc.articleRepo.UpdateArticle(ctx, tx, articleID, updateFields); err != nil {

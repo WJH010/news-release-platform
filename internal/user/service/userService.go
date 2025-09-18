@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -37,9 +38,13 @@ type UserService interface {
 	GetUserByID(ctx context.Context, userID int) (*dto.UserInfoResponse, error)
 	ListAllUsers(ctx context.Context, page, pageSize int, req dto.ListUsersRequest) ([]*dto.ListUsersResponse, int64, error)
 	// CreateAdminUser 新增管理员
-	CreateAdminUser(ctx context.Context, req dto.CreateAdminRequest) error
+	CreateAdminUser(ctx context.Context, req dto.CreateAdminRequest, operator int) error
 	// BgLogin 后台登录
 	BgLogin(ctx context.Context, req dto.BgLoginRequest) (string, error)
+	// UpdateAdminUser 更新管理员
+	UpdateAdminUser(ctx context.Context, userID int, req dto.UpdateAdminRequest, operator int) error
+	// UpdateAdminStatus 更新管理员状态
+	UpdateAdminStatus(ctx context.Context, userID int, Operation string, operator int) error
 }
 
 // UserServiceImpl 用户服务实现
@@ -79,13 +84,13 @@ func (svc *UserServiceImpl) Login(ctx context.Context, code string) (string, err
 	// 查找或创建用户
 	userID, userRole, err := svc.findOrCreateUser(ctx, wxResp.OpenID, wxResp.SessionKey, wxResp.UnionID)
 	if err != nil {
-		return "", fmt.Errorf("处理用户信息失败: %v", err)
+		return "", err
 	}
 
 	// 生成登录状态 Token
 	token, err := svc.generateToken(wxResp.OpenID, userID, userRole)
 	if err != nil {
-		return "", fmt.Errorf("生成Token失败: %v", err)
+		return "", err
 	}
 
 	return token, nil
@@ -106,17 +111,17 @@ func (svc *UserServiceImpl) getFromWechat(code string) (WxLoginResponse, error) 
 	// 读取微信响应
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return wxResp, fmt.Errorf("读取微信响应失败: %v", err)
+		return wxResp, utils.NewSystemError(fmt.Errorf("读取微信响应失败: %v", err))
 	}
 
 	// 解析微信响应
 	err = json.Unmarshal(body, &wxResp)
 	if err != nil {
-		return wxResp, fmt.Errorf("解析微信响应失败: %v", err)
+		return wxResp, utils.NewSystemError(fmt.Errorf("解析微信响应失败: %v", err))
 	}
 
 	if wxResp.ErrCode != 0 {
-		return wxResp, fmt.Errorf("微信登录错误: %d - %s", wxResp.ErrCode, wxResp.ErrMsg)
+		return wxResp, utils.NewSystemError(fmt.Errorf("微信登录错误: %d - %s", wxResp.ErrCode, wxResp.ErrMsg))
 	}
 
 	return wxResp, nil
@@ -176,7 +181,11 @@ func (svc *UserServiceImpl) generateToken(openID string, userID int, userRole st
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// 签名令牌
-	return token.SignedString([]byte(svc.cfg.JWT.JwtSecret))
+	tokenStr, err := token.SignedString([]byte(svc.cfg.JWT.JwtSecret))
+	if err != nil {
+		return "", utils.NewSystemError(fmt.Errorf("生成Token失败: %w", err))
+	}
+	return tokenStr, nil
 }
 
 // UpdateUserInfo 更新用户信息
@@ -184,10 +193,10 @@ func (svc *UserServiceImpl) UpdateUserInfo(ctx context.Context, userID int, req 
 	// 查询用户是否存在
 	user, err := svc.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
-		return fmt.Errorf("查询用户失败: %v", err)
+		return err
 	}
 	if user == nil {
-		return fmt.Errorf("用户不存在")
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "用户不存在，请刷新后重试")
 	}
 
 	// 构建更新字段映射
@@ -226,7 +235,7 @@ func (svc *UserServiceImpl) UpdateUserInfo(ctx context.Context, userID int, req 
 	// 执行更新
 	if len(updateFields) > 0 {
 		if err := svc.userRepo.Update(ctx, userID, updateFields); err != nil {
-			return fmt.Errorf("更新用户信息失败: %v", err)
+			return err
 		}
 	}
 
@@ -237,10 +246,10 @@ func (svc *UserServiceImpl) GetUserByID(ctx context.Context, userID int) (*dto.U
 	// 查询用户信息
 	user, err := svc.userRepo.GetUserByID(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("查询用户失败: %v", err)
+		return nil, err
 	}
 	if user == nil {
-		return nil, fmt.Errorf("用户不存在")
+		return nil, utils.NewBusinessError(utils.ErrCodeResourceNotFound, "用户不存在，请刷新后重试")
 	}
 
 	return user, nil
@@ -252,7 +261,7 @@ func (svc *UserServiceImpl) ListAllUsers(ctx context.Context, page, pageSize int
 }
 
 // CreateAdminUser 新增管理员
-func (svc *UserServiceImpl) CreateAdminUser(ctx context.Context, req dto.CreateAdminRequest) error {
+func (svc *UserServiceImpl) CreateAdminUser(ctx context.Context, req dto.CreateAdminRequest, operator int) error {
 	var avatar string
 	if req.AvatarURL == "" {
 		avatar = "http://47.113.194.28:9000/news-platform/images/202508/1754126743005963551.webp"
@@ -263,7 +272,7 @@ func (svc *UserServiceImpl) CreateAdminUser(ctx context.Context, req dto.CreateA
 	// 对密码进行哈希处理
 	hashedPassword, err := hashPassword(req.Password)
 	if err != nil {
-		return utils.NewSystemError(fmt.Errorf("密码加密失败: %w", err))
+		return err
 	}
 
 	// 创建数据
@@ -276,10 +285,99 @@ func (svc *UserServiceImpl) CreateAdminUser(ctx context.Context, req dto.CreateA
 		Role:          req.Role,
 		Password:      hashedPassword,
 		LastLoginTime: time.Now(),
+		CreateUser:    operator,
+		UpdateUser:    operator,
 	}
 
 	if err := svc.userRepo.Create(ctx, user); err != nil {
 		return err
+	}
+	return nil
+}
+
+// UpdateAdminUser 更新管理员
+func (svc *UserServiceImpl) UpdateAdminUser(ctx context.Context, userID int, req dto.UpdateAdminRequest, operator int) error {
+	// 查询用户是否存在
+	user, err := svc.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "用户不存在，请刷新后重试")
+	}
+
+	// 构建更新字段映射
+	updateFields := make(map[string]interface{})
+	if req.Nickname != nil {
+		updateFields["nickname"] = *req.Nickname
+	}
+	if req.AvatarURL != nil {
+		updateFields["avatar_url"] = *req.AvatarURL
+	}
+	if req.Name != nil {
+		updateFields["name"] = *req.Name
+	}
+	if req.Role != nil {
+		updateFields["role"] = *req.Role
+	}
+	if req.Email != nil {
+		updateFields["email"] = *req.Email
+	}
+	if req.Password != nil {
+		// 密码需要哈希处理
+		hashedPassword, err := hashPassword(*req.Password)
+		if err != nil {
+			return err
+		}
+		updateFields["password"] = hashedPassword
+	}
+	updateFields["update_user"] = operator
+
+	// 执行更新
+	if len(updateFields) > 0 {
+		if err := svc.userRepo.Update(ctx, userID, updateFields); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// UpdateAdminStatus 禁用/启用管理员账号
+func (svc *UserServiceImpl) UpdateAdminStatus(ctx context.Context, userID int, Operation string, operator int) error {
+	// 查询用户是否存在
+	user, err := svc.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return utils.NewBusinessError(utils.ErrCodeResourceNotFound, "用户不存在，请刷新后重试")
+	}
+	if Operation == "DISABLE" {
+		if user.Status == utils.UserStatusDisabled {
+			return utils.NewBusinessError(utils.ErrCodeResourceConflict, "用户已被禁用，请勿重复操作")
+		}
+	} else if Operation == "ENABLE" {
+		if user.Status == utils.UserStatusEnabled {
+			return utils.NewBusinessError(utils.ErrCodeResourceConflict, "用户已被启用，请勿重复操作")
+		}
+	} else {
+		return utils.NewBusinessError(utils.ErrCodeParamInvalid, "操作类型错误")
+	}
+
+	// 构建更新字段映射
+	updateFields := make(map[string]any)
+	if Operation == "DISABLE" {
+		updateFields["status"] = utils.UserStatusDisabled
+	} else if Operation == "ENABLE" {
+		updateFields["status"] = utils.UserStatusEnabled
+	}
+	updateFields["update_user"] = operator
+
+	// 执行更新
+	if len(updateFields) > 0 {
+		if err := svc.userRepo.Update(ctx, userID, updateFields); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -290,7 +388,7 @@ func hashPassword(password string) (string, error) {
 	salt := make([]byte, argonSaltLen)
 	_, err := rand.Read(salt)
 	if err != nil {
-		return "", err
+		return "", utils.NewSystemError(fmt.Errorf("生成随机盐值失败: %w", err))
 	}
 
 	// 使用Argon2id变体进行哈希（推荐用于密码哈希）
@@ -323,16 +421,37 @@ func (svc *UserServiceImpl) BgLogin(ctx context.Context, req dto.BgLoginRequest)
 	// 验证密码
 	ok, err := verifyPassword(userInfo.Password, req.Password)
 	if err != nil {
-		return "", utils.NewSystemError(fmt.Errorf("验证密码失败: %w", err))
+		return "", err
 	}
 	if !ok {
 		return "", utils.NewBusinessError(utils.ErrCodeAuthFailed, "密码错误")
 	}
 
-	// 密码验证成功，生成JWT Token
+	// 检查用户状态
+	if userInfo.Status == utils.UserStatusDisabled {
+		return "", utils.NewBusinessError(utils.ErrCodeAuthFailed, "账号已被禁用，无法登录后台系统")
+	}
+
+	// 检查用户角色
+	if userInfo.Role != utils.RoleAdmin && userInfo.Role != utils.RoleSuperAdmin {
+		return "", utils.NewBusinessError(utils.ErrCodeAuthFailed, "非管理员角色，无法登录后台系统")
+	}
+
+	// 更新最后登录时间
+	updateFields := make(map[string]any)
+	updateFields["last_login_time"] = time.Now()
+	if len(updateFields) > 0 {
+		if err := svc.userRepo.Update(ctx, userInfo.UserID, updateFields); err != nil {
+			// return "", err
+			// 只记录日志，不影响登录成功
+			logrus.Errorf("更新用户[%d]最后登录时间失败: %v", userInfo.UserID, err)
+		}
+	}
+
+	// 登录成功，生成JWT Token
 	token, err := svc.generateToken(req.PhoneNumber, userInfo.UserID, userInfo.Role)
 	if err != nil {
-		return "", utils.NewSystemError(fmt.Errorf("生成Token失败: %w", err))
+		return "", err
 	}
 
 	return token, nil
@@ -344,24 +463,24 @@ func verifyPassword(encodedHash, password string) (bool, error) {
 	// 按 $ 分割字符串，得到各部分
 	parts := strings.Split(encodedHash, "$")
 	if len(parts) != 6 {
-		return false, fmt.Errorf("哈希格式错误")
+		return false, utils.NewSystemError(fmt.Errorf("哈希格式错误"))
 	}
 	// 验证算法是否为 argon2id
 	if parts[1] != "argon2id" {
-		return false, fmt.Errorf("不支持的算法: %s", parts[1])
+		return false, utils.NewSystemError(fmt.Errorf("不支持的算法: %s", parts[1]))
 	}
 
 	// 解析版本号（如 v=19）
 	var version int
 	if _, err := fmt.Sscanf(parts[2], "v=%d", &version); err != nil {
-		return false, fmt.Errorf("解析版本失败: %v", err)
+		return false, utils.NewSystemError(fmt.Errorf("解析版本失败: %v", err))
 	}
 
 	// 解析参数（m=内存, t=时间, p=并行度）
 	var memory, time uint32
 	var threads uint8
 	if _, err := fmt.Sscanf(parts[3], "m=%d,t=%d,p=%d", &memory, &time, &threads); err != nil {
-		return false, fmt.Errorf("解析参数失败: %v", err)
+		return false, utils.NewSystemError(fmt.Errorf("解析参数失败: %v", err))
 	}
 
 	// 提取盐值和哈希值（直接从分割结果中获取，避免解析错误）
@@ -371,12 +490,12 @@ func verifyPassword(encodedHash, password string) (bool, error) {
 	// 解码盐值和哈希值
 	saltBytes, err := base64.RawStdEncoding.DecodeString(saltStr)
 	if err != nil {
-		return false, err
+		return false, utils.NewSystemError(fmt.Errorf("解码盐值失败: %w", err))
 	}
 
 	hashBytes, err := base64.RawStdEncoding.DecodeString(hashStr)
 	if err != nil {
-		return false, err
+		return false, utils.NewSystemError(fmt.Errorf("解码哈希值失败: %w", err))
 	}
 
 	// 使用相同的参数计算输入密码的哈希
