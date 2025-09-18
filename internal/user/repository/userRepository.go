@@ -93,8 +93,9 @@ func (repo *UserRepositoryImpl) GetUserByID(ctx context.Context, userID int) (*d
 					'女'
 					ELSE
 					'未知'
-				END AS gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name`).
+				END AS gender, u.phone_number, u.email, u.unit, u.department, u.position, u.industry, i.industry_name, u.role, ur.role_name`).
 		Joins("LEFT JOIN industries i ON u.industry = i.industry_code").
+		Joins("LEFT JOIN user_role ur ON ur.role_code = u.role").
 		Where("user_id = ?", userID).First(&user)
 
 	if result.Error != nil {

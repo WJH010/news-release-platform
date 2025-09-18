@@ -37,6 +37,8 @@ type UserInfoResponse struct {
 	Position     string `json:"position"`
 	Industry     string `json:"industry"`
 	IndustryName string `json:"industry_name"`
+	Role         string `json:"role"`
+	RoleName     string `json:"role_name"`
 }
 
 type ListUsersRequest struct {
