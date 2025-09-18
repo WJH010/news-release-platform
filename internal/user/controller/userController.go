@@ -178,3 +178,31 @@ func (ctr *UserController) CreateAdminUser(ctx *gin.Context) {
 		"message": "新增管理员成功",
 	})
 }
+
+// UpdateAdminUser 更新管理员
+func (ctr *UserController) UpdateAdminUser(ctx *gin.Context) {
+	// 从路径参数获取userID
+	var urlReq dto.UserIDRequest
+	if !utils.BindUrl(ctx, &urlReq) {
+		return
+	}
+
+	// 绑定并验证请求参数
+	var req dto.UpdateAdminRequest
+	if !utils.BindJSON(ctx, &req) {
+		return
+	}
+
+	// 调用服务更新管理员
+	err := ctr.userService.UpdateAdminUser(ctx, urlReq.UserID, req)
+	// 处理异常
+	if err != nil {
+		utils.WrapErrorHandler(ctx, err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"code":    200,
+		"message": "更新管理员成功",
+	})
+}

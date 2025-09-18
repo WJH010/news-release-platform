@@ -9,6 +9,10 @@ type BgLoginRequest struct {
 	Password    string `json:"password" binding:"required"`
 }
 
+type UserIDRequest struct {
+	UserID int `uri:"user_id" binding:"required"`
+}
+
 // UserUpdateRequest 用户信息更新请求
 type UserUpdateRequest struct {
 	Nickname    *string `json:"nickname" binding:"omitempty,nickname"`
@@ -78,4 +82,13 @@ type CreateAdminRequest struct {
 	Password    string `json:"password" binding:"required"`
 	Email       string `json:"email" binding:"omitempty,email"`
 	Role        string `json:"role" binding:"required,oneof=ADMIN SUPERADMIN"` // ADMIN：管理员，SUPERADMIN：超级管理员
+}
+
+type UpdateAdminRequest struct {
+	Nickname  *string `json:"nickname" binding:"omitempty,nickname"`
+	Name      *string `json:"name" binding:"omitempty,real_name"`
+	AvatarURL *string `json:"avatar_url" binding:"omitempty,url"`
+	Password  *string `json:"password" binding:"omitempty"`
+	Email     *string `json:"email" binding:"omitempty,email"`
+	Role      *string `json:"role" binding:"omitempty,oneof=ADMIN SUPERADMIN"` // ADMIN：管理员，SUPERADMIN：超级管理员
 }
